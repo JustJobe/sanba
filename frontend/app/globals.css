@@ -1,0 +1,107 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  /* Earthy Modern Palette */
+  --primary: #57534E;
+  /* Stone 600 */
+  --primary-foreground: #FAFAF9;
+  /* Stone 50 */
+  --secondary: #D6D3D1;
+  /* Stone 300 */
+  --accent: #D97706;
+  /* Amber 600 */
+  --accent-foreground: #292524;
+  /* Warm Stone 800 */
+  --background: #FDFBF7;
+  /* Warm Cream */
+  --foreground: #292524;
+  /* Warm Stone 800 */
+  --destructive: #EF4444;
+  /* Red 500 */
+  --destructive-foreground: #FAFAF9;
+  /* Stone 50 */
+
+  --brutalist-border: 1px solid #292524;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --font-syne: var(--font-syne);
+  --font-mono: var(--font-space-mono);
+  --font-cormorant: var(--font-cormorant);
+}
+
+.dark {
+  --background: #1C1917;
+  /* Stone 950 */
+  --foreground: #FAFAF9;
+  /* Stone 50 */
+  /* Stone 50 */
+  --primary: #A8A29E;
+  /* Stone 400 */
+  --primary-foreground: #292524;
+  /* Warm Stone 800 */
+  --secondary: #44403C;
+  /* Stone 700 */
+  --accent: #F59E0B;
+  /* Amber 500 */
+  --accent-foreground: #292524;
+  /* Warm Stone 800 */
+  --destructive: #991B1B;
+  /* Red 800 */
+  --destructive-foreground: #FAFAF9;
+  /* Stone 50 */
+  --brutalist-border: 1px solid #FAFAF9;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-mono);
+  /* Default to Space Mono for raw feel */
+}
+
+/* Utilities for Unique Design */
+.brutalist-shadow {
+  box-shadow: 4px 4px 0px 0px currentColor;
+}
+
+.brutalist-border {
+  border: var(--brutalist-border);
+}
+
+.text-syne {
+  font-family: var(--font-syne);
+}
+
+.text-cormorant {
+  font-family: var(--font-cormorant);
+}
+
+.frosted-glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px) contrast(120%) brightness(110%);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border: 1px solid var(--background);
+}

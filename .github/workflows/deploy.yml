@@ -1,0 +1,44 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to DigitalOcean
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: SSH and deploy
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd /root/sanba
+            git pull origin main
+
+            # Detect what changed (fallback to rebuilding both on first run)
+            if git rev-parse HEAD~1 >/dev/null 2>&1; then
+              CHANGED=$(git diff --name-only HEAD~1 HEAD)
+            else
+              CHANGED="backend/ frontend/"
+            fi
+
+            if echo "$CHANGED" | grep -q "^backend/"; then
+              echo "Backend changed — rebuilding..."
+              docker compose build backend
+              docker compose up -d backend
+            fi
+
+            if echo "$CHANGED" | grep -q "^frontend/"; then
+              echo "Frontend changed — rebuilding..."
+              docker compose build frontend
+              docker compose up -d frontend
+            fi
+
+            docker compose ps

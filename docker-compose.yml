@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  backend:
+    build: ./backend
+    container_name: sanba-backend
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/thepurplebox.db:/app/thepurplebox.db
+    env_file:
+      - .env
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # REPLACE THIS WITH YOUR ACTUAL DOMAIN WHEN DEPLOYING
+        # e.g., https://sanba.mfn.fishing.net.my/api/v1
+        NEXT_PUBLIC_API_URL: https://sanba.my/api/v1
+    container_name: sanba-frontend
+    ports:
+      - "3000:3000"
+    restart: always
+    depends_on:
+      - backend

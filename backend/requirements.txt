@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+python-multipart
+opencv-python
+pytest
+httpx
+python-multipart
+sqlalchemy
+python-jose[cryptography]
+passlib[bcrypt]
+pydantic[email]
+email-validator
+mailjet-rest
+Authlib
+itsdangerous
+httpx
