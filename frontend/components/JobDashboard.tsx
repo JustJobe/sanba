@@ -145,17 +145,33 @@ export default function JobDashboard() {
                     >
                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                             <div className="flex items-start gap-4">
-                                <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 border border-foreground bg-foreground/5 flex items-center justify-center overflow-hidden">
-                                    {job.files.length > 0 ? (
-                                        <img
-                                            src={getFileUrl(job.files[0])}
-                                            alt="Thumbnail"
-                                            className="w-full h-full object-cover opacity-80"
-                                        />
-                                    ) : (
-                                        <ImageIcon className="w-8 h-8 text-foreground/20" />
-                                    )}
-                                </div>
+                                {job.files.length > 1 ? (
+                                    /* Stacked thumbnail for batch jobs */
+                                    <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0">
+                                        {job.files[2] && (
+                                            <div className="absolute top-[8px] left-[8px] w-16 h-16 sm:w-20 sm:h-20 border border-foreground bg-foreground/5 overflow-hidden opacity-30">
+                                                <img src={getFileUrl(job.files[2])} className="w-full h-full object-cover" />
+                                            </div>
+                                        )}
+                                        {job.files[1] && (
+                                            <div className="absolute top-[4px] left-[4px] w-16 h-16 sm:w-20 sm:h-20 border border-foreground bg-foreground/5 overflow-hidden opacity-60">
+                                                <img src={getFileUrl(job.files[1])} className="w-full h-full object-cover" />
+                                            </div>
+                                        )}
+                                        <div className="absolute top-0 left-0 w-16 h-16 sm:w-20 sm:h-20 border border-foreground bg-foreground/5 overflow-hidden">
+                                            <img src={getFileUrl(job.files[0])} className="w-full h-full object-cover opacity-80" />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    /* Single thumbnail */
+                                    <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 border border-foreground bg-foreground/5 flex items-center justify-center overflow-hidden">
+                                        {job.files.length > 0 ? (
+                                            <img src={getFileUrl(job.files[0])} alt="Thumbnail" className="w-full h-full object-cover opacity-80" />
+                                        ) : (
+                                            <ImageIcon className="w-8 h-8 text-foreground/20" />
+                                        )}
+                                    </div>
+                                )}
                                 <div>
                                     <div className="flex items-center gap-3 mb-2">
                                         <span className="font-mono font-bold text-lg">Job #{job.id.slice(0, 8)}</span>
@@ -204,7 +220,7 @@ export default function JobDashboard() {
 
                                 {job.status === 'completed' && (
                                     <div className="flex items-center gap-2">
-                                        {job.processed_files?.length > 0 && (
+                                        {job.processed_files?.length > 0 && job.files.length === 1 && (
                                             <button
                                                 onClick={() => setComparingFiles({
                                                     before: getFileUrl(job.files[0]),
