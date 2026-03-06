@@ -228,6 +228,28 @@ export default function JobDashboard() {
                                     </button>
                                 )}
 
+                                {job.status === 'completed' && job.files.length > 1 && (
+                                    <div
+                                        className="relative w-14 h-14 cursor-pointer group/stack"
+                                        onClick={() => toggleExpand(job.id)}
+                                        title={expandedJobs.has(job.id) ? 'Hide files' : `Show all ${job.files.length} files`}
+                                    >
+                                        {(job.processed_files?.[2] ?? job.files[2]) && (
+                                            <div className="absolute top-[6px] left-[6px] w-10 h-10 border border-foreground bg-foreground/5 overflow-hidden opacity-30">
+                                                <img src={getFileUrl(job.processed_files?.[2] ?? job.files[2])} className="w-full h-full object-cover" />
+                                            </div>
+                                        )}
+                                        {(job.processed_files?.[1] ?? job.files[1]) && (
+                                            <div className="absolute top-[3px] left-[3px] w-10 h-10 border border-foreground bg-foreground/5 overflow-hidden opacity-60">
+                                                <img src={getFileUrl(job.processed_files?.[1] ?? job.files[1])} className="w-full h-full object-cover" />
+                                            </div>
+                                        )}
+                                        <div className="absolute top-0 left-0 w-10 h-10 border border-foreground bg-foreground/5 overflow-hidden group-hover/stack:border-primary transition-colors">
+                                            <img src={getFileUrl(job.processed_files?.[0] ?? job.files[0])} className="w-full h-full object-cover" />
+                                        </div>
+                                    </div>
+                                )}
+
                                 {job.status === 'completed' && job.files.length === 1 && !expandedJobs.has(job.id) && (
                                     <div className="flex items-center gap-2">
                                         {job.files[0] && (
