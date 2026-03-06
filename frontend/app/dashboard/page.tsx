@@ -297,7 +297,7 @@ export default function DashboardPage() {
                     <div className="mt-4 pt-4 border-t border-white/10">
                       <button
                         onClick={() => toggleExpand(job.id)}
-                        className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-white/40 hover:text-white transition-colors ml-auto"
+                        className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-white/40 hover:text-white transition-colors"
                       >
                         {expandedJobs.has(job.id) ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                         {expandedJobs.has(job.id) ? 'Hide files' : `Show all ${job.files.length} files`}
