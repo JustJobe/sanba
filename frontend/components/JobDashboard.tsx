@@ -218,7 +218,36 @@ export default function JobDashboard() {
                                     </button>
                                 )}
 
-                                {job.status === 'completed' && (
+                                {job.status === 'completed' && job.files.length > 1 ? (
+                                    <div className="flex flex-col items-center gap-2">
+                                        <button
+                                            onClick={() => handleDownloadZip(job.id)}
+                                            className="flex items-center gap-2 px-4 py-2 bg-background border border-foreground hover:bg-foreground hover:text-background text-xs font-mono uppercase tracking-widest transition-colors"
+                                        >
+                                            <Download className="w-4 h-4" />
+                                            <span className="hidden sm:inline">Download</span> ZIP
+                                        </button>
+                                        <div
+                                            className="relative w-16 h-16 cursor-pointer group/stack mt-1"
+                                            onClick={() => toggleExpand(job.id)}
+                                            title={expandedJobs.has(job.id) ? 'Hide files' : `Show all ${job.files.length} files`}
+                                        >
+                                            {(job.processed_files?.[2] ?? job.files[2]) && (
+                                                <div className="absolute top-[7px] left-[7px] w-12 h-12 border border-foreground bg-foreground/5 overflow-hidden opacity-30">
+                                                    <img src={getFileUrl(job.processed_files?.[2] ?? job.files[2])} className="w-full h-full object-cover" />
+                                                </div>
+                                            )}
+                                            {(job.processed_files?.[1] ?? job.files[1]) && (
+                                                <div className="absolute top-[3px] left-[3px] w-12 h-12 border border-foreground bg-foreground/5 overflow-hidden opacity-60">
+                                                    <img src={getFileUrl(job.processed_files?.[1] ?? job.files[1])} className="w-full h-full object-cover" />
+                                                </div>
+                                            )}
+                                            <div className="absolute top-0 left-0 w-12 h-12 border border-foreground bg-foreground/5 overflow-hidden group-hover/stack:border-primary transition-colors">
+                                                <img src={getFileUrl(job.processed_files?.[0] ?? job.files[0])} className="w-full h-full object-cover" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : job.status === 'completed' && (
                                     <button
                                         onClick={() => handleDownloadZip(job.id)}
                                         className="flex items-center gap-2 px-4 py-2 bg-background border border-foreground hover:bg-foreground hover:text-background text-xs font-mono uppercase tracking-widest transition-colors"
@@ -226,28 +255,6 @@ export default function JobDashboard() {
                                         <Download className="w-4 h-4" />
                                         <span className="hidden sm:inline">Download</span> ZIP
                                     </button>
-                                )}
-
-                                {job.status === 'completed' && job.files.length > 1 && (
-                                    <div
-                                        className="relative w-14 h-14 cursor-pointer group/stack"
-                                        onClick={() => toggleExpand(job.id)}
-                                        title={expandedJobs.has(job.id) ? 'Hide files' : `Show all ${job.files.length} files`}
-                                    >
-                                        {(job.processed_files?.[2] ?? job.files[2]) && (
-                                            <div className="absolute top-[6px] left-[6px] w-10 h-10 border border-foreground bg-foreground/5 overflow-hidden opacity-30">
-                                                <img src={getFileUrl(job.processed_files?.[2] ?? job.files[2])} className="w-full h-full object-cover" />
-                                            </div>
-                                        )}
-                                        {(job.processed_files?.[1] ?? job.files[1]) && (
-                                            <div className="absolute top-[3px] left-[3px] w-10 h-10 border border-foreground bg-foreground/5 overflow-hidden opacity-60">
-                                                <img src={getFileUrl(job.processed_files?.[1] ?? job.files[1])} className="w-full h-full object-cover" />
-                                            </div>
-                                        )}
-                                        <div className="absolute top-0 left-0 w-10 h-10 border border-foreground bg-foreground/5 overflow-hidden group-hover/stack:border-primary transition-colors">
-                                            <img src={getFileUrl(job.processed_files?.[0] ?? job.files[0])} className="w-full h-full object-cover" />
-                                        </div>
-                                    </div>
                                 )}
 
                                 {job.status === 'completed' && job.files.length === 1 && !expandedJobs.has(job.id) && (
@@ -331,9 +338,13 @@ export default function JobDashboard() {
                                                             href={getFileUrl(file)}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className="relative block w-10 h-10 border border-foreground/20 opacity-60 hover:opacity-100 transition-all"
+                                                            className="group/thumb relative block w-10 h-10 border border-foreground/20 overflow-hidden hover:scale-105 transition-transform"
+                                                            title="View Original"
                                                         >
                                                             <img src={getFileUrl(file)} className="w-full h-full object-cover" />
+                                                            <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover/thumb:opacity-100 transition-opacity">
+                                                                <span className="text-[8px] text-white font-mono uppercase">Orig</span>
+                                                            </div>
                                                         </a>
                                                         {processed && (
                                                             <>
