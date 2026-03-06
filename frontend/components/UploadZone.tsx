@@ -5,6 +5,8 @@ import { Upload, File, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../lib/api';
 
+const MAX_FILES = 50;
+
 export default function UploadZone() {
     const [isDragging, setIsDragging] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -33,13 +35,24 @@ export default function UploadZone() {
                 alert("Please select if the photo is Color or B&W first!");
                 return;
             }
+            if (files.length > MAX_FILES) {
+                setStatus('error');
+                setMessage(`Too many files. Maximum ${MAX_FILES} files per batch.`);
+                return;
+            }
             await uploadFiles(files);
         }
     }, [photoType]);
 
     const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
-            await uploadFiles(Array.from(e.target.files));
+            const files = Array.from(e.target.files);
+            if (files.length > MAX_FILES) {
+                setStatus('error');
+                setMessage(`Too many files. Maximum ${MAX_FILES} files per batch.`);
+                return;
+            }
+            await uploadFiles(files);
         }
     };
 
@@ -156,9 +169,10 @@ export default function UploadZone() {
                                 >
                                     <Upload className="w-12 h-12 text-foreground/40 mb-4" />
                                     <p className="font-syne font-bold text-lg mb-1">
-                                        Drop File Here
+                                        Drop Files Here
                                     </p>
-                                    <p className="font-mono text-xs text-foreground/40 mb-6">or</p>
+                                    <p className="font-mono text-xs text-foreground/40 mb-1">or</p>
+                                    <p className="font-mono text-[10px] text-foreground/30 mb-5 uppercase tracking-widest">Up to {MAX_FILES} files per batch</p>
 
                                     <label className="relative px-8 py-3 bg-foreground text-background hover:bg-primary transition-colors cursor-pointer font-mono uppercase text-xs tracking-widest">
                                         <span>Browse Files</span>

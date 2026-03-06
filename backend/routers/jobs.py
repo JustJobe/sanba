@@ -24,13 +24,21 @@ router = APIRouter(prefix="/jobs", tags=["jobs"])
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+MAX_FILES_PER_BATCH = 50
+
 @router.post("/upload", response_model=JobSchema)
 async def upload_files(
-    files: List[UploadFile] = File(...), 
+    files: List[UploadFile] = File(...),
     photo_type: str = Form("color"),
     db: Session = Depends(get_db),
     current_user: user.User = Depends(get_current_user)
 ):
+    if len(files) > MAX_FILES_PER_BATCH:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Too many files. Maximum {MAX_FILES_PER_BATCH} files per batch."
+        )
+
     job_id = str(uuid4())
     job_dir = os.path.join(UPLOAD_DIR, job_id, "original")
     os.makedirs(job_dir, exist_ok=True)
