@@ -219,8 +219,46 @@ export default function JobDashboard() {
                                 )}
 
                                 {job.status === 'completed' && (
+                                    <button
+                                        onClick={() => handleDownloadZip(job.id)}
+                                        className="flex items-center gap-2 px-4 py-2 bg-background border border-foreground hover:bg-foreground hover:text-background text-xs font-mono uppercase tracking-widest transition-colors"
+                                    >
+                                        <Download className="w-4 h-4" />
+                                        <span className="hidden sm:inline">Download</span> ZIP
+                                    </button>
+                                )}
+
+                                {job.status === 'completed' && job.files.length === 1 && !expandedJobs.has(job.id) && (
                                     <div className="flex items-center gap-2">
-                                        {job.processed_files?.length > 0 && job.files.length === 1 && (
+                                        {job.files[0] && (
+                                            <a
+                                                href={getFileUrl(job.files[0])}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="group/thumb relative block w-12 h-12 border border-foreground overflow-hidden hover:scale-105 transition-transform"
+                                                title="View Original"
+                                            >
+                                                <img src={getFileUrl(job.files[0])} alt="Original" className="w-full h-full object-cover" />
+                                                <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover/thumb:opacity-100 transition-opacity">
+                                                    <span className="text-[8px] text-white font-mono uppercase">Orig</span>
+                                                </div>
+                                            </a>
+                                        )}
+                                        {job.processed_files?.[0] && (
+                                            <a
+                                                href={getFileUrl(job.processed_files[0])}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="group/thumb relative block w-12 h-12 border border-foreground overflow-hidden hover:scale-105 transition-transform"
+                                                title="View Restored"
+                                            >
+                                                <img src={getFileUrl(job.processed_files[0])} alt="Restored" className="w-full h-full object-cover" />
+                                                <div className="absolute inset-0 flex items-center justify-center bg-primary/20 opacity-0 group-hover/thumb:opacity-100 transition-opacity">
+                                                    <Download className="w-4 h-4 text-white drop-shadow-md" />
+                                                </div>
+                                            </a>
+                                        )}
+                                        {job.processed_files?.[0] && (
                                             <button
                                                 onClick={() => setComparingFiles({
                                                     before: getFileUrl(job.files[0]),
@@ -231,55 +269,6 @@ export default function JobDashboard() {
                                             >
                                                 <ScanLine className="w-4 h-4" />
                                             </button>
-                                        )}
-                                        <button
-                                            onClick={() => handleDownloadZip(job.id)}
-                                            className="flex items-center gap-2 px-4 py-2 bg-background border border-foreground hover:bg-foreground hover:text-background text-xs font-mono uppercase tracking-widest transition-colors"
-                                        >
-                                            <Download className="w-4 h-4" />
-                                            <span className="hidden sm:inline">Download</span> ZIP
-                                        </button>
-                                    </div>
-                                )}
-
-                                {job.status === 'completed' && !expandedJobs.has(job.id) && (
-                                    <div className="flex items-center gap-3">
-                                        {job.files && job.files.length > 0 && (
-                                            <a
-                                                href={getFileUrl(job.files[0])}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="group/thumb relative block w-12 h-12 border border-foreground overflow-hidden hover:scale-105 transition-transform"
-                                                title="View Original"
-                                            >
-                                                <img
-                                                    src={getFileUrl(job.files[0])}
-                                                    alt="Original"
-                                                    className="w-full h-full object-cover"
-                                                />
-                                                <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover/thumb:opacity-100 transition-opacity">
-                                                    <span className="text-[8px] text-white font-mono uppercase">Orig</span>
-                                                </div>
-                                            </a>
-                                        )}
-
-                                        {job.processed_files && job.processed_files.length > 0 && (
-                                            <a
-                                                href={getFileUrl(job.processed_files[0])}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="group/thumb relative block w-12 h-12 border border-foreground overflow-hidden hover:scale-105 transition-transform"
-                                                title="View Restored"
-                                            >
-                                                <img
-                                                    src={getFileUrl(job.processed_files[0])}
-                                                    alt="Restored"
-                                                    className="w-full h-full object-cover"
-                                                />
-                                                <div className="absolute inset-0 flex items-center justify-center bg-primary/20 opacity-0 group-hover/thumb:opacity-100 transition-opacity">
-                                                    <Download className="w-4 h-4 text-white drop-shadow-md" />
-                                                </div>
-                                            </a>
                                         )}
                                     </div>
                                 )}
@@ -320,7 +309,7 @@ export default function JobDashboard() {
                                                             href={getFileUrl(file)}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className="relative block w-10 h-10 border border-foreground/20 grayscale opacity-60 hover:opacity-100 transition-all"
+                                                            className="relative block w-10 h-10 border border-foreground/20 opacity-60 hover:opacity-100 transition-all"
                                                         >
                                                             <img src={getFileUrl(file)} className="w-full h-full object-cover" />
                                                         </a>
