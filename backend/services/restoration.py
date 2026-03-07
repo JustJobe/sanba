@@ -410,8 +410,8 @@ def _process_sync(image_path: str, output_path: str, operation: str, photo_type:
             # L-only denoise + gentle chroma smooth
             # processed = denoise_color_lab(img, h_L=hL, chroma_smooth=0.7)
 
-            # Scratches (optional; keep after denoise so mask is cleaner)
-            processed = remove_scratches(processed)
+            # Scratches — disabled: misfires on clean photos, produces smearing
+            # processed = remove_scratches(processed)
 
             # Color balance + tone, reduced strength to avoid "filtered" look
             processed = apply_automatic_color_balance(processed, strength=0.65)
