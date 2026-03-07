@@ -29,7 +29,7 @@ MAX_FILES_PER_BATCH = 50
 @router.post("/upload", response_model=JobSchema)
 async def upload_files(
     files: List[UploadFile] = File(...),
-    photo_type: str = Form("color"),
+    photo_type: str = Form("auto"),
     db: Session = Depends(get_db),
     current_user: user.User = Depends(get_current_user)
 ):

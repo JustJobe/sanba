@@ -39,6 +39,19 @@ def clamp(v, lo, hi):
     return max(lo, min(hi, v))
 
 
+def detect_photo_type(img: np.ndarray) -> str:
+    """
+    Classifies a loaded BGR image as 'bw' or 'color' using HSV saturation.
+    Pure grayscale = 0, sepia/warm faded ~ 20-50, colour typically > 30.
+    Threshold of 15 catches pure gray, faded/near-mono scans, and JPEG
+    chroma-noisy grayscale files without misclassifying sepia originals.
+    Runs in ~0.5-1ms since the image is already in memory.
+    """
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    mean_saturation = float(np.mean(hsv[:, :, 1]))
+    return 'bw' if mean_saturation < 15 else 'color'
+
+
 # -----------------------------
 # New: B&W speckle (dust) removal
 # -----------------------------
@@ -271,6 +284,10 @@ def _process_sync(image_path: str, output_path: str, operation: str, photo_type:
     img = cv2.imread(image_path)
     if img is None:
         raise ValueError(f"Could not read image from {image_path}")
+
+    if photo_type == "auto":
+        photo_type = detect_photo_type(img)
+        logger.info(f"Auto-detected photo_type='{photo_type}' for {os.path.basename(image_path)}")
 
     processed = img
 
