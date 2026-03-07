@@ -390,21 +390,27 @@ export default function JobDashboard() {
 
             {/* Comparison Modal */}
             {comparingFiles && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
-                    <div className="w-full max-w-4xl flex flex-col gap-4">
-                        <div className="flex justify-between items-center text-white">
-                            <h3 className="font-syne font-bold text-xl flex items-center gap-2">
-                                <ScanLine className="w-5 h-5 text-white/60" />
-                                Comparison View
-                            </h3>
-                            <button
-                                onClick={() => setComparingFiles(null)}
-                                className="p-2 hover:bg-white/10 rounded-full transition-colors"
-                            >
-                                <X className="w-6 h-6" />
-                            </button>
-                        </div>
-                        <div className="border border-white/20 rounded-2xl overflow-hidden shadow-2xl">
+                <div
+                    className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-black/90 backdrop-blur-md p-4"
+                    onClick={() => setComparingFiles(null)}
+                >
+                    {/* X — pinned to viewport corner, always reachable */}
+                    <button
+                        onClick={() => setComparingFiles(null)}
+                        className="fixed top-4 right-4 z-[110] p-2 bg-black/60 hover:bg-white/20 rounded-full transition-colors"
+                    >
+                        <X className="w-6 h-6 text-white" />
+                    </button>
+
+                    <div
+                        className="w-full max-w-4xl flex flex-col gap-4 my-auto py-12"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <h3 className="font-syne font-bold text-xl flex items-center gap-2 text-white">
+                            <ScanLine className="w-5 h-5 text-white/60" />
+                            Comparison View
+                        </h3>
+                        <div className="border border-white/20 rounded-2xl overflow-hidden shadow-2xl max-h-[72vh]">
                             <ComparisonSlider before={comparingFiles.before} after={comparingFiles.after} />
                         </div>
                         <p className="text-center text-xs font-mono text-white/40 uppercase tracking-widest">Drag slider to compare</p>
