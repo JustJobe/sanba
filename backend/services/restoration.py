@@ -41,62 +41,69 @@ def clamp(v, lo, hi):
 
 def detect_photo_type(img: np.ndarray) -> str:
     """
-    Classifies a loaded BGR image as 'bw' or 'color' using three stages:
+    Classifies a loaded BGR image as 'bw' or 'color' using three zones:
 
-    Stage 1: Mean HSV saturation fast-path — near-pure grayscale (< 8) → bw immediately.
-             True B&W scans land here regardless of scene content (gray pixels have no chroma).
+    Zone 1 (fast path): mean HSV saturation < 8 → bw immediately.
+        Pure grayscale scans land here with no further work.
 
-    Stage 2: Inter-channel Pearson correlation on 128x128 downsample.
-             Color-cast mono: all channels track same luminance → min_corr ≈ 0.96–1.0.
-             True color: channels carry independent info → min_corr typically < 0.95.
+    Zone 2 (correlation): inter-channel Pearson correlation on 128×128 downsample.
+        min_corr > 0.99 → clearly mono (B&W+cast, high corr because R≈G≈B∝L) → bw
+        min_corr < 0.93 → clearly color (independent channel content) → color
 
-    Stage 3: Hue diversity among chroma-rich pixels (saturation > 30) only.
-             Operates on pixel values, not image content — a B&W scan of people and foliage
-             still has near-gray pixels that are excluded by the saturation mask.
-             Uniform color cast → narrow hue → low diversity.
-             Real color photo → multiple distinct hues → high diversity.
+    Zone 3 (ambiguous 0.93–0.99): spatial chromaticity variance across 4×4 patches.
+        Divide the 128×128 into 16 non-overlapping 32×32 patches and compute R and B
+        chromaticity (channel fraction of total brightness) per patch.
+        Uniform color cast → same ratio in every patch → low std → bw
+        Real color photo → spatially varying dominant colors → high std → color
+        Threshold: chroma_var < 0.04 → bw, else color.
 
-    Classified as bw only if BOTH correlation is high AND hue is narrow.
-    ~3-5ms total, no extra I/O since image is already in memory.
+        Patch-level averaging eliminates per-pixel JPEG chroma subsampling noise
+        (4:2:0 artifacts that corrupted the previous hue-diversity approach).
+
+    ~3–5 ms total; no extra I/O (image already in memory).
     """
     small = cv2.resize(img, (128, 128))
     hsv = cv2.cvtColor(small, cv2.COLOR_BGR2HSV)
     mean_sat = float(np.mean(hsv[:, :, 1]))
 
-    # Stage 1: fast path for near-pure grayscale
+    # Zone 1: near-pure grayscale fast path
     if mean_sat < 8:
         logger.info(f"Photo type detection — mean_sat: {mean_sat:.1f} → bw (fast path)")
         return 'bw'
 
-    # Stage 2: inter-channel correlation
-    b = small[:, :, 0].flatten().astype(np.float64)
-    g = small[:, :, 1].flatten().astype(np.float64)
-    r = small[:, :, 2].flatten().astype(np.float64)
+    # Zone 2: inter-channel Pearson correlation
+    flat = small.reshape(-1, 3).astype(np.float64)
+    b, g, r = flat[:, 0], flat[:, 1], flat[:, 2]
     min_corr = min(
         np.corrcoef(b, g)[0, 1],
         np.corrcoef(b, r)[0, 1],
         np.corrcoef(g, r)[0, 1],
     )
 
-    # Stage 3: circular std of hue on chroma-rich pixels only
-    # Uniform cast → narrow hue → hue_diversity near 0
-    # True colour photo → multiple hues → hue_diversity high
-    # B&W photo → almost no pixels pass sat > 30 → defaults to 0
-    sat_mask = hsv[:, :, 1] > 30
-    if sat_mask.sum() > 100:
-        hue = small[:, :, 0][sat_mask].astype(np.float32)
-        angles = hue * (np.pi / 90.0)          # 0-179 → 0-2π (handles wraparound)
-        R = np.sqrt(np.mean(np.cos(angles)) ** 2 + np.mean(np.sin(angles)) ** 2)
-        hue_diversity = np.sqrt(-2 * np.log(R + 1e-10)) * (90.0 / np.pi)
-    else:
-        hue_diversity = 0.0     # too few chroma pixels → treat as uniform/mono
+    if min_corr > 0.99:
+        logger.info(f"Photo type detection — mean_sat: {mean_sat:.1f}, min_corr: {min_corr:.4f} → bw (clear mono)")
+        return 'bw'
 
-    # bw only if BOTH gates pass
-    is_bw = (min_corr > 0.96) and (hue_diversity < 20)
-    result = 'bw' if is_bw else 'color'
+    if min_corr < 0.93:
+        logger.info(f"Photo type detection — mean_sat: {mean_sat:.1f}, min_corr: {min_corr:.4f} → color (clear color)")
+        return 'color'
+
+    # Zone 3: ambiguous (0.93–0.99) — spatial chromaticity variance across 4×4 patches.
+    # Uniform cast: same R/B fraction in every patch → low std.
+    # Real color: different patches have different dominant colors → high std.
+    patches_r, patches_b = [], []
+    for i in range(4):
+        for j in range(4):
+            patch = small[i*32:(i+1)*32, j*32:(j+1)*32].astype(np.float64)
+            total = patch.mean(axis=(0, 1)).sum() + 1e-6
+            patches_r.append(patch[:, :, 2].mean() / total)   # R chromaticity
+            patches_b.append(patch[:, :, 0].mean() / total)   # B chromaticity
+    chroma_var = max(float(np.std(patches_r)), float(np.std(patches_b)))
+
+    result = 'bw' if chroma_var < 0.04 else 'color'
     logger.info(
         f"Photo type detection — mean_sat: {mean_sat:.1f}, min_corr: {min_corr:.4f}, "
-        f"hue_diversity: {hue_diversity:.1f} → {result}"
+        f"chroma_var: {chroma_var:.4f} → {result}"
     )
     return result
 
