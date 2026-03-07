@@ -118,7 +118,23 @@ def get_reports_summary(
     total_jobs = db.query(Job).filter(Job.created_at >= start_date, Job.created_at <= end_date).count()
     completed_jobs = db.query(Job).filter(Job.created_at >= start_date, Job.created_at <= end_date, Job.status == "completed").count()
     failed_jobs = db.query(Job).filter(Job.created_at >= start_date, Job.created_at <= end_date, Job.status == "failed").count()
-    
+
+    # Photos processed & credits used (1 credit per file)
+    completed_jobs_list = db.query(Job).filter(
+        Job.created_at >= start_date, Job.created_at <= end_date, Job.status == "completed"
+    ).all()
+    photos_processed = sum(len(j.files) if j.files else 0 for j in completed_jobs_list)
+    avg_files_per_job = round(photos_processed / completed_jobs, 1) if completed_jobs > 0 else 0
+
+    # Active users (distinct users who submitted any job in period)
+    active_users = db.query(func.count(func.distinct(Job.user_id))).filter(
+        Job.created_at >= start_date, Job.created_at <= end_date, Job.user_id.isnot(None)
+    ).scalar() or 0
+
+    # Photo type breakdown
+    color_jobs = db.query(Job).filter(Job.created_at >= start_date, Job.created_at <= end_date, Job.photo_type == "color").count()
+    bw_jobs = db.query(Job).filter(Job.created_at >= start_date, Job.created_at <= end_date, Job.photo_type == "bw").count()
+
     # Average Execution Time (for completed jobs)
     avg_exec_time = db.query(func.avg(Job.execution_time)).filter(Job.created_at >= start_date, Job.created_at <= end_date, Job.status == "completed").scalar() or 0
 
@@ -129,7 +145,13 @@ def get_reports_summary(
         "completed_jobs": completed_jobs,
         "failed_jobs": failed_jobs,
         "success_rate": (completed_jobs / total_jobs * 100) if total_jobs > 0 else 0,
-        "avg_execution_time": round(avg_exec_time, 2)
+        "avg_execution_time": round(avg_exec_time, 2),
+        "photos_processed": photos_processed,
+        "credits_used": photos_processed,
+        "avg_files_per_job": avg_files_per_job,
+        "active_users": active_users,
+        "color_jobs": color_jobs,
+        "bw_jobs": bw_jobs,
     }
 
 @router.get("/reports/chart")

@@ -6,7 +6,7 @@ import ComparisonSlider from "@/components/ComparisonSlider";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Loader2, Sparkles, Upload, Wand2, Download, ArrowRight, Menu } from "lucide-react";
+import { Loader2, Upload, Wand2, Download, ArrowRight, Menu } from "lucide-react";
 
 export default function Home() {
   const { user, loading, logout } = useAuth();
@@ -32,7 +32,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="pointer-events-auto flex items-center gap-6 font-mono text-sm underline-offset-4">
+        <div className="pointer-events-auto flex flex-wrap justify-end items-center gap-3 sm:gap-6 font-mono text-xs sm:text-sm underline-offset-4">
           {!user ? (
             <>
               <Link href="/login" className="hover:underline decoration-1">Login</Link>
@@ -43,7 +43,7 @@ export default function Home() {
               <Link href="/store" className="hover:underline decoration-1 text-primary font-bold">
                 Credits: {user.credits}
               </Link>
-              <Link href="/store" className="hover:underline decoration-1 opacity-60">
+              <Link href="/store" className="hover:underline decoration-1 opacity-60 hidden sm:inline">
                 Buy More
               </Link>
               <Link href="/profile" className="hover:underline decoration-1">
@@ -135,16 +135,6 @@ export default function Home() {
                       Our restoration process isn&apos;t just about pixels. It&apos;s about recovering the atmosphere of the moment.
                     </p>
 
-                    <div className="flex flex-col gap-4 font-mono text-xs border-l-2 border-primary pl-4">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-primary" />
-                        <span>Denoising Algorithm</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Wand2 className="w-4 h-4 text-primary" />
-                        <span>Color Correction</span>
-                      </div>
-                    </div>
                   </div>
 
                   <div className="md:w-2/3 space-y-24">
@@ -154,11 +144,11 @@ export default function Home() {
                         <ComparisonSlider
                           before="/examples/bw-before.jpg"
                           after="/examples/bw-after.jpg"
-                          beforeLabel="Damage"
+                          beforeLabel="Aged"
                           afterLabel="Restored"
                         />
                       </div>
-                      <p className="font-mono text-xs mt-4 text-right uppercase tracking-widest">Family Portrait // 1954</p>
+                      <p className="font-mono text-xs mt-4 text-right uppercase tracking-widest">Wedding Portrait // 1954</p>
                     </div>
 
                     <div className="relative md:ml-20">
@@ -167,8 +157,8 @@ export default function Home() {
                         <ComparisonSlider
                           before="/examples/color-before.jpg"
                           after="/examples/color-after.jpg"
-                          beforeLabel="Faded"
-                          afterLabel="Vibrant"
+                          beforeLabel="Aged"
+                          afterLabel="Restored"
                         />
                       </div>
                       <p className="font-mono text-xs mt-4 text-right uppercase tracking-widest">Summer Holiday // 1982</p>
