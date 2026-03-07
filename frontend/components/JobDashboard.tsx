@@ -410,8 +410,8 @@ export default function JobDashboard() {
                             <ScanLine className="w-5 h-5 text-white/60" />
                             Comparison View
                         </h3>
-                        <div className="border border-white/20 rounded-2xl overflow-hidden shadow-2xl max-h-[72vh]">
-                            <ComparisonSlider before={comparingFiles.before} after={comparingFiles.after} />
+                        <div className="border border-white/20 rounded-2xl overflow-hidden shadow-2xl">
+                            <ComparisonSlider before={comparingFiles.before} after={comparingFiles.after} maxHeightVh={72} />
                         </div>
                         <p className="text-center text-xs font-mono text-white/40 uppercase tracking-widest">Drag slider to compare</p>
                     </div>

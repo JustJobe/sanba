@@ -8,6 +8,7 @@ interface ComparisonSliderProps {
     after: string;
     beforeLabel?: string;
     afterLabel?: string;
+    maxHeightVh?: number;
 }
 
 export default function ComparisonSlider({
@@ -15,10 +16,12 @@ export default function ComparisonSlider({
     after,
     beforeLabel = "Before",
     afterLabel = "After",
+    maxHeightVh,
 }: ComparisonSliderProps) {
     const [isResizing, setIsResizing] = useState(false);
     const [position, setPosition] = useState(50);
     const [aspectRatio, setAspectRatio] = useState<string>("4 / 3");
+    const [naturalRatio, setNaturalRatio] = useState<number>(4 / 3);
     const containerRef = useRef<HTMLDivElement>(null);
 
     const stopResizing = useCallback(() => {
@@ -66,11 +69,15 @@ export default function ComparisonSlider({
         };
     }, [handleMouseMove, stopResizing, handleTouchMove]);
 
+    const sizeConstraint = maxHeightVh
+        ? { maxHeight: `${maxHeightVh}vh`, maxWidth: `calc(${maxHeightVh}vh * ${naturalRatio})` }
+        : {};
+
     return (
         <div
             ref={containerRef}
-            className="relative w-full overflow-hidden rounded-2xl select-none cursor-ew-resize group shadow-2xl shadow-black/50 border border-white/10"
-            style={{ aspectRatio }}
+            className="relative w-full overflow-hidden rounded-2xl select-none cursor-ew-resize group shadow-2xl shadow-black/50 border border-white/10 mx-auto"
+            style={{ aspectRatio, ...sizeConstraint }}
             onMouseDown={() => setIsResizing(true)}
             onTouchStart={() => setIsResizing(true)}
         >
@@ -84,6 +91,7 @@ export default function ComparisonSlider({
                     const img = e.currentTarget;
                     if (img.naturalWidth && img.naturalHeight) {
                         setAspectRatio(`${img.naturalWidth} / ${img.naturalHeight}`);
+                        setNaturalRatio(img.naturalWidth / img.naturalHeight);
                     }
                 }}
             />
