@@ -27,6 +27,7 @@ class Job(JobBase):
     created_at: datetime
     files: List[str] = []
     processed_files: List[str] = []
-    
+    file_types: List[str] = []
+
     class Config:
         from_attributes = True

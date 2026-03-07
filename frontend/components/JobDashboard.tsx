@@ -13,6 +13,22 @@ interface Job {
     source: string;
     files: string[];
     processed_files: string[];
+    file_types: string[];
+}
+
+function TypeIcon({ type }: { type: string }) {
+    if (type === 'bw') return (
+        <span
+            title="Detected: Black & White"
+            className="inline-block w-3.5 h-3.5 rounded-full bg-gradient-to-r from-black to-white border border-foreground/30 shrink-0"
+        />
+    );
+    return (
+        <span
+            title="Detected: Color"
+            className="inline-block w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-blue-500 border border-foreground/30 shrink-0"
+        />
+    );
 }
 
 export default function JobDashboard() {
@@ -259,6 +275,7 @@ export default function JobDashboard() {
 
                                 {job.status === 'completed' && job.files.length === 1 && !expandedJobs.has(job.id) && (
                                     <div className="flex items-center gap-2">
+                                        {job.file_types?.[0] && <TypeIcon type={job.file_types[0]} />}
                                         {job.files[0] && (
                                             <a
                                                 href={getFileUrl(job.files[0])}
@@ -334,6 +351,7 @@ export default function JobDashboard() {
                                                         {file.split(/[/\\]/).pop()}
                                                     </span>
                                                     <div className="flex items-center gap-2 shrink-0">
+                                                        {job.file_types?.[index] && <TypeIcon type={job.file_types[index]} />}
                                                         <a
                                                             href={getFileUrl(file)}
                                                             target="_blank"

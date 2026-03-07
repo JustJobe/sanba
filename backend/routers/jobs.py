@@ -89,24 +89,28 @@ def process_job_background(job_id: str, operation: str, user_id: str):
             return
 
         processed_files = []
+        detected_types = []
         try:
             for file_path in job.files:
                 file_dir, filename = os.path.split(file_path)
                 job_root = os.path.dirname(file_dir)
                 processed_dir = os.path.join(job_root, "processed")
-                
+
                 output_name = f"{os.path.splitext(filename)[0]}_{operation}.jpg"
                 output_path = os.path.join(processed_dir, output_name)
-                
-                # Use job's photo_type preference if available, default to color
-                p_type = getattr(job, "photo_type", "color")
-                
+
+                # Use job's photo_type preference if available, default to auto
+                p_type = getattr(job, "photo_type", "auto")
+
                 # Call sync version directly since we are already in a background thread
-                restoration._process_sync(file_path, output_path, operation, photo_type=p_type)
+                # Returns the actual photo_type used (post auto-detection)
+                actual_type = restoration._process_sync(file_path, output_path, operation, photo_type=p_type)
                 processed_files.append(output_path)
-                
+                detected_types.append(actual_type)
+
             job.status = "completed"
             job.processed_files = processed_files
+            job.file_types = detected_types
             job.completed_at = datetime.utcnow()
             if job.created_at:
                 job.execution_time = (job.completed_at - job.created_at).total_seconds()

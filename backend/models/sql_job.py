@@ -15,7 +15,8 @@ class Job(Base):
 
     files = Column(JSON, default=[]) # Store list of file paths
     processed_files = Column(JSON, default=[]) # Store list of processed file paths
+    file_types = Column(JSON, default=[]) # Per-file detected types: ["color", "bw", ...]
     source = Column(String, default="online")
-    photo_type = Column(String, default="color") # 'color' or 'bw'
+    photo_type = Column(String, default="color") # Job-level type: 'color', 'bw', or 'auto'
     provider = Column(String, nullable=True)
     user_id = Column(String, nullable=True) # ForeignKey would be better but keeping it loose for now to avoid circular imports if not careful, though we should probably add index=True

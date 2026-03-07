@@ -41,15 +41,36 @@ def clamp(v, lo, hi):
 
 def detect_photo_type(img: np.ndarray) -> str:
     """
-    Classifies a loaded BGR image as 'bw' or 'color' using HSV saturation.
-    Pure grayscale = 0, sepia/warm faded ~ 20-50, colour typically > 30.
-    Threshold of 15 catches pure gray, faded/near-mono scans, and JPEG
-    chroma-noisy grayscale files without misclassifying sepia originals.
-    Runs in ~0.5-1ms since the image is already in memory.
+    Classifies a loaded BGR image as 'bw' or 'color' using a two-stage approach:
+    Stage 1: HSV mean saturation fast-path for pure grayscale (< 8).
+    Stage 2: Inter-channel Pearson correlation on a 128x128 downsample.
+      - Monochromatic images (even with a color cast) have all channels tracking
+        the same luminance signal → high correlation (> 0.97).
+      - True color photos have channels carrying independent info → lower corr.
+    This correctly handles blue/sepia-cast mono photos that fool pure saturation checks.
+    ~2-3ms total, no extra I/O since image is already in memory.
     """
-    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    mean_saturation = float(np.mean(hsv[:, :, 1]))
-    return 'bw' if mean_saturation < 15 else 'color'
+    small = cv2.resize(img, (128, 128))
+    hsv = cv2.cvtColor(small, cv2.COLOR_BGR2HSV)
+    mean_sat = float(np.mean(hsv[:, :, 1]))
+
+    # Stage 1: fast path for pure grayscale
+    if mean_sat < 8:
+        logger.info(f"Photo type detection — mean_sat: {mean_sat:.1f} → bw (fast path)")
+        return 'bw'
+
+    # Stage 2: inter-channel correlation
+    b = small[:, :, 0].flatten().astype(np.float64)
+    g = small[:, :, 1].flatten().astype(np.float64)
+    r = small[:, :, 2].flatten().astype(np.float64)
+    min_corr = min(
+        np.corrcoef(b, g)[0, 1],
+        np.corrcoef(b, r)[0, 1],
+        np.corrcoef(g, r)[0, 1],
+    )
+    result = 'bw' if min_corr > 0.97 else 'color'
+    logger.info(f"Photo type detection — mean_sat: {mean_sat:.1f}, min_corr: {min_corr:.4f} → {result}")
+    return result
 
 
 # -----------------------------
@@ -378,6 +399,7 @@ def _process_sync(image_path: str, output_path: str, operation: str, photo_type:
         os.makedirs(output_dir, exist_ok=True)
 
     cv2.imwrite(output_path, processed)
+    return photo_type
 
 
 # -----------------------------
