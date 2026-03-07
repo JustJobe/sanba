@@ -41,20 +41,29 @@ def clamp(v, lo, hi):
 
 def detect_photo_type(img: np.ndarray) -> str:
     """
-    Classifies a loaded BGR image as 'bw' or 'color' using a two-stage approach:
-    Stage 1: HSV mean saturation fast-path for pure grayscale (< 8).
-    Stage 2: Inter-channel Pearson correlation on a 128x128 downsample.
-      - Monochromatic images (even with a color cast) have all channels tracking
-        the same luminance signal → high correlation (> 0.97).
-      - True color photos have channels carrying independent info → lower corr.
-    This correctly handles blue/sepia-cast mono photos that fool pure saturation checks.
-    ~2-3ms total, no extra I/O since image is already in memory.
+    Classifies a loaded BGR image as 'bw' or 'color' using three stages:
+
+    Stage 1: Mean HSV saturation fast-path — near-pure grayscale (< 8) → bw immediately.
+             True B&W scans land here regardless of scene content (gray pixels have no chroma).
+
+    Stage 2: Inter-channel Pearson correlation on 128x128 downsample.
+             Color-cast mono: all channels track same luminance → min_corr ≈ 0.96–1.0.
+             True color: channels carry independent info → min_corr typically < 0.95.
+
+    Stage 3: Hue diversity among chroma-rich pixels (saturation > 30) only.
+             Operates on pixel values, not image content — a B&W scan of people and foliage
+             still has near-gray pixels that are excluded by the saturation mask.
+             Uniform color cast → narrow hue → low diversity.
+             Real color photo → multiple distinct hues → high diversity.
+
+    Classified as bw only if BOTH correlation is high AND hue is narrow.
+    ~3-5ms total, no extra I/O since image is already in memory.
     """
     small = cv2.resize(img, (128, 128))
     hsv = cv2.cvtColor(small, cv2.COLOR_BGR2HSV)
     mean_sat = float(np.mean(hsv[:, :, 1]))
 
-    # Stage 1: fast path for pure grayscale
+    # Stage 1: fast path for near-pure grayscale
     if mean_sat < 8:
         logger.info(f"Photo type detection — mean_sat: {mean_sat:.1f} → bw (fast path)")
         return 'bw'
@@ -68,8 +77,27 @@ def detect_photo_type(img: np.ndarray) -> str:
         np.corrcoef(b, r)[0, 1],
         np.corrcoef(g, r)[0, 1],
     )
-    result = 'bw' if min_corr > 0.97 else 'color'
-    logger.info(f"Photo type detection — mean_sat: {mean_sat:.1f}, min_corr: {min_corr:.4f} → {result}")
+
+    # Stage 3: circular std of hue on chroma-rich pixels only
+    # Uniform cast → narrow hue → hue_diversity near 0
+    # True colour photo → multiple hues → hue_diversity high
+    # B&W photo → almost no pixels pass sat > 30 → defaults to 0
+    sat_mask = hsv[:, :, 1] > 30
+    if sat_mask.sum() > 100:
+        hue = small[:, :, 0][sat_mask].astype(np.float32)
+        angles = hue * (np.pi / 90.0)          # 0-179 → 0-2π (handles wraparound)
+        R = np.sqrt(np.mean(np.cos(angles)) ** 2 + np.mean(np.sin(angles)) ** 2)
+        hue_diversity = np.sqrt(-2 * np.log(R + 1e-10)) * (90.0 / np.pi)
+    else:
+        hue_diversity = 0.0     # too few chroma pixels → treat as uniform/mono
+
+    # bw only if BOTH gates pass
+    is_bw = (min_corr > 0.96) and (hue_diversity < 20)
+    result = 'bw' if is_bw else 'color'
+    logger.info(
+        f"Photo type detection — mean_sat: {mean_sat:.1f}, min_corr: {min_corr:.4f}, "
+        f"hue_diversity: {hue_diversity:.1f} → {result}"
+    )
     return result
 
 
