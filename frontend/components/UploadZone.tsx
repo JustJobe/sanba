@@ -12,6 +12,7 @@ export default function UploadZone() {
     const [uploading, setUploading] = useState(false);
     const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const [message, setMessage] = useState('');
+    const [photoType, setPhotoType] = useState<'color' | 'bw' | null>(null);
 
     const handleDrag = useCallback((e: React.DragEvent) => {
         e.preventDefault();
@@ -28,6 +29,7 @@ export default function UploadZone() {
         e.stopPropagation();
         setIsDragging(false);
 
+        if (!photoType) return;
         const files = Array.from(e.dataTransfer.files);
         if (files.length > 0) {
             if (files.length > MAX_FILES) {
@@ -37,7 +39,7 @@ export default function UploadZone() {
             }
             await uploadFiles(files);
         }
-    }, []);
+    }, [photoType]);
 
     const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -52,6 +54,7 @@ export default function UploadZone() {
     };
 
     const uploadFiles = async (files: File[]) => {
+        if (!photoType) return;
         setUploading(true);
         setStatus('idle');
         setMessage('');
@@ -60,6 +63,7 @@ export default function UploadZone() {
         files.forEach((file) => {
             formData.append('files', file);
         });
+        formData.append('photo_type', photoType);
 
         try {
             const response = await api.post('/jobs/upload', formData);
@@ -72,6 +76,11 @@ export default function UploadZone() {
         } finally {
             setUploading(false);
         }
+    };
+
+    const resetAll = () => {
+        setStatus('idle');
+        setPhotoType(null);
     };
 
     return (
@@ -102,7 +111,7 @@ export default function UploadZone() {
                             <p className="font-syne font-bold text-2xl mb-2">Complete</p>
                             <p className="font-mono text-xs bg-accent py-1 px-3 mb-6">{message}</p>
                             <button
-                                onClick={() => setStatus('idle')}
+                                onClick={resetAll}
                                 className="px-8 py-3 bg-foreground text-background hover:bg-primary transition-colors font-mono uppercase text-xs tracking-widest"
                             >
                                 Start New
@@ -115,14 +124,42 @@ export default function UploadZone() {
                             key="idle"
                             className="w-full"
                         >
+                            {/* Step 1: Select Type */}
+                            <p className="font-mono text-[10px] uppercase tracking-widest text-foreground/40 mb-3">1. Select Type</p>
+                            <div className="flex gap-3 mb-6">
+                                <button
+                                    onClick={() => setPhotoType('color')}
+                                    className={`flex-1 py-3 border-2 font-mono text-xs uppercase tracking-widest transition-colors ${
+                                        photoType === 'color'
+                                            ? 'bg-foreground text-background border-foreground'
+                                            : 'bg-background text-foreground border-foreground/30 hover:border-foreground'
+                                    }`}
+                                >
+                                    Color
+                                </button>
+                                <button
+                                    onClick={() => setPhotoType('bw')}
+                                    className={`flex-1 py-3 border-2 font-mono text-xs uppercase tracking-widest transition-colors ${
+                                        photoType === 'bw'
+                                            ? 'bg-foreground text-background border-foreground'
+                                            : 'bg-background text-foreground border-foreground/30 hover:border-foreground'
+                                    }`}
+                                >
+                                    B&amp;W
+                                </button>
+                            </div>
+
+                            {/* Step 2: Upload */}
+                            <p className="font-mono text-[10px] uppercase tracking-widest text-foreground/40 mb-3">2. Upload</p>
                             <div
-                                onDragEnter={handleDrag}
-                                onDragLeave={handleDrag}
-                                onDragOver={handleDrag}
-                                onDrop={handleDrop}
+                                onDragEnter={photoType ? handleDrag : undefined}
+                                onDragLeave={photoType ? handleDrag : undefined}
+                                onDragOver={photoType ? handleDrag : undefined}
+                                onDrop={photoType ? handleDrop : undefined}
                                 className={`
                                     border-2 border-dashed p-12 flex flex-col items-center transition-colors
-                                    ${isDragging ? 'border-primary bg-primary/10' : 'border-foreground/20 hover:border-foreground'}
+                                    ${!photoType ? 'opacity-40 cursor-not-allowed border-foreground/10' :
+                                        isDragging ? 'border-primary bg-primary/10' : 'border-foreground/20 hover:border-foreground'}
                                 `}
                             >
                                 <Upload className="w-12 h-12 text-foreground/40 mb-4" />
@@ -132,12 +169,17 @@ export default function UploadZone() {
                                 <p className="font-mono text-xs text-foreground/40 mb-1">or</p>
                                 <p className="font-mono text-[10px] text-foreground/30 mb-5 uppercase tracking-widest">Up to {MAX_FILES} files per batch</p>
 
-                                <label className="relative px-8 py-3 bg-foreground text-background hover:bg-primary transition-colors cursor-pointer font-mono uppercase text-xs tracking-widest">
+                                <label className={`relative px-8 py-3 font-mono uppercase text-xs tracking-widest transition-colors ${
+                                    photoType
+                                        ? 'bg-foreground text-background hover:bg-primary cursor-pointer'
+                                        : 'bg-foreground/20 text-background/60 cursor-not-allowed pointer-events-none'
+                                }`}>
                                     <span>Browse Files</span>
                                     <input
                                         type="file"
                                         multiple
                                         className="hidden"
+                                        disabled={!photoType}
                                         onChange={handleFileInput}
                                     />
                                 </label>
