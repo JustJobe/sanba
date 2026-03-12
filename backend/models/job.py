@@ -28,6 +28,7 @@ class Job(JobBase):
     files: List[str] = []
     processed_files: List[str] = []
     file_types: List[str] = []
+    ai_repaired_files: List[str] = []
 
     class Config:
         from_attributes = True

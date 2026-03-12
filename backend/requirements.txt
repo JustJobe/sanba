@@ -2,6 +2,8 @@ fastapi
 uvicorn
 python-multipart
 opencv-python
+google-genai
+Pillow
 pytest
 httpx
 python-multipart

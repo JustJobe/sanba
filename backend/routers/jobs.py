@@ -15,6 +15,7 @@ from ..models.job import Job as JobSchema, JobCreate, JobStatus, JobSource
 from ..models import sql_job, user
 from ..database import get_db
 from ..services import restoration
+from ..services import ai_repair as ai_repair_service
 from .auth import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -199,9 +200,83 @@ def download_job_zip(job_id: str, db: Session = Depends(get_db), current_user: u
                 logger.warning(f"File not found for zip: {file_path}")
     
     zip_buffer.seek(0)
-    
+
     return StreamingResponse(
-        zip_buffer, 
-        media_type="application/zip", 
+        zip_buffer,
+        media_type="application/zip",
         headers={"Content-Disposition": f"attachment; filename=job_{job_id}_restored.zip"}
     )
+
+
+AI_REPAIR_COST = 3
+
+
+@router.post("/{job_id}/ai_repair/{file_index}", response_model=JobSchema)
+async def ai_repair_image(
+    job_id: str,
+    file_index: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: user.User = Depends(get_current_user),
+):
+    job = db.query(sql_job.Job).filter(sql_job.Job.id == job_id, sql_job.Job.user_id == current_user.id).first()
+    if not job or job.status != "completed":
+        raise HTTPException(status_code=400, detail="Job not found or not completed")
+    if not job.processed_files or file_index >= len(job.processed_files):
+        raise HTTPException(status_code=400, detail="Invalid file index")
+
+    # Idempotency: prevent double-charging
+    repaired = list(job.ai_repaired_files or [])
+    if file_index < len(repaired) and repaired[file_index]:
+        raise HTTPException(status_code=400, detail="Image already AI-repaired")
+
+    if current_user.credits < AI_REPAIR_COST:
+        raise HTTPException(status_code=402, detail="Insufficient credits")
+
+    current_user.credits -= AI_REPAIR_COST
+    db.commit()
+    db.refresh(job)
+
+    background_tasks.add_task(ai_repair_background, job_id, file_index, current_user.id)
+    return job
+
+
+def ai_repair_background(job_id: str, file_index: int, user_id: str):
+    db: Session = SessionLocal()
+    try:
+        job = db.query(sql_job.Job).filter(sql_job.Job.id == job_id, sql_job.Job.user_id == user_id).first()
+        if not job:
+            logger.error(f"AI repair: job {job_id} not found")
+            return
+
+        input_path = job.processed_files[file_index]
+        stem, ext = os.path.splitext(os.path.basename(input_path))
+        output_path = os.path.join(os.path.dirname(input_path), f"{stem}_ai{ext}")
+
+        ai_repair_service.repair_image_sync(input_path, output_path)
+
+        try:
+            restoration.generate_preview(output_path)
+        except Exception as prev_err:
+            logger.warning(f"AI repair preview generation failed: {prev_err}")
+
+        repaired = list(job.ai_repaired_files or [])
+        while len(repaired) <= file_index:
+            repaired.append(None)
+        repaired[file_index] = output_path
+        job.ai_repaired_files = repaired
+        db.commit()
+
+    except Exception as e:
+        logger.error(f"AI repair failed job {job_id} idx {file_index}: {e}")
+        # Auto-refund
+        try:
+            u = db.query(user.User).filter(user.User.id == user_id).first()
+            if u:
+                u.credits += AI_REPAIR_COST
+                db.commit()
+                logger.info(f"Refunded {AI_REPAIR_COST} credits to user {user_id}")
+        except Exception as refund_err:
+            logger.error(f"Refund failed: {refund_err}")
+    finally:
+        db.close()

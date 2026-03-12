@@ -20,3 +20,4 @@ class Job(Base):
     photo_type = Column(String, default="color") # Job-level type: 'color', 'bw', or 'auto'
     provider = Column(String, nullable=True)
     user_id = Column(String, nullable=True) # ForeignKey would be better but keeping it loose for now to avoid circular imports if not careful, though we should probably add index=True
+    ai_repaired_files = Column(JSON, default=[])  # Indexed same as processed_files
