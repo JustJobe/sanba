@@ -433,7 +433,7 @@ def _process_sync(image_path: str, output_path: str, operation: str, photo_type:
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
 
-    cv2.imwrite(output_path, processed)
+    cv2.imwrite(output_path, processed, [cv2.IMWRITE_JPEG_QUALITY, 97])
     return photo_type
 
 

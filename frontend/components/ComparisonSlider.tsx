@@ -86,6 +86,7 @@ export default function ComparisonSlider({
                 src={after}
                 alt="After restoration"
                 className="absolute inset-0 w-full h-full object-cover"
+                style={{ imageRendering: 'high-quality' }}
                 draggable={false}
                 onLoad={(e) => {
                     const img = e.currentTarget;
@@ -103,7 +104,7 @@ export default function ComparisonSlider({
 
             {/* Before Image (Foreground with Clip) */}
             <div
-                className="absolute inset-0 w-full h-full will-change-[width]"
+                className="absolute inset-0 w-full h-full"
                 style={{ width: `${position}%`, overflow: "hidden" }}
             >
                 <img
@@ -111,7 +112,7 @@ export default function ComparisonSlider({
                     alt="Before restoration"
                     className="absolute inset-0 w-full h-full object-cover max-w-none"
                     // We set the width of this inner image to the container width to prevent distortion
-                    style={{ width: containerRef.current ? containerRef.current.offsetWidth : '100%' }}
+                    style={{ width: containerRef.current ? containerRef.current.offsetWidth : '100%', imageRendering: 'high-quality' }}
                     draggable={false}
                 />
 
