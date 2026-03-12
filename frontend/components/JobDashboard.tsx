@@ -23,7 +23,10 @@ export default function JobDashboard() {
     const { refreshUser } = useAuth();
     const [expandedJobs, setExpandedJobs] = useState<Set<string>>(new Set());
     const [showCreditModal, setShowCreditModal] = useState(false);
-    const [comparingFiles, setComparingFiles] = useState<{ before: string; after: string } | null>(null);
+    const [comparingFiles, setComparingFiles] = useState<{
+        before: string; after: string;
+        beforeFallback?: string; afterFallback?: string;
+    } | null>(null);
 
     const fetchJobs = async () => {
         try {
@@ -121,6 +124,12 @@ export default function JobDashboard() {
         if (!path) return '';
         const relativePath = path.replace(/\\/g, '/').replace(/^uploads\//, '');
         return `/files/${relativePath}`;
+    };
+
+    const toPreviewUrl = (fileUrl: string): string => {
+        const lastDot = fileUrl.lastIndexOf('.');
+        if (lastDot === -1) return fileUrl;
+        return fileUrl.substring(0, lastDot) + '_preview' + fileUrl.substring(lastDot);
     };
 
     return (
@@ -290,10 +299,16 @@ export default function JobDashboard() {
                                         )}
                                         {job.processed_files?.[0] && (
                                             <button
-                                                onClick={() => setComparingFiles({
-                                                    before: getFileUrl(job.files[0]),
-                                                    after: getFileUrl(job.processed_files[0]),
-                                                })}
+                                                onClick={() => {
+                                                    const beforeUrl = getFileUrl(job.files[0]);
+                                                    const afterUrl = getFileUrl(job.processed_files[0]);
+                                                    setComparingFiles({
+                                                        before: toPreviewUrl(beforeUrl),
+                                                        after: toPreviewUrl(afterUrl),
+                                                        beforeFallback: beforeUrl,
+                                                        afterFallback: afterUrl,
+                                                    });
+                                                }}
                                                 className="p-2 bg-background border border-foreground hover:bg-foreground hover:text-background transition-colors"
                                                 title="Compare before/after"
                                             >
@@ -358,10 +373,16 @@ export default function JobDashboard() {
                                                                     <img src={getFileUrl(processed)} className="w-full h-full object-cover" />
                                                                 </a>
                                                                 <button
-                                                                    onClick={() => setComparingFiles({
-                                                                        before: getFileUrl(file),
-                                                                        after: getFileUrl(processed),
-                                                                    })}
+                                                                    onClick={() => {
+                                                                        const beforeUrl = getFileUrl(file);
+                                                                        const afterUrl = getFileUrl(processed);
+                                                                        setComparingFiles({
+                                                                            before: toPreviewUrl(beforeUrl),
+                                                                            after: toPreviewUrl(afterUrl),
+                                                                            beforeFallback: beforeUrl,
+                                                                            afterFallback: afterUrl,
+                                                                        });
+                                                                    }}
                                                                     className="p-1.5 border border-foreground/20 hover:bg-foreground hover:text-background transition-colors"
                                                                     title="Compare"
                                                                 >
@@ -411,7 +432,13 @@ export default function JobDashboard() {
                             Comparison View
                         </h3>
                         <div className="border border-white/20 rounded-2xl overflow-hidden shadow-2xl">
-                            <ComparisonSlider before={comparingFiles.before} after={comparingFiles.after} maxHeightVh={72} />
+                            <ComparisonSlider
+                                before={comparingFiles.before}
+                                after={comparingFiles.after}
+                                beforeFallback={comparingFiles.beforeFallback}
+                                afterFallback={comparingFiles.afterFallback}
+                                maxHeightVh={72}
+                            />
                         </div>
                         <p className="text-center text-xs font-mono text-white/40 uppercase tracking-widest">Drag slider to compare</p>
                     </div>

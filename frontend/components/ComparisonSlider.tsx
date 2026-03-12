@@ -9,6 +9,8 @@ interface ComparisonSliderProps {
     beforeLabel?: string;
     afterLabel?: string;
     maxHeightVh?: number;
+    beforeFallback?: string;
+    afterFallback?: string;
 }
 
 export default function ComparisonSlider({
@@ -17,6 +19,8 @@ export default function ComparisonSlider({
     beforeLabel = "Before",
     afterLabel = "After",
     maxHeightVh,
+    beforeFallback,
+    afterFallback,
 }: ComparisonSliderProps) {
     const [isResizing, setIsResizing] = useState(false);
     const [position, setPosition] = useState(50);
@@ -89,6 +93,10 @@ export default function ComparisonSlider({
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 style={{ imageRendering: 'high-quality' as any }}
                 draggable={false}
+                onError={afterFallback ? (e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = afterFallback;
+                } : undefined}
                 onLoad={(e) => {
                     const img = e.currentTarget;
                     if (img.naturalWidth && img.naturalHeight) {
@@ -116,6 +124,10 @@ export default function ComparisonSlider({
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     style={{ width: containerRef.current ? containerRef.current.offsetWidth : '100%', imageRendering: 'high-quality' as any }}
                     draggable={false}
+                    onError={beforeFallback ? (e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = beforeFallback;
+                    } : undefined}
                 />
 
                 {/* Label Before */}

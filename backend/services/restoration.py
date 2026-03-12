@@ -3,6 +3,7 @@ import os
 import asyncio
 import numpy as np
 import logging
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,30 @@ def analyze_luminance(L: np.ndarray) -> dict:
 
 def clamp(v, lo, hi):
     return max(lo, min(hi, v))
+
+
+def generate_preview(image_path: str, max_long_side: int = 1200) -> Optional[str]:
+    """
+    Save a downscaled preview JPEG beside the source file (_preview suffix).
+    Uses INTER_AREA for high-quality downsampling, which avoids Moiré artifacts
+    that appear when full-resolution images are CSS-scaled in the browser.
+    Returns the preview path, or None if the source is already small enough
+    or if the file cannot be read.
+    """
+    img = cv2.imread(image_path)
+    if img is None:
+        return None
+    h, w = img.shape[:2]
+    if max(h, w) <= max_long_side:
+        return None  # Already small; frontend falls back to the full-res URL
+    scale = max_long_side / max(h, w)
+    new_w, new_h = int(w * scale), int(h * scale)
+    small = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
+    stem, ext = os.path.splitext(image_path)
+    preview_path = f"{stem}_preview{ext}"
+    cv2.imwrite(preview_path, small, [cv2.IMWRITE_JPEG_QUALITY, 90])
+    logger.info(f"Preview saved: {os.path.basename(preview_path)} ({new_w}x{new_h})")
+    return preview_path
 
 
 def detect_photo_type(img: np.ndarray) -> str:

@@ -105,6 +105,14 @@ def process_job_background(job_id: str, operation: str, user_id: str):
                 # Call sync version directly since we are already in a background thread
                 # Returns the actual photo_type used (post auto-detection)
                 actual_type = restoration._process_sync(file_path, output_path, operation, photo_type=p_type)
+
+                # Generate downscaled previews for the comparison slider (non-fatal)
+                try:
+                    restoration.generate_preview(output_path)  # processed preview
+                    restoration.generate_preview(file_path)    # original preview
+                except Exception as prev_err:
+                    logger.warning(f"Preview generation failed for job {job_id}: {prev_err}")
+
                 processed_files.append(output_path)
                 detected_types.append(actual_type)
 
