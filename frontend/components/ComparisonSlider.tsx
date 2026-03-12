@@ -86,7 +86,8 @@ export default function ComparisonSlider({
                 src={after}
                 alt="After restoration"
                 className="absolute inset-0 w-full h-full object-cover"
-                style={{ imageRendering: 'high-quality' }}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                style={{ imageRendering: 'high-quality' as any }}
                 draggable={false}
                 onLoad={(e) => {
                     const img = e.currentTarget;
@@ -112,7 +113,8 @@ export default function ComparisonSlider({
                     alt="Before restoration"
                     className="absolute inset-0 w-full h-full object-cover max-w-none"
                     // We set the width of this inner image to the container width to prevent distortion
-                    style={{ width: containerRef.current ? containerRef.current.offsetWidth : '100%', imageRendering: 'high-quality' }}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    style={{ width: containerRef.current ? containerRef.current.offsetWidth : '100%', imageRendering: 'high-quality' as any }}
                     draggable={false}
                 />
 
