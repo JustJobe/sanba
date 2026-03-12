@@ -115,9 +115,14 @@ def replenish_credits(user: User, db: Session):
         # Check cooldown
         last_replenish = user.last_credit_replenishment or datetime.datetime.min
         
-        # If cooldown is >= 20 hours, treat as "Daily Reset" (available next UTC day)
-        if plan.cooldown_hours >= 20: 
-            if last_replenish.date() >= now.date():
+        # If cooldown is >= 20 hours, treat as "Daily Reset" (resets at UTC+8 midnight)
+        if plan.cooldown_hours >= 20:
+            tz_utc8 = datetime.timezone(datetime.timedelta(hours=8))
+            now_utc8 = datetime.datetime.now(tz_utc8)
+            last_utc8 = last_replenish.replace(
+                tzinfo=datetime.timezone.utc
+            ).astimezone(tz_utc8)
+            if last_utc8.date() >= now_utc8.date():
                 continue
         else:
             # Standard hourly check

@@ -36,6 +36,47 @@ app.include_router(jobs.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1/auth")
 app.include_router(admin.router, prefix="/api/v1/admin")
 
+
+@app.on_event("startup")
+async def seed_defaults():
+    """Ensure default system settings and the daily_topup incentive plan exist."""
+    from .database import SessionLocal
+    from .models.system_setting import SystemSetting as SystemSettingModel
+    from .models.incentive import IncentivePlan
+
+    db = SessionLocal()
+    try:
+        # Ensure daily_credit_threshold setting exists
+        if not db.query(SystemSettingModel).filter_by(key="daily_credit_threshold").first():
+            db.add(SystemSettingModel(
+                key="daily_credit_threshold",
+                value="3",
+                description="Users with fewer credits than this receive 1 free credit per day (UTC+8)"
+            ))
+            db.commit()
+            logger.info("Seeded system setting: daily_credit_threshold = 3")
+
+        # Ensure daily_topup incentive plan exists
+        threshold_row = db.query(SystemSettingModel).filter_by(key="daily_credit_threshold").first()
+        cap = int(threshold_row.value) if threshold_row and threshold_row.value.isdigit() else 3
+
+        if not db.query(IncentivePlan).filter_by(name="daily_topup").first():
+            db.add(IncentivePlan(
+                name="daily_topup",
+                reward_amount=1,
+                cooldown_hours=24,
+                max_balance_cap=cap,
+                requires_profile_complete=False,
+                is_active=True,
+            ))
+            db.commit()
+            logger.info(f"Seeded incentive plan: daily_topup (cap={cap})")
+    except Exception as e:
+        logger.error(f"Startup seeding failed: {e}")
+    finally:
+        db.close()
+
+
 @app.get("/")
 def read_root():
     return {"message": "SanBa API is running"}

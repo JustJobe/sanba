@@ -255,7 +255,13 @@ def update_setting(key: str, update: SettingUpdate, db: Session = Depends(get_db
         db.add(setting)
     else:
         setting.value = update.value
-    
+
+    # Keep daily_topup incentive plan in sync with the threshold setting
+    if key == "daily_credit_threshold" and update.value.isdigit():
+        plan = db.query(IncentivePlan).filter(IncentivePlan.name == "daily_topup").first()
+        if plan:
+            plan.max_balance_cap = int(update.value)
+
     db.commit()
     return {"message": "Setting updated", "key": key, "value": update.value}
 

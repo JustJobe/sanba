@@ -359,6 +359,27 @@ export default function AdminPage() {
                                                 </button>
                                             </div>
                                         </div>
+
+                                        <div className="grid gap-2">
+                                            <label className="font-mono text-sm font-bold uppercase tracking-wider">Daily Free Credit Threshold</label>
+                                            <p className="text-xs text-foreground/60 mb-2">Users with fewer credits than this receive 1 free credit at midnight (UTC+8) each day.</p>
+                                            <div className="flex gap-4">
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    className="flex-1 bg-accent/10 border-2 border-foreground p-3 font-mono text-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                                    value={settings['daily_credit_threshold'] ?? '3'}
+                                                    onChange={(e) => setSettings({ ...settings, daily_credit_threshold: e.target.value })}
+                                                />
+                                                <button
+                                                    onClick={() => saveSetting('daily_credit_threshold', settings['daily_credit_threshold'] ?? '3')}
+                                                    disabled={isSavingStart}
+                                                    className="bg-foreground text-background px-6 font-bold hover:bg-primary hover:text-foreground transition-colors border-2 border-transparent hover:border-foreground"
+                                                >
+                                                    {isSavingStart ? <Loader2 className="animate-spin" /> : "SAVE"}
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
