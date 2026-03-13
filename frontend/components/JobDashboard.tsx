@@ -16,7 +16,7 @@ interface Job {
     files: string[];
     processed_files: string[];
     file_types: string[];
-    ai_repaired_files: string[];
+    ai_repaired_files: (string | null)[];
     ai_repair_status: (string | null)[];
 }
 
