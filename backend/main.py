@@ -38,6 +38,22 @@ app.include_router(admin.router, prefix="/api/v1/admin")
 
 
 @app.on_event("startup")
+async def migrate_db():
+    """Idempotently add new columns to existing tables (SQLite doesn't auto-migrate)."""
+    import sqlalchemy as sa
+    with engine.connect() as conn:
+        existing = [row[1] for row in conn.execute(sa.text("PRAGMA table_info(jobs)"))]
+        for col, defval in [
+            ("ai_repaired_files", '"[]"'),
+            ("ai_repair_status",  '"[]"'),
+        ]:
+            if col not in existing:
+                conn.execute(sa.text(f'ALTER TABLE jobs ADD COLUMN {col} JSON DEFAULT {defval}'))
+                conn.commit()
+                logger.info(f"DB migration: added jobs.{col}")
+
+
+@app.on_event("startup")
 async def seed_defaults():
     """Ensure default system settings and the daily_topup incentive plan exist."""
     from .database import SessionLocal

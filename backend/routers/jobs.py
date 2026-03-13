@@ -192,12 +192,22 @@ def download_job_zip(job_id: str, db: Session = Depends(get_db), current_user: u
 
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-        for file_path in job.processed_files:
+        # OpenCV-restored files (renamed clearly in the zip)
+        for i, file_path in enumerate(job.processed_files):
             if os.path.exists(file_path):
-                file_name = os.path.basename(file_path)
-                zip_file.write(file_path, file_name)
+                original_stem = os.path.splitext(os.path.basename(job.files[i]))[0] \
+                    if job.files and i < len(job.files) \
+                    else os.path.splitext(os.path.basename(file_path))[0]
+                zip_file.write(file_path, f"{original_stem}_restored.jpg")
             else:
                 logger.warning(f"File not found for zip: {file_path}")
+        # AI-repaired files (if any)
+        for i, ai_path in enumerate(job.ai_repaired_files or []):
+            if ai_path and os.path.exists(ai_path):
+                original_stem = os.path.splitext(os.path.basename(job.files[i]))[0] \
+                    if job.files and i < len(job.files) \
+                    else os.path.splitext(os.path.basename(ai_path))[0]
+                zip_file.write(ai_path, f"{original_stem}_ai_repaired.jpg")
     
     zip_buffer.seek(0)
 
@@ -225,15 +235,24 @@ async def ai_repair_image(
     if not job.processed_files or file_index >= len(job.processed_files):
         raise HTTPException(status_code=400, detail="Invalid file index")
 
-    # Idempotency: prevent double-charging
+    # Block if already repaired or currently pending
     repaired = list(job.ai_repaired_files or [])
     if file_index < len(repaired) and repaired[file_index]:
         raise HTTPException(status_code=400, detail="Image already AI-repaired")
+    status_list = list(job.ai_repair_status or [])
+    if file_index < len(status_list) and status_list[file_index] == "pending":
+        raise HTTPException(status_code=400, detail="AI repair already in progress")
 
     if current_user.credits < AI_REPAIR_COST:
         raise HTTPException(status_code=402, detail="Insufficient credits")
 
     current_user.credits -= AI_REPAIR_COST
+
+    # Mark as pending immediately so the UI can show spinner on next poll
+    while len(status_list) <= file_index:
+        status_list.append(None)
+    status_list[file_index] = "pending"
+    job.ai_repair_status = status_list
     db.commit()
     db.refresh(job)
 
@@ -260,15 +279,34 @@ def ai_repair_background(job_id: str, file_index: int, user_id: str):
         except Exception as prev_err:
             logger.warning(f"AI repair preview generation failed: {prev_err}")
 
+        # Store result and clear pending status
         repaired = list(job.ai_repaired_files or [])
         while len(repaired) <= file_index:
             repaired.append(None)
         repaired[file_index] = output_path
         job.ai_repaired_files = repaired
+
+        status_list = list(job.ai_repair_status or [])
+        while len(status_list) <= file_index:
+            status_list.append(None)
+        status_list[file_index] = None
+        job.ai_repair_status = status_list
+
         db.commit()
+        logger.info(f"AI repair complete: job {job_id} idx {file_index} → {output_path}")
 
     except Exception as e:
         logger.error(f"AI repair failed job {job_id} idx {file_index}: {e}")
+        # Mark failed so the UI re-enables the Retry button
+        try:
+            status_list = list(job.ai_repair_status or [])
+            while len(status_list) <= file_index:
+                status_list.append(None)
+            status_list[file_index] = "failed"
+            job.ai_repair_status = status_list
+            db.commit()
+        except Exception as se:
+            logger.error(f"Could not persist failed status: {se}")
         # Auto-refund
         try:
             u = db.query(user.User).filter(user.User.id == user_id).first()

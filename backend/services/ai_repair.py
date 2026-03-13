@@ -6,6 +6,9 @@ from PIL import Image as PILImage
 
 logger = logging.getLogger(__name__)
 
+MODEL_NAME = "gemini-2.5-flash-image"
+MODEL_DISPLAY_NAME = "Gemini 2.5 Flash Image"
+
 RESTORATION_PROMPT = (
     "You are a professional photo restoration expert. "
     "Restore this old photograph: fix all damage, scratches, tears, stains, and fading. "
@@ -24,7 +27,7 @@ def repair_image_sync(input_path: str, output_path: str) -> str:
     img = PILImage.open(input_path)
 
     response = client.models.generate_content(
-        model="gemini-2.0-flash-exp-image-generation",
+        model=MODEL_NAME,
         contents=[RESTORATION_PROMPT, img],
         config=types.GenerateContentConfig(
             response_modalities=["TEXT", "IMAGE"],

@@ -6,6 +6,8 @@ import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import ComparisonSlider from './ComparisonSlider';
 
+const AI_MODEL_DISPLAY = "Gemini 2.5 Flash Image";
+
 interface Job {
     id: string;
     status: string;
@@ -15,6 +17,7 @@ interface Job {
     processed_files: string[];
     file_types: string[];
     ai_repaired_files: string[];
+    ai_repair_status: (string | null)[];
 }
 
 export default function JobDashboard() {
@@ -24,16 +27,15 @@ export default function JobDashboard() {
     const { refreshUser } = useAuth();
     const [expandedJobs, setExpandedJobs] = useState<Set<string>>(new Set());
     const [showCreditModal, setShowCreditModal] = useState(false);
-    const [aiRepairingKeys, setAiRepairingKeys] = useState<Set<string>>(new Set());
     const [comparingFiles, setComparingFiles] = useState<{
         before: string; after: string;
         beforeFallback?: string; afterFallback?: string;
+        label?: string;
     } | null>(null);
 
     const fetchJobs = async () => {
         try {
             const response = await api.get('/jobs/');
-            // Sort by created_at desc
             const sorted = response.data.sort((a: Job, b: Job) =>
                 new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
             );
@@ -60,9 +62,7 @@ export default function JobDashboard() {
         setProcessingId(jobId);
         try {
             await api.post(`/jobs/${jobId}/process?operation=restoration_full`);
-            // Refresh immediately to show status change
             fetchJobs();
-            // Refresh credits
             refreshUser();
         } catch (error: any) {
             console.error("Failed to start processing", error);
@@ -77,14 +77,11 @@ export default function JobDashboard() {
     };
 
     const startAiRepair = async (jobId: string, fileIndex: number) => {
-        const key = `${jobId}:${fileIndex}`;
-        setAiRepairingKeys(prev => new Set([...prev, key]));
         try {
             await api.post(`/jobs/${jobId}/ai_repair/${fileIndex}`);
             refreshUser();
-            fetchJobs();
+            fetchJobs(); // immediately picks up the "pending" status set by the endpoint
         } catch (error: any) {
-            setAiRepairingKeys(prev => { const next = new Set(prev); next.delete(key); return next; });
             console.error("AI repair failed", error);
             if (error.response?.status === 402) {
                 setShowCreditModal(true);
@@ -96,11 +93,7 @@ export default function JobDashboard() {
 
     const handleDownloadZip = async (jobId: string) => {
         try {
-            const response = await api.get(`/jobs/${jobId}/download`, {
-                responseType: 'blob',
-            });
-
-            // Create blob link to download
+            const response = await api.get(`/jobs/${jobId}/download`, { responseType: 'blob' });
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
@@ -127,7 +120,7 @@ export default function JobDashboard() {
 
     useEffect(() => {
         fetchJobs();
-        const interval = setInterval(fetchJobs, 5000); // Poll every 5s
+        const interval = setInterval(fetchJobs, 5000);
         return () => clearInterval(interval);
     }, []);
 
@@ -150,6 +143,78 @@ export default function JobDashboard() {
         const lastDot = fileUrl.lastIndexOf('.');
         if (lastDot === -1) return fileUrl;
         return fileUrl.substring(0, lastDot) + '_preview' + fileUrl.substring(lastDot);
+    };
+
+    // Render the AI Repair control for a single file slot
+    const renderAiRepair = (job: Job, index: number, size: 'sm' | 'md' = 'md') => {
+        const aiFile = job.ai_repaired_files?.[index];
+        const aiStatus = job.ai_repair_status?.[index] ?? null;
+        const iconSize = size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4';
+        const thumbSize = size === 'sm' ? 'w-10 h-10' : 'w-12 h-12';
+        const btnPad = size === 'sm' ? 'p-1.5' : 'p-2';
+
+        if (aiFile) {
+            // Repair done — show gold thumbnail + Original → AI compare button
+            return (
+                <>
+                    <a
+                        href={getFileUrl(aiFile)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`group/thumb relative block ${thumbSize} border-2 border-amber-400 overflow-hidden hover:scale-105 transition-transform`}
+                        title={`View AI-Repaired (${AI_MODEL_DISPLAY})`}
+                    >
+                        <img src={getFileUrl(aiFile)} alt="AI Repaired" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 flex items-center justify-center bg-amber-400/20 opacity-0 group-hover/thumb:opacity-100 transition-opacity">
+                            <Sparkles className={`${iconSize} text-amber-300 drop-shadow-md`} />
+                        </div>
+                    </a>
+                    <button
+                        onClick={() => {
+                            const origUrl = getFileUrl(job.files[index]);
+                            const aiUrl = getFileUrl(aiFile);
+                            setComparingFiles({
+                                before: toPreviewUrl(origUrl),
+                                after: toPreviewUrl(aiUrl),
+                                beforeFallback: origUrl,
+                                afterFallback: aiUrl,
+                                label: `Original vs AI-Repaired (${AI_MODEL_DISPLAY})`,
+                            });
+                        }}
+                        className={`${btnPad} border border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-background transition-colors`}
+                        title={`Compare Original vs AI-Repaired (${AI_MODEL_DISPLAY})`}
+                    >
+                        <ScanLine className={iconSize} />
+                    </button>
+                </>
+            );
+        }
+
+        if (aiStatus === "pending") {
+            // In-progress spinner — driven by server-side polling
+            return (
+                <button disabled className={`flex items-center gap-1 px-2 ${btnPad} border border-amber-400/50 text-amber-400/50 text-[10px] font-mono uppercase tracking-wide cursor-not-allowed`}>
+                    <RefreshCw className={`${iconSize} animate-spin`} />
+                    Repair
+                </button>
+            );
+        }
+
+        // Not started or failed — active button (red "Retry" if previously failed)
+        const isFailed = aiStatus === "failed";
+        return (
+            <button
+                onClick={() => startAiRepair(job.id, index)}
+                className={`flex items-center gap-1 px-2 ${btnPad} border text-[10px] font-mono uppercase tracking-wide transition-colors
+                    ${isFailed
+                        ? 'border-red-400 text-red-400 hover:bg-red-400 hover:text-background'
+                        : 'border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-background'}`}
+                title={`AI Repair — 3 credits\nModel: ${AI_MODEL_DISPLAY}`}
+            >
+                <Sparkles className={iconSize} />
+                {isFailed ? 'Retry' : 'Repair'}
+            </button>
+        );
     };
 
     return (
@@ -176,7 +241,6 @@ export default function JobDashboard() {
                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                             <div className="flex items-start gap-4">
                                 {job.files.length > 1 ? (
-                                    /* Stacked thumbnail for batch jobs */
                                     <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0">
                                         {job.files[2] && (
                                             <div className="absolute top-[8px] left-[8px] w-16 h-16 sm:w-20 sm:h-20 border border-foreground bg-foreground/5 overflow-hidden opacity-30">
@@ -193,7 +257,6 @@ export default function JobDashboard() {
                                         </div>
                                     </div>
                                 ) : (
-                                    /* Single thumbnail */
                                     <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 border border-foreground bg-foreground/5 flex items-center justify-center overflow-hidden">
                                         {job.files.length > 0 ? (
                                             <img src={getFileUrl(job.files[0])} alt="Thumbnail" className="w-full h-full object-cover opacity-80" />
@@ -287,8 +350,9 @@ export default function JobDashboard() {
                                     </button>
                                 )}
 
+                                {/* Single-file completed job thumbnails + actions */}
                                 {job.status === 'completed' && job.files.length === 1 && !expandedJobs.has(job.id) && (
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2 flex-wrap">
                                         {job.files[0] && (
                                             <a
                                                 href={getFileUrl(job.files[0])}
@@ -327,61 +391,17 @@ export default function JobDashboard() {
                                                         after: toPreviewUrl(afterUrl),
                                                         beforeFallback: beforeUrl,
                                                         afterFallback: afterUrl,
+                                                        label: 'Original vs Restored',
                                                     });
                                                 }}
                                                 className="p-2 bg-background border border-foreground hover:bg-foreground hover:text-background transition-colors"
-                                                title="Compare before/after"
+                                                title="Compare Original vs Restored"
                                             >
                                                 <ScanLine className="w-4 h-4" />
                                             </button>
                                         )}
-                                        {/* AI Repair section for single-file job */}
-                                        {job.processed_files?.[0] && job.ai_repaired_files?.[0] ? (
-                                            <>
-                                                <a
-                                                    href={getFileUrl(job.ai_repaired_files[0])}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="group/thumb relative block w-12 h-12 border-2 border-amber-400 overflow-hidden hover:scale-105 transition-transform"
-                                                    title="View AI-Repaired"
-                                                >
-                                                    <img src={getFileUrl(job.ai_repaired_files[0])} alt="AI Repaired" className="w-full h-full object-cover" />
-                                                    <div className="absolute inset-0 flex items-center justify-center bg-amber-400/20 opacity-0 group-hover/thumb:opacity-100 transition-opacity">
-                                                        <Sparkles className="w-4 h-4 text-amber-300 drop-shadow-md" />
-                                                    </div>
-                                                </a>
-                                                <button
-                                                    onClick={() => {
-                                                        const beforeUrl = getFileUrl(job.processed_files[0]);
-                                                        const afterUrl = getFileUrl(job.ai_repaired_files[0]);
-                                                        setComparingFiles({
-                                                            before: toPreviewUrl(beforeUrl),
-                                                            after: toPreviewUrl(afterUrl),
-                                                            beforeFallback: beforeUrl,
-                                                            afterFallback: afterUrl,
-                                                        });
-                                                    }}
-                                                    className="p-2 border border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-background transition-colors"
-                                                    title="Compare Restored vs AI-Repaired"
-                                                >
-                                                    <ScanLine className="w-4 h-4" />
-                                                </button>
-                                            </>
-                                        ) : job.processed_files?.[0] && (
-                                            <button
-                                                onClick={() => startAiRepair(job.id, 0)}
-                                                disabled={aiRepairingKeys.has(`${job.id}:0`)}
-                                                className="flex items-center gap-1 px-2 py-2 border border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-background text-[10px] font-mono uppercase tracking-wide transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                title="AI Repair — 3 credits"
-                                            >
-                                                {aiRepairingKeys.has(`${job.id}:0`) ? (
-                                                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                                                ) : (
-                                                    <Sparkles className="w-3.5 h-3.5" />
-                                                )}
-                                                AI
-                                            </button>
-                                        )}
+                                        {/* AI Repair section */}
+                                        {job.processed_files?.[0] && renderAiRepair(job, 0, 'md')}
                                     </div>
                                 )}
                             </div>
@@ -416,7 +436,7 @@ export default function JobDashboard() {
                                                     <span className="text-xs font-mono truncate max-w-[120px] sm:max-w-[200px] text-foreground/80">
                                                         {file.split(/[/\\]/).pop()}
                                                     </span>
-                                                    <div className="flex items-center gap-2 shrink-0">
+                                                    <div className="flex items-center gap-2 shrink-0 flex-wrap">
                                                         <a
                                                             href={getFileUrl(file)}
                                                             target="_blank"
@@ -435,7 +455,7 @@ export default function JobDashboard() {
                                                                     href={getFileUrl(processed)}
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
-                                                                    className="relative block w-10 h-10 border border-green-500/50 hover:border-green-600 transition-colors"
+                                                                    className="relative block w-10 h-10 border border-green-500/50 hover:border-green-600 transition-colors overflow-hidden"
                                                                 >
                                                                     <img src={getFileUrl(processed)} className="w-full h-full object-cover" />
                                                                 </a>
@@ -448,56 +468,15 @@ export default function JobDashboard() {
                                                                             after: toPreviewUrl(afterUrl),
                                                                             beforeFallback: beforeUrl,
                                                                             afterFallback: afterUrl,
+                                                                            label: 'Original vs Restored',
                                                                         });
                                                                     }}
                                                                     className="p-1.5 border border-foreground/20 hover:bg-foreground hover:text-background transition-colors"
-                                                                    title="Compare"
+                                                                    title="Compare Original vs Restored"
                                                                 >
                                                                     <ScanLine className="w-3.5 h-3.5" />
                                                                 </button>
-                                                                {/* AI Repair for batch item */}
-                                                                {job.ai_repaired_files?.[index] ? (
-                                                                    <>
-                                                                        <a
-                                                                            href={getFileUrl(job.ai_repaired_files[index])}
-                                                                            target="_blank"
-                                                                            rel="noopener noreferrer"
-                                                                            className="relative block w-10 h-10 border-2 border-amber-400 overflow-hidden hover:scale-105 transition-transform"
-                                                                            title="View AI-Repaired"
-                                                                        >
-                                                                            <img src={getFileUrl(job.ai_repaired_files[index])} className="w-full h-full object-cover" />
-                                                                        </a>
-                                                                        <button
-                                                                            onClick={() => {
-                                                                                const beforeUrl = getFileUrl(processed);
-                                                                                const afterUrl = getFileUrl(job.ai_repaired_files[index]);
-                                                                                setComparingFiles({
-                                                                                    before: toPreviewUrl(beforeUrl),
-                                                                                    after: toPreviewUrl(afterUrl),
-                                                                                    beforeFallback: beforeUrl,
-                                                                                    afterFallback: afterUrl,
-                                                                                });
-                                                                            }}
-                                                                            className="p-1.5 border border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-background transition-colors"
-                                                                            title="Compare Restored vs AI-Repaired"
-                                                                        >
-                                                                            <ScanLine className="w-3.5 h-3.5" />
-                                                                        </button>
-                                                                    </>
-                                                                ) : (
-                                                                    <button
-                                                                        onClick={() => startAiRepair(job.id, index)}
-                                                                        disabled={aiRepairingKeys.has(`${job.id}:${index}`)}
-                                                                        className="p-1.5 border border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-background transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                                        title="AI Repair — 3 credits"
-                                                                    >
-                                                                        {aiRepairingKeys.has(`${job.id}:${index}`) ? (
-                                                                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                                                                        ) : (
-                                                                            <Sparkles className="w-3.5 h-3.5" />
-                                                                        )}
-                                                                    </button>
-                                                                )}
+                                                                {renderAiRepair(job, index, 'sm')}
                                                             </>
                                                         )}
                                                     </div>
@@ -525,7 +504,6 @@ export default function JobDashboard() {
                     className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-black/90 backdrop-blur-md p-4"
                     onClick={() => setComparingFiles(null)}
                 >
-                    {/* X — pinned to viewport corner, always reachable */}
                     <button
                         onClick={() => setComparingFiles(null)}
                         className="fixed top-4 right-4 z-[110] p-2 bg-black/60 hover:bg-white/20 rounded-full transition-colors"
@@ -539,7 +517,7 @@ export default function JobDashboard() {
                     >
                         <h3 className="font-syne font-bold text-xl flex items-center gap-2 text-white">
                             <ScanLine className="w-5 h-5 text-white/60" />
-                            Comparison View
+                            {comparingFiles.label ?? 'Comparison View'}
                         </h3>
                         <div className="border border-white/20 rounded-2xl overflow-hidden shadow-2xl">
                             <ComparisonSlider
