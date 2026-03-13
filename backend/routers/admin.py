@@ -119,21 +119,30 @@ def get_reports_summary(
     completed_jobs = db.query(Job).filter(Job.created_at >= start_date, Job.created_at <= end_date, Job.status == "completed").count()
     failed_jobs = db.query(Job).filter(Job.created_at >= start_date, Job.created_at <= end_date, Job.status == "failed").count()
 
-    # Photos processed & credits used (1 credit per file)
+    # Photos processed & credits used
     completed_jobs_list = db.query(Job).filter(
         Job.created_at >= start_date, Job.created_at <= end_date, Job.status == "completed"
     ).all()
-    photos_processed = sum(len(j.files) if j.files else 0 for j in completed_jobs_list)
-    avg_files_per_job = round(photos_processed / completed_jobs, 1) if completed_jobs > 0 else 0
+
+    # Restored = files that made it through OpenCV processing
+    photos_restored = sum(len(j.processed_files) if j.processed_files else 0 for j in completed_jobs_list)
+    # Credits charged for restore = 1 per input file (matches router cost = len(job.files))
+    credits_restore = sum(len(j.files) if j.files else 0 for j in completed_jobs_list)
+
+    # AI Repaired = non-null slots in ai_repaired_files (only possible on completed jobs)
+    AI_REPAIR_COST = 3
+    photos_ai_repaired = sum(
+        sum(1 for x in (j.ai_repaired_files or []) if x is not None)
+        for j in completed_jobs_list
+    )
+    credits_ai_repair = photos_ai_repaired * AI_REPAIR_COST
+
+    avg_files_per_job = round(photos_restored / completed_jobs, 1) if completed_jobs > 0 else 0
 
     # Active users (distinct users who submitted any job in period)
     active_users = db.query(func.count(func.distinct(Job.user_id))).filter(
         Job.created_at >= start_date, Job.created_at <= end_date, Job.user_id.isnot(None)
     ).scalar() or 0
-
-    # Photo type breakdown
-    color_jobs = db.query(Job).filter(Job.created_at >= start_date, Job.created_at <= end_date, Job.photo_type == "color").count()
-    bw_jobs = db.query(Job).filter(Job.created_at >= start_date, Job.created_at <= end_date, Job.photo_type == "bw").count()
 
     # Average Execution Time (for completed jobs)
     avg_exec_time = db.query(func.avg(Job.execution_time)).filter(Job.created_at >= start_date, Job.created_at <= end_date, Job.status == "completed").scalar() or 0
@@ -146,12 +155,14 @@ def get_reports_summary(
         "failed_jobs": failed_jobs,
         "success_rate": (completed_jobs / total_jobs * 100) if total_jobs > 0 else 0,
         "avg_execution_time": round(avg_exec_time, 2),
-        "photos_processed": photos_processed,
-        "credits_used": photos_processed,
+        "photos_processed": photos_restored,      # kept for backwards compat
+        "photos_restored": photos_restored,
+        "photos_ai_repaired": photos_ai_repaired,
+        "credits_restore": credits_restore,
+        "credits_ai_repair": credits_ai_repair,
+        "credits_used": credits_restore + credits_ai_repair,
         "avg_files_per_job": avg_files_per_job,
         "active_users": active_users,
-        "color_jobs": color_jobs,
-        "bw_jobs": bw_jobs,
     }
 
 @router.get("/reports/chart")

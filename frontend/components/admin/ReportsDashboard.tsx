@@ -7,7 +7,7 @@ import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     BarChart, Bar, Legend
 } from "recharts";
-import { Download, Calendar, Activity, Users, FileImage, Clock, Zap, Image } from "lucide-react";
+import { Download, Calendar, Activity, Users, FileImage, Clock, Zap, Image, Sparkles } from "lucide-react";
 import { Loader2 } from "lucide-react";
 
 import { useTheme } from "next-themes";
@@ -147,11 +147,11 @@ export default function ReportsDashboard() {
             {/* KPI Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                 <KpiCard title="New Accounts" value={summary?.new_users ?? 0} icon={<Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />} sub={`Total: ${summary?.total_users ?? 0} users`} />
-                <KpiCard title="Photos Restored" value={summary?.photos_processed ?? 0} icon={<Image className="w-5 h-5 text-green-600 dark:text-green-400" />} sub={`Across ${summary?.total_jobs ?? 0} jobs`} />
-                <KpiCard title="Credits Used" value={summary?.credits_used ?? 0} icon={<Zap className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />} sub={`Avg ${summary?.avg_files_per_job ?? 0} per job`} />
+                <KpiCard title="Photos Restored" value={summary?.photos_restored ?? summary?.photos_processed ?? 0} icon={<Image className="w-5 h-5 text-green-600 dark:text-green-400" />} sub={`${summary?.credits_restore ?? 0} credits · ${summary?.avg_files_per_job ?? 0} avg per job`} />
+                <KpiCard title="AI Repaired" value={summary?.photos_ai_repaired ?? 0} icon={<Sparkles className="w-5 h-5 text-amber-500 dark:text-amber-400" />} sub={`${summary?.credits_ai_repair ?? 0} credits spent`} />
                 <KpiCard title="Active Users" value={summary?.active_users ?? 0} icon={<Activity className="w-5 h-5 text-primary" />} sub={`Of ${summary?.total_users ?? 0} total`} />
                 <KpiCard title="Success Rate" value={`${summary?.success_rate?.toFixed(1) ?? "0.0"}%`} icon={<FileImage className="w-5 h-5 text-orange-600 dark:text-orange-400" />} sub={`${summary?.failed_jobs ?? 0} failed`} />
-                <KpiCard title="Color / B&W" value={`${summary?.color_jobs ?? 0} / ${summary?.bw_jobs ?? 0}`} icon={<Clock className="w-5 h-5 text-purple-600 dark:text-purple-400" />} sub="Restoration type split" />
+                <KpiCard title="Credits Used" value={summary?.credits_used ?? 0} icon={<Zap className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />} sub={`${summary?.credits_restore ?? 0} restore · ${summary?.credits_ai_repair ?? 0} AI repair`} />
             </div>
 
             {/* Charts */}
