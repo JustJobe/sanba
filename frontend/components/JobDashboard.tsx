@@ -1,4 +1,5 @@
 "use client";
+// AI Repair: button text is "Repair" in both single-file and batch views (v2 — conservative Gemini prompt)
 
 import { useEffect, useState } from 'react';
 import { RefreshCw, Download, Image as ImageIcon, Clock, Play, ChevronDown, ChevronUp, Trash2, ScanLine, X, Sparkles } from 'lucide-react';
