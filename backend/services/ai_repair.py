@@ -1,3 +1,4 @@
+import io
 import os
 import logging
 from google import genai
@@ -35,10 +36,10 @@ def repair_image_sync(input_path: str, output_path: str) -> str:
     )
 
     for part in response.parts:
-        generated = part.as_image()
-        if generated:
+        if part.inline_data is not None:
+            pil_img = PILImage.open(io.BytesIO(part.inline_data.data))
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            generated.convert("RGB").save(output_path, "JPEG", quality=95)
+            pil_img.convert("RGB").save(output_path, "JPEG", quality=95)
             return output_path
 
     raise ValueError("Gemini returned no image in the response")
