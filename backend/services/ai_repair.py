@@ -12,14 +12,15 @@ MODEL_DISPLAY_NAME = "Gemini 2.5 Flash Image"
 
 RESTORATION_PROMPT = (
     "You are a professional photo restoration expert. "
-    "Your task is to remove physical damage from this photograph.\n\n"
-    "Instructions:\n"
-    "- Remove all cracks, scratches, tears, dust spots, stains, and fading\n"
-    "- Fill damaged areas with content that matches the surrounding photograph\n"
-    "- Do NOT add any new marks, cracks, textures, or artifacts not present in the input\n"
-    "- Preserve all original photographic content, faces, and details exactly as they appear\n"
-    "- Keep the same colour tones, contrast, and lighting as the input — do not enhance or alter them\n"
-    "- The result should look like this exact photograph, undamaged\n\n"
+    "Fully restore this damaged photograph to its original, undamaged appearance.\n\n"
+    "You SHOULD:\n"
+    "- Completely remove all cracks, scratches, tears, dust spots, stains, and fading\n"
+    "- Reconstruct missing or damaged areas including faces, hair, clothing, and backgrounds\n"
+    "- Fill in torn or missing sections using surrounding context to infer what was there\n"
+    "- Restore natural clarity and tones so the image looks like a clean, well-preserved print\n\n"
+    "You MUST NOT:\n"
+    "- Add new cracks, scratches, damage marks, or texture artifacts not present in the input\n"
+    "- Invent new people, objects, or background elements not implied by the existing content\n\n"
     "Output ONLY the restored image, same dimensions, no borders or padding."
 )
 
