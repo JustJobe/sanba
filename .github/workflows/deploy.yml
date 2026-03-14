@@ -20,6 +20,16 @@ jobs:
           script: |
             set -e
             cd /root/sanba
+
+            # Guard: ensure enough disk space before building (Docker builds need headroom)
+            AVAIL=$(df / | awk 'NR==2 {print $4}')
+            echo "Disk available: ${AVAIL} KB"
+            if [ "$AVAIL" -lt 2097152 ]; then
+              echo "WARNING: Less than 2 GB free — pruning unused Docker images..."
+              docker image prune -af
+              docker builder prune -af
+            fi
+
             git pull origin main
 
             # Detect what changed (fallback to rebuilding both on first run)
@@ -29,16 +39,21 @@ jobs:
               CHANGED="backend/ frontend/"
             fi
 
+            echo "Changed files:"
+            echo "$CHANGED"
+
             if echo "$CHANGED" | grep -q "^backend/"; then
               echo "Backend changed — rebuilding..."
               docker compose build backend
               docker compose up -d backend
+              echo "Backend rebuild complete"
             fi
 
             if echo "$CHANGED" | grep -q "^frontend/"; then
               echo "Frontend changed — rebuilding..."
               docker compose build frontend
               docker compose up -d frontend
+              echo "Frontend rebuild complete"
             fi
 
             docker compose ps
