@@ -137,6 +137,14 @@ def get_reports_summary(
     )
     credits_ai_repair = photos_ai_repaired * AI_REPAIR_COST
 
+    # AI Remastered = non-null slots in ai_remastered_files
+    AI_REMASTER_COST = 3
+    photos_ai_remastered = sum(
+        sum(1 for x in (j.ai_remastered_files or []) if x is not None)
+        for j in completed_jobs_list
+    )
+    credits_ai_remaster = photos_ai_remastered * AI_REMASTER_COST
+
     avg_files_per_job = round(photos_restored / completed_jobs, 1) if completed_jobs > 0 else 0
 
     # Active users (distinct users who submitted any job in period)
@@ -158,9 +166,11 @@ def get_reports_summary(
         "photos_processed": photos_restored,      # kept for backwards compat
         "photos_restored": photos_restored,
         "photos_ai_repaired": photos_ai_repaired,
+        "photos_ai_remastered": photos_ai_remastered,
         "credits_restore": credits_restore,
         "credits_ai_repair": credits_ai_repair,
-        "credits_used": credits_restore + credits_ai_repair,
+        "credits_ai_remaster": credits_ai_remaster,
+        "credits_used": credits_restore + credits_ai_repair + credits_ai_remaster,
         "avg_files_per_job": avg_files_per_job,
         "active_users": active_users,
     }

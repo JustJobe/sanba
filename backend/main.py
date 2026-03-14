@@ -44,8 +44,10 @@ async def migrate_db():
     with engine.connect() as conn:
         existing = [row[1] for row in conn.execute(sa.text("PRAGMA table_info(jobs)"))]
         for col, defval in [
-            ("ai_repaired_files", '"[]"'),
-            ("ai_repair_status",  '"[]"'),
+            ("ai_repaired_files",   '"[]"'),
+            ("ai_repair_status",    '"[]"'),
+            ("ai_remastered_files", '"[]"'),
+            ("ai_remaster_status",  '"[]"'),
         ]:
             if col not in existing:
                 conn.execute(sa.text(f'ALTER TABLE jobs ADD COLUMN {col} JSON DEFAULT {defval}'))

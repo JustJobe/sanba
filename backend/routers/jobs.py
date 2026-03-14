@@ -16,6 +16,7 @@ from ..models import sql_job, user
 from ..database import get_db
 from ..services import restoration
 from ..services import ai_repair as ai_repair_service
+from ..services import ai_remaster as ai_remaster_service
 from .auth import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -208,6 +209,13 @@ def download_job_zip(job_id: str, db: Session = Depends(get_db), current_user: u
                     if job.files and i < len(job.files) \
                     else os.path.splitext(os.path.basename(ai_path))[0]
                 zip_file.write(ai_path, f"{original_stem}_ai_repaired.jpg")
+        # AI-remastered files (if any)
+        for i, remaster_path in enumerate(job.ai_remastered_files or []):
+            if remaster_path and os.path.exists(remaster_path):
+                original_stem = os.path.splitext(os.path.basename(job.files[i]))[0] \
+                    if job.files and i < len(job.files) \
+                    else os.path.splitext(os.path.basename(remaster_path))[0]
+                zip_file.write(remaster_path, f"{original_stem}_remastered.jpg")
     
     zip_buffer.seek(0)
 
@@ -314,6 +322,119 @@ def ai_repair_background(job_id: str, file_index: int, user_id: str):
                 u.credits += AI_REPAIR_COST
                 db.commit()
                 logger.info(f"Refunded {AI_REPAIR_COST} credits to user {user_id}")
+        except Exception as refund_err:
+            logger.error(f"Refund failed: {refund_err}")
+    finally:
+        db.close()
+
+
+AI_REMASTER_COST = 3
+
+
+@router.post("/{job_id}/ai_remaster/{file_index}", response_model=JobSchema)
+async def ai_remaster_image(
+    job_id: str,
+    file_index: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: user.User = Depends(get_current_user),
+):
+    job = db.query(sql_job.Job).filter(sql_job.Job.id == job_id, sql_job.Job.user_id == current_user.id).first()
+    if not job or job.status != "completed":
+        raise HTTPException(status_code=400, detail="Job not found or not completed")
+    if not job.processed_files or file_index >= len(job.processed_files):
+        raise HTTPException(status_code=400, detail="Invalid file index")
+
+    # Block if already remastered or currently pending
+    remastered = list(job.ai_remastered_files or [])
+    if file_index < len(remastered) and remastered[file_index]:
+        raise HTTPException(status_code=400, detail="Image already AI-remastered")
+    status_list = list(job.ai_remaster_status or [])
+    if file_index < len(status_list) and status_list[file_index] == "pending":
+        raise HTTPException(status_code=400, detail="AI remaster already in progress")
+
+    if current_user.credits < AI_REMASTER_COST:
+        raise HTTPException(status_code=402, detail="Insufficient credits")
+
+    current_user.credits -= AI_REMASTER_COST
+
+    # Mark as pending immediately so the UI can show spinner on next poll
+    while len(status_list) <= file_index:
+        status_list.append(None)
+    status_list[file_index] = "pending"
+    job.ai_remaster_status = status_list
+    db.commit()
+    db.refresh(job)
+
+    background_tasks.add_task(ai_remaster_background, job_id, file_index, current_user.id)
+    return job
+
+
+def ai_remaster_background(job_id: str, file_index: int, user_id: str):
+    db: Session = SessionLocal()
+    try:
+        job = db.query(sql_job.Job).filter(sql_job.Job.id == job_id, sql_job.Job.user_id == user_id).first()
+        if not job:
+            logger.error(f"AI remaster: job {job_id} not found")
+            return
+
+        # Chained input: use repaired image if available, otherwise restored image
+        repaired_files = job.ai_repaired_files or []
+        if file_index < len(repaired_files) and repaired_files[file_index]:
+            input_path = repaired_files[file_index]
+            logger.info(f"AI remaster: using repaired image as input for job {job_id} idx {file_index}")
+        else:
+            input_path = job.processed_files[file_index]
+            logger.info(f"AI remaster: using restored image as input for job {job_id} idx {file_index}")
+
+        stem, ext = os.path.splitext(os.path.basename(input_path))
+        # Strip any prior _ai suffix so output name stays clean
+        clean_stem = stem.replace("_ai", "")
+        output_dir = os.path.dirname(job.processed_files[file_index])
+        output_path = os.path.join(output_dir, f"{clean_stem}_remaster{ext}")
+
+        ai_remaster_service.remaster_image_sync(input_path, output_path)
+
+        try:
+            restoration.generate_preview(output_path)
+        except Exception as prev_err:
+            logger.warning(f"AI remaster preview generation failed: {prev_err}")
+
+        # Store result and clear pending status
+        remastered = list(job.ai_remastered_files or [])
+        while len(remastered) <= file_index:
+            remastered.append(None)
+        remastered[file_index] = output_path
+        job.ai_remastered_files = remastered
+
+        status_list = list(job.ai_remaster_status or [])
+        while len(status_list) <= file_index:
+            status_list.append(None)
+        status_list[file_index] = None
+        job.ai_remaster_status = status_list
+
+        db.commit()
+        logger.info(f"AI remaster complete: job {job_id} idx {file_index} → {output_path}")
+
+    except Exception as e:
+        logger.error(f"AI remaster failed job {job_id} idx {file_index}: {e}")
+        # Mark failed so the UI re-enables the Retry button
+        try:
+            status_list = list(job.ai_remaster_status or [])
+            while len(status_list) <= file_index:
+                status_list.append(None)
+            status_list[file_index] = "failed"
+            job.ai_remaster_status = status_list
+            db.commit()
+        except Exception as se:
+            logger.error(f"Could not persist failed status: {se}")
+        # Auto-refund
+        try:
+            u = db.query(user.User).filter(user.User.id == user_id).first()
+            if u:
+                u.credits += AI_REMASTER_COST
+                db.commit()
+                logger.info(f"Refunded {AI_REMASTER_COST} credits to user {user_id}")
         except Exception as refund_err:
             logger.error(f"Refund failed: {refund_err}")
     finally:

@@ -2,7 +2,7 @@
 // AI Repair: button text is "Repair" in both single-file and batch views (v2 — conservative Gemini prompt)
 
 import { useEffect, useState } from 'react';
-import { RefreshCw, Download, Image as ImageIcon, Clock, Play, ChevronDown, ChevronUp, Trash2, ScanLine, X, Sparkles } from 'lucide-react';
+import { RefreshCw, Download, Image as ImageIcon, Clock, Play, ChevronDown, ChevronUp, Trash2, ScanLine, X, Sparkles, Wand2 } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import ComparisonSlider from './ComparisonSlider';
@@ -19,6 +19,8 @@ interface Job {
     file_types: string[];
     ai_repaired_files: (string | null)[];
     ai_repair_status: (string | null)[];
+    ai_remastered_files: (string | null)[];
+    ai_remaster_status: (string | null)[];
 }
 
 export default function JobDashboard() {
@@ -88,6 +90,21 @@ export default function JobDashboard() {
                 setShowCreditModal(true);
             } else {
                 alert("AI repair failed: " + (error.response?.data?.detail || "Unknown error"));
+            }
+        }
+    };
+
+    const startAiRemaster = async (jobId: string, fileIndex: number) => {
+        try {
+            await api.post(`/jobs/${jobId}/ai_remaster/${fileIndex}`);
+            refreshUser();
+            fetchJobs(); // immediately picks up the "pending" status set by the endpoint
+        } catch (error: any) {
+            console.error("AI remaster failed", error);
+            if (error.response?.status === 402) {
+                setShowCreditModal(true);
+            } else {
+                alert("AI remaster failed: " + (error.response?.data?.detail || "Unknown error"));
             }
         }
     };
@@ -214,6 +231,78 @@ export default function JobDashboard() {
             >
                 <Sparkles className={iconSize} />
                 {isFailed ? 'Retry' : 'Repair'}
+            </button>
+        );
+    };
+
+    // Render the AI Remaster control for a single file slot
+    const renderAiRemaster = (job: Job, index: number, size: 'sm' | 'md' = 'md') => {
+        const remasterFile = job.ai_remastered_files?.[index];
+        const remasterStatus = job.ai_remaster_status?.[index] ?? null;
+        const iconSize = size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4';
+        const thumbSize = size === 'sm' ? 'w-10 h-10' : 'w-12 h-12';
+        const btnPad = size === 'sm' ? 'p-1.5' : 'p-2';
+
+        if (remasterFile) {
+            // Remaster done — show violet thumbnail + Original → Remastered compare button
+            return (
+                <>
+                    <a
+                        href={getFileUrl(remasterFile)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`group/thumb relative block ${thumbSize} border-2 border-violet-400 overflow-hidden hover:scale-105 transition-transform`}
+                        title={`View Remastered (${AI_MODEL_DISPLAY})`}
+                    >
+                        <img src={getFileUrl(remasterFile)} alt="Remastered" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 flex items-center justify-center bg-violet-400/20 opacity-0 group-hover/thumb:opacity-100 transition-opacity">
+                            <Wand2 className={`${iconSize} text-violet-300 drop-shadow-md`} />
+                        </div>
+                    </a>
+                    <button
+                        onClick={() => {
+                            const origUrl = getFileUrl(job.files[index]);
+                            const remasterUrl = getFileUrl(remasterFile);
+                            setComparingFiles({
+                                before: toPreviewUrl(origUrl),
+                                after: toPreviewUrl(remasterUrl),
+                                beforeFallback: origUrl,
+                                afterFallback: remasterUrl,
+                                label: `Original vs Remastered (${AI_MODEL_DISPLAY})`,
+                            });
+                        }}
+                        className={`${btnPad} border border-violet-400 text-violet-400 hover:bg-violet-400 hover:text-background transition-colors`}
+                        title={`Compare Original vs Remastered (${AI_MODEL_DISPLAY})`}
+                    >
+                        <ScanLine className={iconSize} />
+                    </button>
+                </>
+            );
+        }
+
+        if (remasterStatus === "pending") {
+            // In-progress spinner — driven by server-side polling
+            return (
+                <button disabled className={`flex items-center gap-1 px-2 ${btnPad} border border-violet-400/50 text-violet-400/50 text-[10px] font-mono uppercase tracking-wide cursor-not-allowed`}>
+                    <RefreshCw className={`${iconSize} animate-spin`} />
+                    Remaster
+                </button>
+            );
+        }
+
+        // Not started or failed — active button (red "Retry" if previously failed)
+        const isFailed = remasterStatus === "failed";
+        return (
+            <button
+                onClick={() => startAiRemaster(job.id, index)}
+                className={`flex items-center gap-1 px-2 ${btnPad} border text-[10px] font-mono uppercase tracking-wide transition-colors
+                    ${isFailed
+                        ? 'border-red-400 text-red-400 hover:bg-red-400 hover:text-background'
+                        : 'border-violet-400 text-violet-400 hover:bg-violet-400 hover:text-background'}`}
+                title={`AI Remaster — 3 credits\nModel: ${AI_MODEL_DISPLAY}`}
+            >
+                <Wand2 className={iconSize} />
+                {isFailed ? 'Retry' : 'Remaster'}
             </button>
         );
     };
@@ -401,8 +490,9 @@ export default function JobDashboard() {
                                                 <ScanLine className="w-4 h-4" />
                                             </button>
                                         )}
-                                        {/* AI Repair section */}
+                                        {/* AI Repair + Remaster section */}
                                         {job.processed_files?.[0] && renderAiRepair(job, 0, 'md')}
+                                        {job.processed_files?.[0] && renderAiRemaster(job, 0, 'md')}
                                     </div>
                                 )}
                             </div>
@@ -478,6 +568,7 @@ export default function JobDashboard() {
                                                                     <ScanLine className="w-3.5 h-3.5" />
                                                                 </button>
                                                                 {renderAiRepair(job, index, 'sm')}
+                                                                {renderAiRemaster(job, index, 'sm')}
                                                             </>
                                                         )}
                                                     </div>
