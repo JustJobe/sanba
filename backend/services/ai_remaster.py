@@ -33,11 +33,17 @@ def remaster_image_sync(input_path: str, output_path: str) -> str:
         raise ValueError("GEMINI_API_KEY is not set")
 
     client = genai.Client(api_key=api_key)
-    img = PILImage.open(input_path)
+
+    # Encode as lossless PNG before sending — guarantees Gemini receives full colour
+    # fidelity regardless of how the SDK might otherwise re-encode a PIL Image object.
+    img = PILImage.open(input_path).convert("RGB")
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    image_part = types.Part.from_bytes(data=buf.getvalue(), mime_type="image/png")
 
     response = client.models.generate_content(
         model=MODEL_NAME,
-        contents=[REMASTER_PROMPT, img],
+        contents=[REMASTER_PROMPT, image_part],
         config=types.GenerateContentConfig(
             response_modalities=["TEXT", "IMAGE"],
         ),
@@ -47,7 +53,8 @@ def remaster_image_sync(input_path: str, output_path: str) -> str:
         if part.inline_data is not None:
             pil_img = PILImage.open(io.BytesIO(part.inline_data.data))
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            pil_img.convert("RGB").save(output_path, "JPEG", quality=95)
+            # subsampling=0 → 4:4:4 chroma (full colour resolution, not halved default)
+            pil_img.convert("RGB").save(output_path, "JPEG", quality=97, subsampling=0)
             return output_path
 
     raise ValueError("Gemini returned no image in the response")
