@@ -209,12 +209,14 @@ export default function JobDashboard() {
         }
 
         if (aiStatus === "pending") {
-            // In-progress spinner — driven by server-side polling
             return (
-                <button disabled className={`flex items-center gap-1 px-2 ${btnPad} border border-amber-400/50 text-amber-400/50 text-[10px] font-mono uppercase tracking-wide cursor-not-allowed`}>
-                    <RefreshCw className={`${iconSize} animate-spin`} />
-                    Repair
-                </button>
+                <div className={`flex items-center gap-2 px-2 ${btnPad} border border-amber-400/40 bg-amber-400/10 text-amber-400`}>
+                    <RefreshCw className={`${iconSize} animate-spin shrink-0`} />
+                    <span className="font-mono text-[10px] uppercase tracking-wide leading-tight">
+                        Repairing…<br />
+                        <span className="text-amber-400/50 normal-case tracking-normal">Updates in ~5s</span>
+                    </span>
+                </div>
             );
         }
 
@@ -281,12 +283,14 @@ export default function JobDashboard() {
         }
 
         if (remasterStatus === "pending") {
-            // In-progress spinner — driven by server-side polling
             return (
-                <button disabled className={`flex items-center gap-1 px-2 ${btnPad} border border-violet-400/50 text-violet-400/50 text-[10px] font-mono uppercase tracking-wide cursor-not-allowed`}>
-                    <RefreshCw className={`${iconSize} animate-spin`} />
-                    Remaster
-                </button>
+                <div className={`flex items-center gap-2 px-2 ${btnPad} border border-violet-400/40 bg-violet-400/10 text-violet-400`}>
+                    <RefreshCw className={`${iconSize} animate-spin shrink-0`} />
+                    <span className="font-mono text-[10px] uppercase tracking-wide leading-tight">
+                        Remastering…<br />
+                        <span className="text-violet-400/50 normal-case tracking-normal">Updates in ~5s</span>
+                    </span>
+                </div>
             );
         }
 
@@ -497,6 +501,28 @@ export default function JobDashboard() {
                                 )}
                             </div>
                         </div>
+
+                        {job.status === 'processing' && (
+                            <div className="mt-4 flex items-center gap-3 px-4 py-3 border border-yellow-500/40 bg-yellow-500/10 text-yellow-400">
+                                <RefreshCw className="w-4 h-4 animate-spin shrink-0" />
+                                <div>
+                                    <p className="font-mono text-xs font-bold uppercase tracking-widest">Restoration in progress</p>
+                                    <p className="font-mono text-[10px] text-yellow-400/60 mt-0.5">This page updates automatically every 5 seconds.</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {job.status === 'completed' &&
+                            (job.ai_repair_status?.some(s => s === 'pending') ||
+                             job.ai_remaster_status?.some(s => s === 'pending')) && (
+                            <div className="mt-4 flex items-center gap-3 px-4 py-3 border border-amber-500/30 bg-amber-500/10 text-amber-400/80">
+                                <RefreshCw className="w-4 h-4 animate-spin shrink-0" />
+                                <div>
+                                    <p className="font-mono text-xs font-bold uppercase tracking-widest">AI operation in progress</p>
+                                    <p className="font-mono text-[10px] text-amber-400/50 mt-0.5">Results will appear automatically when complete.</p>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Collapsible Batch View */}
                         {job.files.length > 1 && (

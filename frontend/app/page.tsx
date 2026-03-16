@@ -6,7 +6,7 @@ import ComparisonSlider from "@/components/ComparisonSlider";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Loader2, Upload, Wand2, Download, ArrowRight, Menu } from "lucide-react";
+import { Loader2, Upload, Wand2, Download, ArrowRight, Menu, Play, Sparkles } from "lucide-react";
 
 export default function Home() {
   const { user, loading, logout } = useAuth();
@@ -69,14 +69,61 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="grid lg:grid-cols-12 gap-12">
-              <div className="lg:col-span-8 space-y-12">
-                <JobDashboard />
+            {/* Feature Explanation Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-0 border-2 border-foreground mb-16 brutalist-shadow">
+              {/* Restore */}
+              <div className="p-8 border-b sm:border-b-0 sm:border-r border-foreground group hover:bg-foreground/5 transition-colors">
+                <div className="flex items-center justify-between mb-4">
+                  <Play className="w-8 h-8 text-foreground/60 stroke-1 group-hover:scale-110 transition-transform" />
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-widest border border-foreground/30 px-2 py-0.5 text-foreground/50">
+                    1 credit / photo
+                  </span>
+                </div>
+                <h3 className="font-syne font-bold text-xl mb-2">Restore</h3>
+                <p className="font-mono text-xs text-foreground/60 leading-relaxed">
+                  Denoise, colour-correct, and recover black-and-white tones. The required first step — run this before Repair or Remaster.
+                </p>
               </div>
-              <div className="lg:col-span-4">
+
+              {/* Repair */}
+              <div className="p-8 border-b sm:border-b-0 sm:border-r border-foreground group hover:bg-amber-400/5 transition-colors">
+                <div className="flex items-center justify-between mb-4">
+                  <Sparkles className="w-8 h-8 text-amber-400 stroke-1 group-hover:scale-110 transition-transform" />
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-widest border border-amber-400/40 px-2 py-0.5 text-amber-400/70">
+                    3 credits / photo
+                  </span>
+                </div>
+                <h3 className="font-syne font-bold text-xl mb-2 text-amber-400">Repair</h3>
+                <p className="font-mono text-xs text-foreground/60 leading-relaxed">
+                  Gemini AI reconstructs torn edges, fills missing areas, and removes heavy damage. Available after Restore completes.
+                </p>
+              </div>
+
+              {/* Remaster */}
+              <div className="p-8 group hover:bg-violet-400/5 transition-colors">
+                <div className="flex items-center justify-between mb-4">
+                  <Wand2 className="w-8 h-8 text-violet-400 stroke-1 group-hover:rotate-12 transition-transform" />
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-widest border border-violet-400/40 px-2 py-0.5 text-violet-400/70">
+                    3 credits / photo
+                  </span>
+                </div>
+                <h3 className="font-syne font-bold text-xl mb-2 text-violet-400">Remaster</h3>
+                <p className="font-mono text-xs text-foreground/60 leading-relaxed">
+                  Gemini AI enhances sharpness and upscales resolution. Uses the Repaired image if available, otherwise Restored. Available after Restore.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid lg:grid-cols-12 gap-12">
+              {/* UploadZone: first in DOM for mobile, visually right on lg+ */}
+              <div className="lg:col-span-4 order-first lg:order-last">
                 <div className="sticky top-32">
                   <UploadZone />
                 </div>
+              </div>
+              {/* JobDashboard: second in DOM for mobile, visually left on lg+ */}
+              <div className="lg:col-span-8 order-last lg:order-first space-y-12">
+                <JobDashboard />
               </div>
             </div>
           </div>
