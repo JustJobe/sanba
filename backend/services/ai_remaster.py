@@ -8,8 +8,8 @@ from PIL import Image as PILImage
 logger = logging.getLogger(__name__)
 
 THINKING_MODEL = "gemini-3-flash-preview"
-IMAGE_MODEL = "gemini-2.5-flash-image"
-IMAGE_MODEL_DISPLAY_NAME = "Gemini 2.5 Flash Image"
+IMAGE_MODEL = "gemini-3.1-flash-image-preview"
+IMAGE_MODEL_DISPLAY_NAME = "Gemini 3.1 Flash Image Preview"
 
 REMASTER_ANALYSIS_PROMPT = (
     "You are a professional photo retouching expert preparing a job for an AI image generator.\n\n"
