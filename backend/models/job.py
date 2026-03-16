@@ -30,8 +30,10 @@ class Job(JobBase):
     file_types: List[str] = []
     ai_repaired_files: List[Optional[str]] = []
     ai_repair_status: List[Optional[str]] = []
+    ai_repair_thinking_tokens: List[Optional[int]] = []
     ai_remastered_files: List[Optional[str]] = []
     ai_remaster_status: List[Optional[str]] = []
+    ai_remaster_thinking_tokens: List[Optional[int]] = []
 
     class Config:
         from_attributes = True

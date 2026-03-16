@@ -26,8 +26,9 @@ REMASTER_PROMPT = (
 )
 
 
-def remaster_image_sync(input_path: str, output_path: str) -> str:
-    """Call Gemini API to AI-remaster an image. Runs synchronously (called from background thread)."""
+def remaster_image_sync(input_path: str, output_path: str) -> tuple[str, int]:
+    """Call Gemini API to AI-remaster an image. Runs synchronously (called from background thread).
+    Returns (output_path, thinking_tokens)."""
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise ValueError("GEMINI_API_KEY is not set")
@@ -46,8 +47,11 @@ def remaster_image_sync(input_path: str, output_path: str) -> str:
         contents=[REMASTER_PROMPT, image_part],
         config=types.GenerateContentConfig(
             response_modalities=["TEXT", "IMAGE"],
+            thinking_config=types.ThinkingConfig(thinking_budget=8192),
         ),
     )
+
+    thinking_tokens = getattr(response.usage_metadata, "thoughts_token_count", 0) or 0
 
     for part in response.parts:
         if part.inline_data is not None:
@@ -55,6 +59,7 @@ def remaster_image_sync(input_path: str, output_path: str) -> str:
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
             # subsampling=0 → 4:4:4 chroma (full colour resolution, not halved default)
             pil_img.convert("RGB").save(output_path, "JPEG", quality=97, subsampling=0)
-            return output_path
+            logger.info(f"AI remaster thinking tokens used: {thinking_tokens}")
+            return output_path, thinking_tokens
 
     raise ValueError("Gemini returned no image in the response")

@@ -22,5 +22,7 @@ class Job(Base):
     user_id = Column(String, nullable=True) # ForeignKey would be better but keeping it loose for now to avoid circular imports if not careful, though we should probably add index=True
     ai_repaired_files = Column(JSON, default=[])  # Indexed same as processed_files
     ai_repair_status  = Column(JSON, default=[])  # Per-index: "pending" | "failed" | null
+    ai_repair_thinking_tokens = Column(JSON, default=[])  # Per-index thinking token count
     ai_remastered_files = Column(JSON, default=[])  # Indexed same as processed_files
     ai_remaster_status  = Column(JSON, default=[])  # Per-index: "pending" | "failed" | null
+    ai_remaster_thinking_tokens = Column(JSON, default=[])  # Per-index thinking token count

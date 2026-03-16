@@ -280,7 +280,7 @@ def ai_repair_background(job_id: str, file_index: int, user_id: str):
         stem, ext = os.path.splitext(os.path.basename(input_path))
         output_path = os.path.join(os.path.dirname(input_path), f"{stem}_ai{ext}")
 
-        ai_repair_service.repair_image_sync(input_path, output_path)
+        output_path, thinking_tokens = ai_repair_service.repair_image_sync(input_path, output_path)
 
         try:
             restoration.generate_preview(output_path)
@@ -299,6 +299,12 @@ def ai_repair_background(job_id: str, file_index: int, user_id: str):
             status_list.append(None)
         status_list[file_index] = None
         job.ai_repair_status = status_list
+
+        tokens_list = list(job.ai_repair_thinking_tokens or [])
+        while len(tokens_list) <= file_index:
+            tokens_list.append(None)
+        tokens_list[file_index] = thinking_tokens
+        job.ai_repair_thinking_tokens = tokens_list
 
         db.commit()
         logger.info(f"AI repair complete: job {job_id} idx {file_index} → {output_path}")
@@ -393,7 +399,7 @@ def ai_remaster_background(job_id: str, file_index: int, user_id: str):
         output_dir = os.path.dirname(job.processed_files[file_index])
         output_path = os.path.join(output_dir, f"{clean_stem}_remaster{ext}")
 
-        ai_remaster_service.remaster_image_sync(input_path, output_path)
+        output_path, thinking_tokens = ai_remaster_service.remaster_image_sync(input_path, output_path)
 
         try:
             restoration.generate_preview(output_path)
@@ -412,6 +418,12 @@ def ai_remaster_background(job_id: str, file_index: int, user_id: str):
             status_list.append(None)
         status_list[file_index] = None
         job.ai_remaster_status = status_list
+
+        tokens_list = list(job.ai_remaster_thinking_tokens or [])
+        while len(tokens_list) <= file_index:
+            tokens_list.append(None)
+        tokens_list[file_index] = thinking_tokens
+        job.ai_remaster_thinking_tokens = tokens_list
 
         db.commit()
         logger.info(f"AI remaster complete: job {job_id} idx {file_index} → {output_path}")
