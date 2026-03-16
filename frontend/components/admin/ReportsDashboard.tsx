@@ -7,7 +7,7 @@ import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     BarChart, Bar, Legend
 } from "recharts";
-import { Download, Calendar, Activity, Users, FileImage, Clock, Zap, Image, Sparkles, Wand2 } from "lucide-react";
+import { Download, Calendar, Activity, Users, FileImage, Clock, Zap, Image, Sparkles, Wand2, BrainCircuit } from "lucide-react";
 import { Loader2 } from "lucide-react";
 
 import { useTheme } from "next-themes";
@@ -150,6 +150,7 @@ export default function ReportsDashboard() {
                 <KpiCard title="Photos Restored" value={summary?.photos_restored ?? summary?.photos_processed ?? 0} icon={<Image className="w-5 h-5 text-green-600 dark:text-green-400" />} sub={`${summary?.credits_restore ?? 0} credits · ${summary?.avg_files_per_job ?? 0} avg per job`} />
                 <KpiCard title="AI Repaired" value={summary?.photos_ai_repaired ?? 0} icon={<Sparkles className="w-5 h-5 text-amber-500 dark:text-amber-400" />} sub={`${summary?.credits_ai_repair ?? 0} credits spent`} />
                 <KpiCard title="AI Remastered" value={summary?.photos_ai_remastered ?? 0} icon={<Wand2 className="w-5 h-5 text-violet-500 dark:text-violet-400" />} sub={`${summary?.credits_ai_remaster ?? 0} credits spent`} />
+                <KpiCard title="Thinking Tokens" value={(summary?.total_thinking_tokens ?? 0).toLocaleString()} icon={<BrainCircuit className="w-5 h-5 text-cyan-500 dark:text-cyan-400" />} sub={`${(summary?.total_repair_thinking_tokens ?? 0).toLocaleString()} repair · ${(summary?.total_remaster_thinking_tokens ?? 0).toLocaleString()} remaster`} />
                 <KpiCard title="Active Users" value={summary?.active_users ?? 0} icon={<Activity className="w-5 h-5 text-primary" />} sub={`Of ${summary?.total_users ?? 0} total`} />
                 <KpiCard title="Success Rate" value={`${summary?.success_rate?.toFixed(1) ?? "0.0"}%`} icon={<FileImage className="w-5 h-5 text-orange-600 dark:text-orange-400" />} sub={`${summary?.failed_jobs ?? 0} failed`} />
                 <KpiCard title="Credits Used" value={summary?.credits_used ?? 0} icon={<Zap className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />} sub={`${summary?.credits_restore ?? 0} restore · ${summary?.credits_ai_repair ?? 0} repair · ${summary?.credits_ai_remaster ?? 0} remaster`} />

@@ -147,6 +147,16 @@ def get_reports_summary(
 
     avg_files_per_job = round(photos_restored / completed_jobs, 1) if completed_jobs > 0 else 0
 
+    # Thinking tokens — sum all non-null values across all jobs in the period
+    total_repair_thinking_tokens = sum(
+        sum(t for t in (j.ai_repair_thinking_tokens or []) if t is not None)
+        for j in completed_jobs_list
+    )
+    total_remaster_thinking_tokens = sum(
+        sum(t for t in (j.ai_remaster_thinking_tokens or []) if t is not None)
+        for j in completed_jobs_list
+    )
+
     # Active users (distinct users who submitted any job in period)
     active_users = db.query(func.count(func.distinct(Job.user_id))).filter(
         Job.created_at >= start_date, Job.created_at <= end_date, Job.user_id.isnot(None)
@@ -173,6 +183,9 @@ def get_reports_summary(
         "credits_used": credits_restore + credits_ai_repair + credits_ai_remaster,
         "avg_files_per_job": avg_files_per_job,
         "active_users": active_users,
+        "total_repair_thinking_tokens": total_repair_thinking_tokens,
+        "total_remaster_thinking_tokens": total_remaster_thinking_tokens,
+        "total_thinking_tokens": total_repair_thinking_tokens + total_remaster_thinking_tokens,
     }
 
 @router.get("/reports/chart")
