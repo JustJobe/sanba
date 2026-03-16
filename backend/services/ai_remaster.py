@@ -12,23 +12,28 @@ IMAGE_MODEL = "gemini-2.5-flash-image"
 IMAGE_MODEL_DISPLAY_NAME = "Gemini 2.5 Flash Image"
 
 REMASTER_ANALYSIS_PROMPT = (
-    "You are a professional photo retouching expert. Analyze this photograph carefully.\n\n"
-    "Determine whether it is colour or black-and-white. Describe the lighting, tonal range, "
-    "skin tones, background elements, and any age-related degradation (grain, fading, damage, colour shift).\n\n"
-    "Then write a precise, actionable remaster plan: which colours to enhance or assign (for B&W), "
-    "how to adjust lighting and contrast, what degradation to remove, and how to modernise the look "
-    "while preserving the subject's exact likeness and the soul of the original.\n\n"
-    "Output ONLY the analysis and plan as plain text."
+    "You are a professional photo retouching expert preparing a job for an AI image generator.\n\n"
+    "Step 1 — Analyze the photograph: determine if it is colour or black-and-white. Catalog every "
+    "element (subjects, clothing, props, background, lighting). Note tonal range, skin tones, "
+    "colour palette, and any age-related degradation (grain, fading, cracks, colour shift).\n\n"
+    "Step 2 — Decide on the modernization: assign specific, realistic colours to every element "
+    "(for B&W images), choose how to enhance or punch up existing colours (for colour images), "
+    "determine the lighting style (e.g. soft daylight, studio), and identify all degradation to remove.\n\n"
+    "Step 3 — Write a single, self-contained image generation prompt that describes the fully "
+    "remastered photograph as if it were already complete: every subject, garment, prop, and "
+    "background element described with precise colours, textures, and lighting. The prompt must "
+    "stand alone — do NOT reference 'the original image' or 'remaster X'. Describe what the "
+    "output SHOULD look like, in vivid detail.\n\n"
+    "Output ONLY the final image generation prompt from Step 3 as plain text."
 )
 
 REMASTER_GENERATION_PREFIX = (
     "You are a professional photo retouching expert. "
-    "Using the following expert analysis and remaster plan, modernize this photograph exactly as instructed.\n\n"
-    "You MUST NOT:\n"
-    "- Change the subject's identity, likeness, or any original scene elements\n"
-    "- Add people, objects, or backgrounds not present in the original\n\n"
+    "Generate the remastered photograph exactly as described below. "
+    "Preserve the subject's exact likeness and all original scene elements. "
+    "Do NOT add people, objects, or backgrounds not described.\n\n"
     "Output ONLY the remastered image, same dimensions, no borders or padding.\n\n"
-    "--- REMASTER PLAN ---\n"
+    "--- IMAGE DESCRIPTION ---\n"
 )
 
 

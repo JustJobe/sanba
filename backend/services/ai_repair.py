@@ -12,23 +12,25 @@ IMAGE_MODEL = "gemini-2.5-flash-image"
 IMAGE_MODEL_DISPLAY_NAME = "Gemini 2.5 Flash Image"
 
 REPAIR_ANALYSIS_PROMPT = (
-    "You are a professional photo restoration expert. Analyze this damaged photograph in detail.\n\n"
-    "Describe every defect you can see: cracks, scratches, tears, stains, fading, missing areas, "
-    "colour shifts — their exact locations, sizes, and severity.\n\n"
-    "Then write a precise, actionable restoration plan: what to remove, what to reconstruct, "
-    "and what reference cues (adjacent texture, colour, tone) to use for each repair. "
-    "Be specific enough that another restorer could execute your plan without seeing the image.\n\n"
-    "Output ONLY the analysis and plan as plain text."
+    "You are a professional photo restoration expert preparing a job for an AI image generator.\n\n"
+    "Step 1 — Inventory every defect in the photograph: cracks, scratches, tears, stains, fading, "
+    "missing areas, colour shifts. For each defect note its exact location, size, and severity.\n\n"
+    "Step 2 — For each defect, determine what the correct restored content should be, using adjacent "
+    "texture, colour, and tone as reference cues. Describe the reconstructed content in enough detail "
+    "that the image generator can fill it in accurately without seeing the original.\n\n"
+    "Step 3 — Write a single, self-contained image generation prompt that describes the fully restored "
+    "photograph as if it were already perfect: every element (people, objects, background, lighting, "
+    "tones) described in precise, vivid detail. The prompt must stand alone — do NOT reference 'the "
+    "original image' or 'restore X'. Describe what the output SHOULD look like.\n\n"
+    "Output ONLY the final image generation prompt from Step 3 as plain text."
 )
 
 REPAIR_GENERATION_PREFIX = (
     "You are a professional photo restoration expert. "
-    "Using the following expert analysis and restoration plan, fully restore this photograph exactly as instructed.\n\n"
-    "You MUST NOT:\n"
-    "- Add new cracks, scratches, damage marks, or texture artifacts not present in the input\n"
-    "- Invent new people, objects, or background elements not implied by the existing content\n\n"
+    "Generate the restored photograph exactly as described below. "
+    "Do NOT add cracks, artifacts, or any new elements not described.\n\n"
     "Output ONLY the restored image, same dimensions, no borders or padding.\n\n"
-    "--- RESTORATION PLAN ---\n"
+    "--- IMAGE DESCRIPTION ---\n"
 )
 
 
