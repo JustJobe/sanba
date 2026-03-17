@@ -552,64 +552,67 @@ export default function JobDashboard() {
                                         {job.files.map((file: string, index: number) => {
                                             const processed = job.processed_files ? job.processed_files[index] : null;
                                             return (
-                                                <div key={index} className="flex items-center gap-3 bg-foreground/5 p-3 border border-foreground/5 flex-wrap">
-                                                    {/* Original — larger, visually separated */}
-                                                    <a
-                                                        href={getFileUrl(file)}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="group/thumb relative block w-14 h-14 shrink-0 border border-foreground/30 overflow-hidden hover:scale-105 transition-transform"
-                                                        title="View Original"
-                                                    >
-                                                        <img src={getFileUrl(file)} className="w-full h-full object-cover" />
-                                                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 py-0.5 text-center">
-                                                            <span className="text-[7px] text-white/70 font-mono uppercase tracking-widest">Orig</span>
-                                                        </div>
-                                                    </a>
-
-                                                    {/* Vertical separator */}
-                                                    {processed && (
-                                                        <div className="w-px self-stretch bg-foreground/15 shrink-0 mx-1" />
-                                                    )}
-
-                                                    {/* Restored + AI actions */}
-                                                    {processed && (
-                                                        <div className="flex items-center gap-2 flex-wrap min-w-0">
-                                                            <a
-                                                                href={getFileUrl(processed)}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="relative block w-10 h-10 border border-green-500/50 hover:border-green-600 transition-colors overflow-hidden shrink-0"
-                                                                title="View Restored"
-                                                            >
-                                                                <img src={getFileUrl(processed)} className="w-full h-full object-cover" />
-                                                            </a>
-                                                            <button
-                                                                onClick={() => {
-                                                                    const beforeUrl = getFileUrl(file);
-                                                                    const afterUrl = getFileUrl(processed);
-                                                                    setComparingFiles({
-                                                                        before: toPreviewUrl(beforeUrl),
-                                                                        after: toPreviewUrl(afterUrl),
-                                                                        beforeFallback: beforeUrl,
-                                                                        afterFallback: afterUrl,
-                                                                        label: 'Original vs Restored',
-                                                                    });
-                                                                }}
-                                                                className="p-1.5 border border-foreground/20 hover:bg-foreground hover:text-background transition-colors"
-                                                                title="Review: Original vs Restored"
-                                                            >
-                                                                <Eye className="w-3.5 h-3.5" />
-                                                            </button>
-                                                            {renderAiRepair(job, index, 'sm')}
-                                                            {renderAiRemaster(job, index, 'sm')}
-                                                        </div>
-                                                    )}
-
-                                                    {/* Filename — pushed to end on wider screens */}
-                                                    <span className="text-xs font-mono truncate text-foreground/50 ml-auto hidden sm:block max-w-[160px]">
+                                                <div key={index} className="flex items-center gap-3 bg-foreground/5 p-3 border border-foreground/5">
+                                                    {/* Filename — left side */}
+                                                    <span className="text-xs font-mono truncate text-foreground/50 flex-1 min-w-0">
                                                         {file.split(/[/\\]/).pop()}
                                                     </span>
+
+                                                    {/* Thumbnails + actions — right side */}
+                                                    <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                                                        {/* Original — larger */}
+                                                        <a
+                                                            href={getFileUrl(file)}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="group/thumb relative block w-14 h-14 shrink-0 border border-foreground/30 overflow-hidden hover:scale-105 transition-transform"
+                                                            title="View Original"
+                                                        >
+                                                            <img src={getFileUrl(file)} className="w-full h-full object-cover" />
+                                                            <div className="absolute bottom-0 left-0 right-0 bg-black/60 py-0.5 text-center">
+                                                                <span className="text-[7px] text-white/70 font-mono uppercase tracking-widest">Orig</span>
+                                                            </div>
+                                                        </a>
+
+                                                        {/* Vertical separator */}
+                                                        {processed && (
+                                                            <div className="w-px self-stretch bg-foreground/15 shrink-0 mx-1" />
+                                                        )}
+
+                                                        {/* Restored + AI actions */}
+                                                        {processed && (
+                                                            <>
+                                                                <a
+                                                                    href={getFileUrl(processed)}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="relative block w-10 h-10 border border-green-500/50 hover:border-green-600 transition-colors overflow-hidden shrink-0"
+                                                                    title="View Restored"
+                                                                >
+                                                                    <img src={getFileUrl(processed)} className="w-full h-full object-cover" />
+                                                                </a>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        const beforeUrl = getFileUrl(file);
+                                                                        const afterUrl = getFileUrl(processed);
+                                                                        setComparingFiles({
+                                                                            before: toPreviewUrl(beforeUrl),
+                                                                            after: toPreviewUrl(afterUrl),
+                                                                            beforeFallback: beforeUrl,
+                                                                            afterFallback: afterUrl,
+                                                                            label: 'Original vs Restored',
+                                                                        });
+                                                                    }}
+                                                                    className="p-1.5 border border-foreground/20 hover:bg-foreground hover:text-background transition-colors"
+                                                                    title="Review: Original vs Restored"
+                                                                >
+                                                                    <Eye className="w-3.5 h-3.5" />
+                                                                </button>
+                                                                {renderAiRepair(job, index, 'sm')}
+                                                                {renderAiRemaster(job, index, 'sm')}
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             );
                                         })}
