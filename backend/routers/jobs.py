@@ -226,7 +226,7 @@ def download_job_zip(job_id: str, db: Session = Depends(get_db), current_user: u
     )
 
 
-AI_REPAIR_COST = 3
+AI_REPAIR_COST = 4
 
 
 @router.post("/{job_id}/ai_repair/{file_index}", response_model=JobSchema)
@@ -347,7 +347,8 @@ def ai_repair_background(job_id: str, file_index: int, user_id: str):
         db.close()
 
 
-AI_REMASTER_COST = 3
+AI_REMASTER_COST_FULL = 4       # No prior repair
+AI_REMASTER_COST_DISCOUNTED = 3  # Repair already done for this index
 
 
 @router.post("/{job_id}/ai_remaster/{file_index}", response_model=JobSchema)
@@ -372,10 +373,20 @@ async def ai_remaster_image(
     if file_index < len(status_list) and status_list[file_index] == "pending":
         raise HTTPException(status_code=400, detail="AI remaster already in progress")
 
-    if current_user.credits < AI_REMASTER_COST:
+    # Block if repair is still running — must complete first
+    repair_status_list = list(job.ai_repair_status or [])
+    if file_index < len(repair_status_list) and repair_status_list[file_index] == "pending":
+        raise HTTPException(status_code=400, detail="AI repair still in progress — wait for it to complete first")
+
+    # Discounted cost if repair was already completed for this image
+    repaired_files = list(job.ai_repaired_files or [])
+    repair_done = file_index < len(repaired_files) and bool(repaired_files[file_index])
+    remaster_cost = AI_REMASTER_COST_DISCOUNTED if repair_done else AI_REMASTER_COST_FULL
+
+    if current_user.credits < remaster_cost:
         raise HTTPException(status_code=402, detail="Insufficient credits")
 
-    current_user.credits -= AI_REMASTER_COST
+    current_user.credits -= remaster_cost
 
     # Mark as pending immediately so the UI can show spinner on next poll
     while len(status_list) <= file_index:
@@ -385,11 +396,11 @@ async def ai_remaster_image(
     db.commit()
     db.refresh(job)
 
-    background_tasks.add_task(ai_remaster_background, job_id, file_index, current_user.id)
+    background_tasks.add_task(ai_remaster_background, job_id, file_index, current_user.id, remaster_cost)
     return job
 
 
-def ai_remaster_background(job_id: str, file_index: int, user_id: str):
+def ai_remaster_background(job_id: str, file_index: int, user_id: str, credits_charged: int = AI_REMASTER_COST_FULL):
     db: Session = SessionLocal()
     try:
         job = db.query(sql_job.Job).filter(sql_job.Job.id == job_id, sql_job.Job.user_id == user_id).first()
@@ -466,13 +477,13 @@ def ai_remaster_background(job_id: str, file_index: int, user_id: str):
             db.commit()
         except Exception as se:
             logger.error(f"Could not persist failed status: {se}")
-        # Auto-refund
+        # Auto-refund the exact amount charged
         try:
             u = db.query(user.User).filter(user.User.id == user_id).first()
             if u:
-                u.credits += AI_REMASTER_COST
+                u.credits += credits_charged
                 db.commit()
-                logger.info(f"Refunded {AI_REMASTER_COST} credits to user {user_id}")
+                logger.info(f"Refunded {credits_charged} credits to user {user_id}")
         except Exception as refund_err:
             logger.error(f"Refund failed: {refund_err}")
     finally:
