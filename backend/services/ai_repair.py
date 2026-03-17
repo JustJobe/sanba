@@ -19,8 +19,8 @@ class RepairResult(NamedTuple):
     input_bytes: int
 
 THINKING_MODEL = "gemini-3-flash-preview"
-IMAGE_MODEL = "gemini-3.1-flash-image-preview"
-IMAGE_MODEL_DISPLAY_NAME = "Gemini 3.1 Flash Image Preview"
+IMAGE_MODEL = "gemini-3-pro-image-preview"
+IMAGE_MODEL_DISPLAY_NAME = "Gemini 3 Pro Image Preview"
 
 REPAIR_ANALYSIS_PROMPT = (
     "You are a professional photo restoration expert preparing a job for an AI image generator.\n\n"
