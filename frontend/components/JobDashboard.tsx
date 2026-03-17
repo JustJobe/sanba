@@ -389,6 +389,11 @@ export default function JobDashboard() {
                                     <p className="font-mono text-xs text-foreground/60 mt-1">
                                         {job.files.length} FILE(S) • {job.source}
                                     </p>
+                                    {job.files.length === 1 && job.files[0] && (
+                                        <p className="font-mono text-xs text-foreground/40 mt-0.5 truncate max-w-[180px] sm:max-w-[260px]">
+                                            {job.files[0].split(/[/\\]/).pop()}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
 
