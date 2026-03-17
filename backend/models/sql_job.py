@@ -26,3 +26,7 @@ class Job(Base):
     ai_remastered_files = Column(JSON, default=[])  # Indexed same as processed_files
     ai_remaster_status  = Column(JSON, default=[])  # Per-index: "pending" | "failed" | null
     ai_remaster_thinking_tokens = Column(JSON, default=[])  # Per-index thinking token count
+    ai_repair_durations    = Column(JSON, default=[])  # Per-index wall-clock seconds (float)
+    ai_repair_input_meta   = Column(JSON, default=[])  # Per-index {"w":int,"h":int,"bytes":int}
+    ai_remaster_durations  = Column(JSON, default=[])  # Per-index wall-clock seconds (float)
+    ai_remaster_input_meta = Column(JSON, default=[])  # Per-index {"w":int,"h":int,"bytes":int}

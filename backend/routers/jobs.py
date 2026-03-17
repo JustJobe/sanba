@@ -280,7 +280,8 @@ def ai_repair_background(job_id: str, file_index: int, user_id: str):
         stem, ext = os.path.splitext(os.path.basename(input_path))
         output_path = os.path.join(os.path.dirname(input_path), f"{stem}_ai{ext}")
 
-        output_path, thinking_tokens = ai_repair_service.repair_image_sync(input_path, output_path)
+        result = ai_repair_service.repair_image_sync(input_path, output_path)
+        output_path, thinking_tokens = result.output_path, result.thinking_tokens
 
         try:
             restoration.generate_preview(output_path)
@@ -306,8 +307,20 @@ def ai_repair_background(job_id: str, file_index: int, user_id: str):
         tokens_list[file_index] = thinking_tokens
         job.ai_repair_thinking_tokens = tokens_list
 
+        durations_list = list(job.ai_repair_durations or [])
+        while len(durations_list) <= file_index:
+            durations_list.append(None)
+        durations_list[file_index] = result.duration_secs
+        job.ai_repair_durations = durations_list
+
+        meta_list = list(job.ai_repair_input_meta or [])
+        while len(meta_list) <= file_index:
+            meta_list.append(None)
+        meta_list[file_index] = {"w": result.input_width, "h": result.input_height, "bytes": result.input_bytes}
+        job.ai_repair_input_meta = meta_list
+
         db.commit()
-        logger.info(f"AI repair complete: job {job_id} idx {file_index} → {output_path}")
+        logger.info(f"AI repair complete: job {job_id} idx {file_index} → {output_path} ({result.duration_secs}s, {result.input_width}×{result.input_height}px)")
 
     except Exception as e:
         logger.error(f"AI repair failed job {job_id} idx {file_index}: {e}")
@@ -399,7 +412,8 @@ def ai_remaster_background(job_id: str, file_index: int, user_id: str):
         output_dir = os.path.dirname(job.processed_files[file_index])
         output_path = os.path.join(output_dir, f"{clean_stem}_remaster{ext}")
 
-        output_path, thinking_tokens = ai_remaster_service.remaster_image_sync(input_path, output_path)
+        result = ai_remaster_service.remaster_image_sync(input_path, output_path)
+        output_path, thinking_tokens = result.output_path, result.thinking_tokens
 
         try:
             restoration.generate_preview(output_path)
@@ -425,8 +439,20 @@ def ai_remaster_background(job_id: str, file_index: int, user_id: str):
         tokens_list[file_index] = thinking_tokens
         job.ai_remaster_thinking_tokens = tokens_list
 
+        durations_list = list(job.ai_remaster_durations or [])
+        while len(durations_list) <= file_index:
+            durations_list.append(None)
+        durations_list[file_index] = result.duration_secs
+        job.ai_remaster_durations = durations_list
+
+        meta_list = list(job.ai_remaster_input_meta or [])
+        while len(meta_list) <= file_index:
+            meta_list.append(None)
+        meta_list[file_index] = {"w": result.input_width, "h": result.input_height, "bytes": result.input_bytes}
+        job.ai_remaster_input_meta = meta_list
+
         db.commit()
-        logger.info(f"AI remaster complete: job {job_id} idx {file_index} → {output_path}")
+        logger.info(f"AI remaster complete: job {job_id} idx {file_index} → {output_path} ({result.duration_secs}s, {result.input_width}×{result.input_height}px)")
 
     except Exception as e:
         logger.error(f"AI remaster failed job {job_id} idx {file_index}: {e}")

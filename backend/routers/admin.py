@@ -157,6 +157,17 @@ def get_reports_summary(
         for j in completed_jobs_list
     )
 
+    # Per-image durations and megapixels for repair and remaster
+    repair_durations = [d for j in completed_jobs_list for d in (j.ai_repair_durations or []) if d is not None]
+    remaster_durations = [d for j in completed_jobs_list for d in (j.ai_remaster_durations or []) if d is not None]
+    avg_repair_duration_secs = round(sum(repair_durations) / len(repair_durations), 2) if repair_durations else None
+    avg_remaster_duration_secs = round(sum(remaster_durations) / len(remaster_durations), 2) if remaster_durations else None
+
+    repair_mps = [(m["w"] * m["h"]) / 1_000_000 for j in completed_jobs_list for m in (j.ai_repair_input_meta or []) if m]
+    remaster_mps = [(m["w"] * m["h"]) / 1_000_000 for j in completed_jobs_list for m in (j.ai_remaster_input_meta or []) if m]
+    avg_repair_input_megapixels = round(sum(repair_mps) / len(repair_mps), 2) if repair_mps else None
+    avg_remaster_input_megapixels = round(sum(remaster_mps) / len(remaster_mps), 2) if remaster_mps else None
+
     # Active users (distinct users who submitted any job in period)
     active_users = db.query(func.count(func.distinct(Job.user_id))).filter(
         Job.created_at >= start_date, Job.created_at <= end_date, Job.user_id.isnot(None)
@@ -186,6 +197,10 @@ def get_reports_summary(
         "total_repair_thinking_tokens": total_repair_thinking_tokens,
         "total_remaster_thinking_tokens": total_remaster_thinking_tokens,
         "total_thinking_tokens": total_repair_thinking_tokens + total_remaster_thinking_tokens,
+        "avg_repair_duration_secs":      avg_repair_duration_secs,
+        "avg_remaster_duration_secs":    avg_remaster_duration_secs,
+        "avg_repair_input_megapixels":   avg_repair_input_megapixels,
+        "avg_remaster_input_megapixels": avg_remaster_input_megapixels,
     }
 
 @router.get("/reports/chart")

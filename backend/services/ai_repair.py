@@ -1,11 +1,22 @@
 import io
 import os
+import time
 import logging
+from typing import NamedTuple
 from google import genai
 from google.genai import types
 from PIL import Image as PILImage
 
 logger = logging.getLogger(__name__)
+
+
+class RepairResult(NamedTuple):
+    output_path: str
+    thinking_tokens: int
+    duration_secs: float
+    input_width: int
+    input_height: int
+    input_bytes: int
 
 THINKING_MODEL = "gemini-3-flash-preview"
 IMAGE_MODEL = "gemini-3.1-flash-image-preview"
@@ -39,9 +50,9 @@ REPAIR_GENERATION_PREFIX = (
 )
 
 
-def repair_image_sync(input_path: str, output_path: str) -> tuple[str, int]:
+def repair_image_sync(input_path: str, output_path: str) -> RepairResult:
     """Two-step pipeline: thinking model analyzes damage, image model executes the repair.
-    Returns (output_path, thinking_tokens)."""
+    Returns RepairResult(output_path, thinking_tokens, duration_secs, input_width, input_height, input_bytes)."""
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise ValueError("GEMINI_API_KEY is not set")
@@ -50,10 +61,14 @@ def repair_image_sync(input_path: str, output_path: str) -> tuple[str, int]:
 
     # Encode as lossless PNG — guarantees full colour fidelity for both API calls
     img = PILImage.open(input_path).convert("RGB")
+    input_width, input_height = img.width, img.height
+    input_bytes = os.path.getsize(input_path)
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     png_bytes = buf.getvalue()
     image_part = types.Part.from_bytes(data=png_bytes, mime_type="image/png")
+
+    t_start = time.monotonic()
 
     # Step 1: Thinking model analyzes the image and produces a detailed repair plan
     analysis_response = client.models.generate_content(
@@ -87,6 +102,14 @@ def repair_image_sync(input_path: str, output_path: str) -> tuple[str, int]:
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
             # subsampling=0 → 4:4:4 chroma (full colour resolution, not halved default)
             pil_img.convert("RGB").save(output_path, "JPEG", quality=97, subsampling=0)
-            return output_path, thinking_tokens
+            duration_secs = time.monotonic() - t_start
+            return RepairResult(
+                output_path=output_path,
+                thinking_tokens=thinking_tokens,
+                duration_secs=round(duration_secs, 3),
+                input_width=input_width,
+                input_height=input_height,
+                input_bytes=input_bytes,
+            )
 
     raise ValueError("Gemini returned no image in the response")

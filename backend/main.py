@@ -50,6 +50,10 @@ async def migrate_db():
             ("ai_remastered_files",         '"[]"'),
             ("ai_remaster_status",          '"[]"'),
             ("ai_remaster_thinking_tokens", '"[]"'),
+            ("ai_repair_durations",         '"[]"'),
+            ("ai_repair_input_meta",        '"[]"'),
+            ("ai_remaster_durations",       '"[]"'),
+            ("ai_remaster_input_meta",      '"[]"'),
         ]:
             if col not in existing:
                 conn.execute(sa.text(f'ALTER TABLE jobs ADD COLUMN {col} JSON DEFAULT {defval}'))
