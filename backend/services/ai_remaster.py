@@ -44,12 +44,24 @@ REMASTER_ANALYSIS_PROMPT = (
 )
 
 REMASTER_GENERATION_PREFIX = (
-    "You are a professional photo retouching expert. "
-    "Generate the remastered photograph exactly as described below. "
-    "Preserve the subject's exact likeness and all original scene elements. "
-    "Do NOT add people, objects, or backgrounds not described.\n\n"
-    "Output ONLY the remastered image, same dimensions, no borders or padding.\n\n"
-    "--- IMAGE DESCRIPTION ---\n"
+    "PHOTO ENHANCEMENT TASK — read every constraint before generating.\n\n"
+    "The attached image is the REFERENCE ORIGINAL. Your output must preserve every element "
+    "of the original exactly — you are enhancing quality and clarity, NOT reimagining the scene. "
+    "Treat the reference as the absolute ground truth for composition and content.\n\n"
+    "MUST NOT CHANGE under any circumstances:\n"
+    "- Every person's face, identity, expression, facial hair, skin tone, and features\n"
+    "- The exact number of people and their positions, poses, and body proportions\n"
+    "- Every item of clothing, its colour, pattern, texture, and fit on each person\n"
+    "- All objects, props, and their arrangement within the scene\n"
+    "- The overall composition, framing, and spatial relationships — no cropping or reframing\n"
+    "- The scene itself — do NOT add, remove, or substitute any element\n\n"
+    "YOU MAY: improve sharpness, reduce grain/noise, boost colour vibrancy, modernise lighting "
+    "quality, remove age-related degradation (fading, staining, colour shift), and enhance "
+    "skin texture for a contemporary look — while keeping every element visually identical.\n\n"
+    "DO NOT: add new people, objects, or background elements. Do NOT change clothing colours "
+    "or patterns. Do NOT alter faces or expressions. Do NOT reframe or crop. Do NOT replace "
+    "the background with a different scene.\n\n"
+    "--- ENHANCEMENT DESCRIPTION ---\n"
 )
 
 

@@ -41,12 +41,22 @@ REPAIR_ANALYSIS_PROMPT = (
 )
 
 REPAIR_GENERATION_PREFIX = (
-    "You are a professional photo restoration expert. "
-    "Generate the repaired photograph exactly as described below. "
-    "Preserve the original era, tones, and style exactly — do NOT modernise or enhance. "
-    "Do NOT add cracks, artifacts, or any elements not described.\n\n"
-    "Output ONLY the restored image, same dimensions, no borders or padding.\n\n"
-    "--- IMAGE DESCRIPTION ---\n"
+    "SURGICAL RESTORATION TASK — read every constraint before generating.\n\n"
+    "The attached image is the REFERENCE ORIGINAL. Your output must match it in every way "
+    "except for the specific physical damage listed below. Treat the reference as ground truth.\n\n"
+    "ABSOLUTE CONSTRAINTS — these must not change under any circumstances:\n"
+    "- Every person's face, expression, facial hair, skin tone, and features\n"
+    "- All body proportions, poses, and positions\n"
+    "- Every item of clothing, its colour, pattern, and fit\n"
+    "- The entire background scene, objects, and their arrangement\n"
+    "- Colour tones, contrast, and lighting direction of the original\n"
+    "- The era, aesthetic, and photographic style — do NOT modernise\n"
+    "- Image composition and framing — no cropping, zooming, or reframing\n\n"
+    "YOU MAY ONLY: remove physical damage (cracks, scratches, tears, stains, fading) "
+    "and fill those areas using surrounding texture and tone as reference.\n\n"
+    "DO NOT: reinterpret, enhance, modernise, alter colours, change any described element, "
+    "or add anything not visible in the reference photo.\n\n"
+    "--- DAMAGE REPAIR INSTRUCTIONS ---\n"
 )
 
 
