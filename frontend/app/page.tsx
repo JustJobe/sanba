@@ -35,6 +35,7 @@ export default function Home() {
         <div className="pointer-events-auto flex flex-wrap justify-end items-center gap-3 sm:gap-6 font-mono text-xs sm:text-sm underline-offset-4">
           {!user ? (
             <>
+              <Link href="/gallery" className="hover:underline decoration-1">Gallery</Link>
               <Link href="/login" className="hover:underline decoration-1">Login</Link>
               <Link href="/signup" className="hover:underline decoration-1">Join</Link>
             </>
@@ -167,7 +168,7 @@ export default function Home() {
                     <ComparisonSlider
                       before="/examples/color-before.jpg"
                       after="/examples/color-after.jpg"
-                      beforeLabel="Faded"
+                      beforeLabel="Original"
                       afterLabel="Remastered"
                       maxHeightVh={45}
                     />
