@@ -6,17 +6,17 @@ import ComparisonSlider from "@/components/ComparisonSlider";
 
 const EXAMPLES = [
   {
-    id: "gentleman-portrait",
+    id: "wedding-walk",
     before: "/examples/gentleman-before.jpg",
     after: "/examples/gentleman-after.jpg",
-    beforeLabel: "Faded",
+    beforeLabel: "Original",
     afterLabel: "Remastered",
-    title: "Gentleman Portrait",
-    year: "c. 1920",
+    title: "The Walk",
+    year: "c. 1960",
     type: "Remaster",
     typeColor: "text-violet-400",
     typeBorder: "border-violet-400/40",
-    description: "Severely faded sepia portrait rebuilt from almost nothing. AI colorization and full detail recovery.",
+    description: "Black-and-white wedding procession colorized with AI. Foliage, clothing, and skin tones brought to life.",
   },
   {
     id: "wedding-portrait",
@@ -45,17 +45,17 @@ const EXAMPLES = [
     description: "Faded black-and-white snapshot colorized and sharpened. Background and clothing details restored.",
   },
   {
-    id: "gathering",
+    id: "village-kids",
     before: "/examples/gathering-before.jpg",
     after: "/examples/gathering-after.jpg",
     beforeLabel: "Original",
     afterLabel: "Remastered",
-    title: "The Gathering",
-    year: "c. 1990",
+    title: "Village Kids",
+    year: "c. 1950",
     type: "Remaster",
     typeColor: "text-violet-400",
     typeBorder: "border-violet-400/40",
-    description: "Faded colour photo with washed-out tones. Colour balance and sharpness fully restored.",
+    description: "Faded black-and-white group photo colorized and sharpened. Faces, clothing, and village backdrop restored.",
   },
 ];
 
