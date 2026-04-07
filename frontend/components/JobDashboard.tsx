@@ -220,6 +220,18 @@ export default function JobDashboard() {
             );
         }
 
+        if (aiStatus === "content_policy") {
+            return (
+                <div className={`flex items-center gap-2 px-2 ${btnPad} border border-blue-400/40 bg-blue-400/10 text-blue-300`}>
+                    <span className="font-mono text-[10px] leading-tight">
+                        Photo declined by AI.<br />
+                        <a href="/faq#repair-declined" className="underline hover:text-blue-200">Learn more</a>
+                        <span className="text-blue-400/50"> · No credits charged</span>
+                    </span>
+                </div>
+            );
+        }
+
         // Not started or failed — active button (red "Retry" if previously failed)
         const isFailed = aiStatus === "failed";
         return (
@@ -292,6 +304,18 @@ export default function JobDashboard() {
                     <span className="font-mono text-[10px] uppercase tracking-wide leading-tight">
                         Remastering…<br />
                         <span className="text-violet-400/50 normal-case tracking-normal">Updates in ~5s</span>
+                    </span>
+                </div>
+            );
+        }
+
+        if (remasterStatus === "content_policy") {
+            return (
+                <div className={`flex items-center gap-2 px-2 ${btnPad} border border-blue-400/40 bg-blue-400/10 text-blue-300`}>
+                    <span className="font-mono text-[10px] leading-tight">
+                        Photo declined by AI.<br />
+                        <a href="/faq#repair-declined" className="underline hover:text-blue-200">Learn more</a>
+                        <span className="text-blue-400/50"> · No credits charged</span>
                     </span>
                 </div>
             );

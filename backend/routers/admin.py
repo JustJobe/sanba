@@ -5,6 +5,9 @@ from ..models.user import User
 from ..models.incentive import IncentivePlan
 from ..models.sql_job import Job
 from ..models.activity_log import ActivityLog
+from ..models.system_setting import SystemSetting
+from ..models.payment import Payment
+from ..models.credit_ledger import CreditLedger
 from .auth import get_current_user
 from ..services.credit_ledger import record_credit_change
 from pydantic import BaseModel
@@ -307,10 +310,6 @@ def export_reports(
     )
 
 # --- SETTINGS ENDPOINTS ---
-
-from ..models.system_setting import SystemSetting
-from ..models.payment import Payment
-from ..models.credit_ledger import CreditLedger
 
 class SettingUpdate(BaseModel):
     value: str

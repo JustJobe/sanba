@@ -120,6 +120,15 @@ export default function UploadZone() {
                             key="idle"
                             className="w-full"
                         >
+                            {/* Inline notice: AI provider content policy for photos of children */}
+                            <div className="mb-4 p-3 border border-blue-400/30 bg-blue-400/5 text-blue-300">
+                                <p className="font-mono text-[10px] uppercase tracking-wide font-bold mb-1">A note about photos featuring children</p>
+                                <p className="font-mono text-[10px] text-foreground/60 leading-relaxed">
+                                    Our Repair &amp; Remaster tool may be unable to process certain photos of children due to our AI provider&apos;s content policies.
+                                    If your photo cannot be processed, <strong className="text-foreground/80">no credits will be deducted</strong>. {' '}
+                                    <a href="/faq#repair-declined" className="underline hover:text-blue-200">Learn more</a>
+                                </p>
+                            </div>
                             <div
                                 onDragEnter={handleDrag}
                                 onDragLeave={handleDrag}
