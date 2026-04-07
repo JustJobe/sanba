@@ -16,3 +16,4 @@ mailjet-rest
 Authlib
 itsdangerous
 httpx
+stripe

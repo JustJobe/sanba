@@ -168,6 +168,20 @@ def get_reports_summary(
     avg_repair_input_megapixels = round(sum(repair_mps) / len(repair_mps), 2) if repair_mps else None
     avg_remaster_input_megapixels = round(sum(remaster_mps) / len(remaster_mps), 2) if remaster_mps else None
 
+    # Revenue metrics
+    total_revenue_cents = db.query(func.sum(Payment.price_myr_cents)).filter(
+        Payment.status == "completed",
+        Payment.completed_at >= start_date, Payment.completed_at <= end_date
+    ).scalar() or 0
+    total_credits_purchased = db.query(func.sum(Payment.credits_delivered)).filter(
+        Payment.status == "completed",
+        Payment.completed_at >= start_date, Payment.completed_at <= end_date
+    ).scalar() or 0
+    total_purchases = db.query(Payment).filter(
+        Payment.status == "completed",
+        Payment.completed_at >= start_date, Payment.completed_at <= end_date
+    ).count()
+
     # Active users (distinct users who submitted any job in period)
     active_users = db.query(func.count(func.distinct(Job.user_id))).filter(
         Job.created_at >= start_date, Job.created_at <= end_date, Job.user_id.isnot(None)
@@ -201,6 +215,9 @@ def get_reports_summary(
         "avg_remaster_duration_secs":    avg_remaster_duration_secs,
         "avg_repair_input_megapixels":   avg_repair_input_megapixels,
         "avg_remaster_input_megapixels": avg_remaster_input_megapixels,
+        "total_revenue_myr": round(total_revenue_cents / 100, 2),
+        "total_credits_purchased": total_credits_purchased,
+        "total_purchases": total_purchases,
     }
 
 @router.get("/reports/chart")
@@ -282,6 +299,7 @@ def export_reports(
 # --- SETTINGS ENDPOINTS ---
 
 from ..models.system_setting import SystemSetting
+from ..models.payment import Payment
 
 class SettingUpdate(BaseModel):
     value: str
@@ -313,4 +331,31 @@ def update_setting(key: str, update: SettingUpdate, db: Session = Depends(get_db
 
     db.commit()
     return {"message": "Setting updated", "key": key, "value": update.value}
+
+
+# --- PAYMENTS ENDPOINTS ---
+
+@router.get("/payments")
+def list_payments(db: Session = Depends(get_db), admin: User = Depends(get_admin_user)):
+    payments = (
+        db.query(Payment, User.email)
+        .outerjoin(User, Payment.user_id == User.id)
+        .order_by(Payment.created_at.desc())
+        .all()
+    )
+    return [
+        {
+            "id": p.id,
+            "user_id": p.user_id,
+            "user_email": email,
+            "package_key": p.package_key,
+            "credits_amount": p.credits_amount,
+            "price_myr_cents": p.price_myr_cents,
+            "status": p.status,
+            "credits_delivered": p.credits_delivered,
+            "created_at": p.created_at.isoformat() if p.created_at else None,
+            "completed_at": p.completed_at.isoformat() if p.completed_at else None,
+        }
+        for p, email in payments
+    ]
 

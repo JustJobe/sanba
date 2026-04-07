@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
 import { useRouter } from "next/navigation";
-import { Loader2, ArrowLeft, Users, Shield, Zap, CheckCircle, XCircle, Check, X, CreditCard, BarChart3, Settings, Save } from "lucide-react";
+import { Loader2, ArrowLeft, Users, Shield, Zap, CheckCircle, XCircle, Check, X, CreditCard, BarChart3, Settings, Save, Receipt } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -33,13 +33,27 @@ interface SystemSetting {
     value: string;
 }
 
+interface AdminPayment {
+    id: string;
+    user_id: string;
+    user_email: string;
+    package_key: string;
+    credits_amount: number;
+    price_myr_cents: number;
+    status: string;
+    credits_delivered: number;
+    created_at: string | null;
+    completed_at: string | null;
+}
+
 export default function AdminPage() {
     const { user, loading } = useAuth();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'users' | 'plans' | 'reports' | 'settings'>('users');
+    const [activeTab, setActiveTab] = useState<'users' | 'plans' | 'reports' | 'settings' | 'payments'>('users');
     const [users, setUsers] = useState<AdminUser[]>([]);
     const [plans, setPlans] = useState<IncentivePlan[]>([]);
     const [settings, setSettings] = useState<Record<string, string>>({});
+    const [payments, setPayments] = useState<AdminPayment[]>([]);
     const [isLoadingData, setIsLoadingData] = useState(false);
 
     // Editing State
@@ -63,13 +77,15 @@ export default function AdminPage() {
     const fetchData = async () => {
         setIsLoadingData(true);
         try {
-            const [usersRes, plansRes, settingsRes] = await Promise.all([
+            const [usersRes, plansRes, settingsRes, paymentsRes] = await Promise.all([
                 api.get("/admin/users"),
                 api.get("/admin/incentives"),
-                api.get("/admin/settings")
+                api.get("/admin/settings"),
+                api.get("/admin/payments"),
             ]);
             setUsers(usersRes.data);
             setPlans(plansRes.data);
+            setPayments(paymentsRes.data);
 
             const settingsMap: Record<string, string> = {};
             settingsRes.data.forEach((s: SystemSetting) => {
@@ -185,6 +201,12 @@ export default function AdminPage() {
                         className={`px-4 py-2 rounded-none border font-medium transition-colors flex items-center gap-2 ${activeTab === 'reports' ? 'bg-foreground text-background border-foreground' : 'bg-background text-foreground/60 border-foreground/20 hover:text-foreground hover:border-foreground'}`}
                     >
                         <BarChart3 className="w-4 h-4" /> Reports
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('payments')}
+                        className={`px-4 py-2 rounded-none border font-medium transition-colors flex items-center gap-2 ${activeTab === 'payments' ? 'bg-foreground text-background border-foreground' : 'bg-background text-foreground/60 border-foreground/20 hover:text-foreground hover:border-foreground'}`}
+                    >
+                        <Receipt className="w-4 h-4" /> Payments
                     </button>
                     <button
                         onClick={() => setActiveTab('settings')}
@@ -382,6 +404,47 @@ export default function AdminPage() {
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'payments' && (
+                            <div className="bg-background border-2 border-foreground brutalist-shadow overflow-hidden">
+                                {payments.length === 0 ? (
+                                    <div className="p-12 text-center text-foreground/40 font-mono">No payments yet.</div>
+                                ) : (
+                                    <table className="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr className="border-b-2 border-foreground text-foreground/60 text-xs uppercase tracking-widest bg-accent/20">
+                                                <th className="p-4 font-bold">Date</th>
+                                                <th className="p-4 font-bold">User</th>
+                                                <th className="p-4 font-bold">Package</th>
+                                                <th className="p-4 font-bold">Credits</th>
+                                                <th className="p-4 font-bold">Amount</th>
+                                                <th className="p-4 font-bold">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-foreground/10">
+                                            {payments.map(p => (
+                                                <tr key={p.id} className="hover:bg-accent/10 transition-colors">
+                                                    <td className="p-4 font-mono text-sm text-foreground/60">
+                                                        {p.created_at ? new Date(p.created_at).toLocaleString() : "—"}
+                                                    </td>
+                                                    <td className="p-4 text-sm">{p.user_email}</td>
+                                                    <td className="p-4 font-mono text-sm">{p.package_key}</td>
+                                                    <td className="p-4 font-mono text-sm font-bold text-primary">{p.credits_amount}</td>
+                                                    <td className="p-4 font-mono text-sm">RM {(p.price_myr_cents / 100).toFixed(2)}</td>
+                                                    <td className="p-4">
+                                                        <span className={`inline-block px-2 py-1 text-xs font-bold uppercase tracking-wider border ${
+                                                            p.status === "completed" ? "bg-green-100 text-green-800 border-green-800 dark:bg-green-900/30 dark:text-green-300 dark:border-green-500" :
+                                                            p.status === "pending" ? "bg-yellow-100 text-yellow-800 border-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-500" :
+                                                            "bg-foreground/5 text-foreground/40 border-foreground/20"
+                                                        }`}>{p.status}</span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                )}
                             </div>
                         )}
 

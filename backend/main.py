@@ -4,14 +4,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from .database import engine
-from .models import sql_job, user, incentive, activity_log, system_setting
-from .routers import jobs, auth, admin
+from .models import sql_job, user, incentive, activity_log, system_setting, payment
+from .routers import jobs, auth, admin, payments
 
 sql_job.Base.metadata.create_all(bind=engine)
 user.Base.metadata.create_all(bind=engine)
 incentive.Base.metadata.create_all(bind=engine)
 activity_log.Base.metadata.create_all(bind=engine)
 system_setting.Base.metadata.create_all(bind=engine)
+payment.Base.metadata.create_all(bind=engine)
 
 import logging
 logging.basicConfig(level=logging.INFO)
@@ -35,6 +36,7 @@ app.add_middleware(
 app.include_router(jobs.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1/auth")
 app.include_router(admin.router, prefix="/api/v1/admin")
+app.include_router(payments.router, prefix="/api/v1")
 
 
 @app.on_event("startup")

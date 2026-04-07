@@ -3,9 +3,20 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { Loader2, ArrowLeft, Save, User, Phone, Mail, Shield, CreditCard, Sparkles } from "lucide-react";
+import { Loader2, ArrowLeft, Save, User, Phone, Mail, Shield, CreditCard, Sparkles, Receipt } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import api from "@/lib/api";
+
+interface PaymentRecord {
+    id: string;
+    package_key: string;
+    credits_amount: number;
+    price_myr_cents: number;
+    status: string;
+    created_at: string | null;
+    completed_at: string | null;
+}
 
 export default function ProfilePage() {
     const { user, loading, updateProfile } = useAuth();
@@ -15,6 +26,13 @@ export default function ProfilePage() {
     const [phone, setPhone] = useState("");
     const [isSaving, setIsSaving] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+    const [payments, setPayments] = useState<PaymentRecord[]>([]);
+
+    useEffect(() => {
+        if (user) {
+            api.get("/payments/history").then((res) => setPayments(res.data)).catch(console.error);
+        }
+    }, [user]);
 
     useEffect(() => {
         if (user) {
@@ -188,6 +206,36 @@ export default function ProfilePage() {
                                     <span className="font-syne font-bold text-lg">Daily Basic</span>
                                     <span className="text-xs px-2 py-1 bg-green-500 text-white font-mono uppercase tracking-widest border border-foreground">Active</span>
                                 </div>
+                            </div>
+
+                            <div className="border border-foreground p-6 bg-background">
+                                <h3 className="font-mono text-xs uppercase tracking-widest text-foreground/60 mb-4 flex items-center gap-2">
+                                    <Receipt className="w-4 h-4" />
+                                    Purchase History
+                                </h3>
+                                {payments.length === 0 ? (
+                                    <p className="font-mono text-sm text-foreground/40">No purchases yet. <Link href="/store" className="text-primary hover:underline">Visit the store</Link> to buy credits.</p>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {payments.map((p) => (
+                                            <div key={p.id} className="flex items-center justify-between p-3 bg-accent/10 border border-foreground/10 text-sm">
+                                                <div>
+                                                    <span className="font-mono font-bold">{p.credits_amount} credits</span>
+                                                    <p className="font-mono text-xs text-foreground/40">
+                                                        {p.created_at ? new Date(p.created_at).toLocaleDateString() : "—"}
+                                                    </p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className="font-mono">RM {(p.price_myr_cents / 100).toFixed(2)}</span>
+                                                    <p className={`font-mono text-xs uppercase ${
+                                                        p.status === "completed" ? "text-green-500" :
+                                                        p.status === "pending" ? "text-yellow-500" : "text-foreground/30"
+                                                    }`}>{p.status}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
