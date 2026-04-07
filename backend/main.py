@@ -24,7 +24,9 @@ app = FastAPI(title="SanBa API")
 # Session Middleware for Authlib (Required for OAuth)
 app.add_middleware(SessionMiddleware, secret_key="super-secret-session-key")
 
-app.mount("/files", StaticFiles(directory="uploads"), name="uploads")
+import pathlib
+_backend_dir = pathlib.Path(__file__).resolve().parent
+app.mount("/files", StaticFiles(directory=str(_backend_dir / "uploads")), name="uploads")
 
 app.add_middleware(
     CORSMiddleware,
