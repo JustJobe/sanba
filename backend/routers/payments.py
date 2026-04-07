@@ -111,8 +111,11 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             raise HTTPException(status_code=400, detail="Invalid signature")
         raise
 
-    if event["type"] == "checkout.session.completed":
-        session_data = event["data"]["object"]
+    # Convert Stripe objects to plain dicts for safe attribute access
+    event_dict = event.to_dict() if hasattr(event, "to_dict") else dict(event)
+
+    if event_dict["type"] == "checkout.session.completed":
+        session_data = event_dict["data"]["object"]
         session_id = session_data["id"]
 
         payment = db.query(Payment).filter(
@@ -138,7 +141,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         payment.credits_delivered = payment.credits_amount
         payment.completed_at = datetime.datetime.utcnow()
         payment.stripe_payment_intent_id = session_data.get("payment_intent")
-        payment.stripe_event_data = event
+        payment.stripe_event_data = event_dict
 
         record_credit_change(
             db=db, user_id=user.id, action="purchase",
@@ -160,8 +163,8 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         db.commit()
         logger.info(f"Payment {payment.id}: credited {payment.credits_amount} to user {user.email}")
 
-    elif event["type"] == "checkout.session.expired":
-        session_data = event["data"]["object"]
+    elif event_dict["type"] == "checkout.session.expired":
+        session_data = event_dict["data"]["object"]
         session_id = session_data["id"]
 
         payment = db.query(Payment).filter(
