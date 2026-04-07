@@ -11,6 +11,7 @@ from ..models.payment import Payment
 from ..models.user import User
 from ..models.activity_log import ActivityLog
 from .auth import get_current_user
+from ..services.credit_ledger import record_credit_change
 
 logger = logging.getLogger(__name__)
 
@@ -136,6 +137,13 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         payment.completed_at = datetime.datetime.utcnow()
         payment.stripe_payment_intent_id = session_data.get("payment_intent")
         payment.stripe_event_data = event
+
+        record_credit_change(
+            db=db, user_id=user.id, action="purchase",
+            amount=+payment.credits_amount, balance_after=user.credits,
+            actor="system", payment_id=payment.id,
+            note=f"package={payment.package_key}",
+        )
 
         db.add(ActivityLog(
             user_id=user.id,

@@ -13,6 +13,7 @@ from mailjet_rest import Client
 from authlib.integrations.starlette_client import OAuth
 import os
 import random
+from ..services.credit_ledger import record_credit_change
 
 router = APIRouter()
 
@@ -136,6 +137,11 @@ def replenish_credits(user: User, db: Session):
         # Apply Reward
         user.credits += plan.reward_amount
         user.last_credit_replenishment = now
+        record_credit_change(
+            db=db, user_id=user.id, action="daily_claim",
+            amount=+plan.reward_amount, balance_after=user.credits,
+            actor="system",
+        )
         db.commit()
         db.refresh(user)
         break # Apply one plan only per refresh cycle
@@ -192,8 +198,14 @@ def verify_otp(request: VerifyOTPRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == request.email).first()
     if not user:
         initial_credits = get_new_user_credits(db)
-        user = User(email=request.email, credits=initial_credits) 
+        user = User(email=request.email, credits=initial_credits)
         db.add(user)
+        db.flush()
+        record_credit_change(
+            db=db, user_id=user.id, action="signup_bonus",
+            amount=+initial_credits, balance_after=user.credits,
+            actor="system",
+        )
         db.commit()
         db.refresh(user)
     else:
@@ -300,6 +312,12 @@ async def auth_callback(provider: str, request: Request, db: Session = Depends(g
             credits=initial_credits
         )
         db.add(user)
+        db.flush()
+        record_credit_change(
+            db=db, user_id=user.id, action="signup_bonus",
+            amount=+initial_credits, balance_after=user.credits,
+            actor="system",
+        )
         db.commit()
         db.refresh(user)
     else:

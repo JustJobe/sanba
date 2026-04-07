@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
 import { useRouter } from "next/navigation";
@@ -33,6 +33,31 @@ interface SystemSetting {
     value: string;
 }
 
+interface CreditLedgerEntry {
+    id: string;
+    action: string;
+    amount: number;
+    balance_after: number;
+    actor: string;
+    job_id: string | null;
+    payment_id: string | null;
+    note: string | null;
+    created_at: string | null;
+}
+
+const ACTION_LABELS: Record<string, string> = {
+    daily_claim: "Daily Top-up",
+    admin_grant: "Admin Grant",
+    admin_deduct: "Admin Deduct",
+    purchase: "Purchase",
+    refund_repair: "Repair Refund",
+    refund_remaster: "Remaster Refund",
+    signup_bonus: "Signup Bonus",
+    restore: "Restore",
+    ai_repair: "AI Repair",
+    ai_remaster: "AI Remaster",
+};
+
 interface AdminPayment {
     id: string;
     user_id: string;
@@ -55,6 +80,11 @@ export default function AdminPage() {
     const [settings, setSettings] = useState<Record<string, string>>({});
     const [payments, setPayments] = useState<AdminPayment[]>([]);
     const [isLoadingData, setIsLoadingData] = useState(false);
+
+    // Credit history state
+    const [historyUserId, setHistoryUserId] = useState<string | null>(null);
+    const [creditHistory, setCreditHistory] = useState<CreditLedgerEntry[]>([]);
+    const [loadingHistory, setLoadingHistory] = useState(false);
 
     // Editing State
     const [editingUserId, setEditingUserId] = useState<string | null>(null);
@@ -96,6 +126,24 @@ export default function AdminPage() {
             console.error("Failed to fetch admin data", e);
         } finally {
             setIsLoadingData(false);
+        }
+    };
+
+    const viewCreditHistory = async (userId: string) => {
+        if (historyUserId === userId) {
+            setHistoryUserId(null);
+            return;
+        }
+        setHistoryUserId(userId);
+        setLoadingHistory(true);
+        try {
+            const res = await api.get(`/admin/users/${userId}/credit-history`);
+            setCreditHistory(res.data);
+        } catch (e) {
+            console.error(e);
+            setCreditHistory([]);
+        } finally {
+            setLoadingHistory(false);
         }
     };
 
@@ -234,7 +282,8 @@ export default function AdminPage() {
                                     </thead>
                                     <tbody className="divide-y divide-foreground/10">
                                         {users.map(u => (
-                                            <tr key={u.id} className="hover:bg-accent/10 transition-colors">
+                                        <React.Fragment key={u.id}>
+                                            <tr className="hover:bg-accent/10 transition-colors">
                                                 <td className="p-4">
                                                     <div className="font-bold text-foreground">{u.full_name || "Unknown"}</div>
                                                     <div className="text-xs text-foreground/40 font-mono">{u.id}</div>
@@ -288,15 +337,69 @@ export default function AdminPage() {
                                                             </button>
                                                         </div>
                                                     ) : (
-                                                        <button
-                                                            onClick={() => startEditing(u)}
-                                                            className="px-3 py-1.5 bg-background hover:bg-foreground hover:text-background border border-foreground text-foreground text-xs uppercase tracking-wider transition-all shadow-[2px_2px_0px_0px_currentColor] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
-                                                        >
-                                                            Edit Credits
-                                                        </button>
+                                                        <div className="flex items-center gap-2">
+                                                            <button
+                                                                onClick={() => startEditing(u)}
+                                                                className="px-3 py-1.5 bg-background hover:bg-foreground hover:text-background border border-foreground text-foreground text-xs uppercase tracking-wider transition-all shadow-[2px_2px_0px_0px_currentColor] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
+                                                            >
+                                                                Edit Credits
+                                                            </button>
+                                                            <button
+                                                                onClick={() => viewCreditHistory(u.id)}
+                                                                className={`px-3 py-1.5 border text-xs uppercase tracking-wider transition-all ${historyUserId === u.id ? 'bg-foreground text-background border-foreground' : 'bg-background hover:bg-foreground hover:text-background border-foreground text-foreground shadow-[2px_2px_0px_0px_currentColor] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]'}`}
+                                                            >
+                                                                Ledger
+                                                            </button>
+                                                        </div>
                                                     )}
                                                 </td>
                                             </tr>
+                                            {historyUserId === u.id && (
+                                                <tr>
+                                                    <td colSpan={5} className="p-0">
+                                                        <div className="bg-accent/10 border-t border-foreground/10 p-4">
+                                                            <h4 className="font-bold text-sm mb-3 uppercase tracking-wider">Credit Ledger</h4>
+                                                            {loadingHistory ? (
+                                                                <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-primary" /></div>
+                                                            ) : creditHistory.length === 0 ? (
+                                                                <p className="text-foreground/40 text-sm">No credit history.</p>
+                                                            ) : (
+                                                                <table className="w-full text-xs">
+                                                                    <thead>
+                                                                        <tr className="text-foreground/40 uppercase tracking-widest">
+                                                                            <th className="text-left pb-2">Date</th>
+                                                                            <th className="text-left pb-2">Action</th>
+                                                                            <th className="text-right pb-2">Amount</th>
+                                                                            <th className="text-right pb-2">Balance</th>
+                                                                            <th className="text-left pb-2">Actor</th>
+                                                                            <th className="text-left pb-2">Note</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody className="divide-y divide-foreground/5">
+                                                                        {creditHistory.map(e => (
+                                                                            <tr key={e.id} className="hover:bg-accent/10">
+                                                                                <td className="py-1.5 pr-3 text-foreground/50">
+                                                                                    {e.created_at ? new Date(e.created_at).toLocaleString() : "—"}
+                                                                                </td>
+                                                                                <td className="py-1.5 pr-3 font-medium">
+                                                                                    {ACTION_LABELS[e.action] || e.action}
+                                                                                </td>
+                                                                                <td className={`py-1.5 pr-3 text-right font-bold ${e.amount >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                                                                    {e.amount >= 0 ? '+' : ''}{e.amount}
+                                                                                </td>
+                                                                                <td className="py-1.5 pr-3 text-right text-foreground/60">{e.balance_after}</td>
+                                                                                <td className="py-1.5 pr-3 text-foreground/40">{e.actor === 'system' ? 'System' : e.actor.slice(0, 8) + '...'}</td>
+                                                                                <td className="py-1.5 text-foreground/40">{e.note || "—"}</td>
+                                                                            </tr>
+                                                                        ))}
+                                                                    </tbody>
+                                                                </table>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </>
                                         ))}
                                     </tbody>
                                 </table>

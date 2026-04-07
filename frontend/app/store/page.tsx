@@ -97,7 +97,6 @@ export default function StorePage() {
                                             <span className={`font-medium ${isBestValue ? "text-violet-300" : ""}`}>
                                                 {pkg.label}
                                             </span>
-                                            <p className="text-xs text-foreground/40 mt-0.5">{pkg.per_credit_label}</p>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             {loadingKey === key ? (

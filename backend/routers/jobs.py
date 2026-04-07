@@ -13,10 +13,13 @@ from fastapi.responses import StreamingResponse
 
 from ..models.job import Job as JobSchema, JobCreate, JobStatus, JobSource
 from ..models import sql_job, user
+from ..services.credit_ledger import record_credit_change
 from ..database import get_db
 from ..services import restoration
 from ..services import ai_repair as ai_repair_service
 from ..services import ai_remaster as ai_remaster_service
+from ..services.ai_repair import GeminiContentPolicyError as RepairContentPolicyError
+from ..services.ai_remaster import GeminiContentPolicyError as RemasterContentPolicyError
 from .auth import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -44,14 +47,14 @@ async def upload_files(
     job_id = str(uuid4())
     job_dir = os.path.join(UPLOAD_DIR, job_id, "original")
     os.makedirs(job_dir, exist_ok=True)
-    
+
     saved_files = []
     for file in files:
         file_path = os.path.join(job_dir, file.filename)
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         saved_files.append(file_path)
-    
+
     new_job = sql_job.Job(
         id=job_id,
         status="queued",
@@ -61,7 +64,7 @@ async def upload_files(
         photo_type=photo_type,
         user_id=current_user.id
     )
-    
+
     db.add(new_job)
     db.commit()
     db.refresh(new_job)
@@ -125,28 +128,28 @@ def process_job_background(job_id: str, operation: str, user_id: str):
             if job.created_at:
                 job.execution_time = (job.completed_at - job.created_at).total_seconds()
             db.commit()
-            
+
         except Exception as e:
             job.status = "failed"
             db.commit()
             logger.error(f"Error processing job {job_id}: {e}")
-            
+
     finally:
         db.close()
 
 
 @router.post("/{job_id}/process", response_model=JobSchema)
 async def process_job(
-    job_id: str, 
+    job_id: str,
     background_tasks: BackgroundTasks,
-    operation: str = "denoise", 
+    operation: str = "denoise",
     db: Session = Depends(get_db),
     current_user: user.User = Depends(get_current_user)
 ):
     job = db.query(sql_job.Job).filter(sql_job.Job.id == job_id, sql_job.Job.user_id == current_user.id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-        
+
     if not job.files:
         raise HTTPException(status_code=400, detail="Job has no files to process")
 
@@ -159,12 +162,17 @@ async def process_job(
     job.status = "processing"
     # Deduct credits
     current_user.credits -= cost
+    record_credit_change(
+        db=db, user_id=current_user.id, action="restore",
+        amount=-cost, balance_after=current_user.credits,
+        actor=current_user.id, job_id=job.id,
+    )
     db.commit()
     db.refresh(job)
-    
+
     # Offload to background task
     background_tasks.add_task(process_job_background, job.id, operation, current_user.id)
-    
+
     return job
 
 @router.delete("/{job_id}", status_code=204)
@@ -172,12 +180,12 @@ def delete_job(job_id: str, db: Session = Depends(get_db), current_user: user.Us
     job = db.query(sql_job.Job).filter(sql_job.Job.id == job_id, sql_job.Job.user_id == current_user.id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-    
+
     # Delete files from filesystem
     job_dir = os.path.join(UPLOAD_DIR, job_id)
     if os.path.exists(job_dir):
         shutil.rmtree(job_dir)
-        
+
     db.delete(job)
     db.commit()
     return None
@@ -187,7 +195,7 @@ def download_job_zip(job_id: str, db: Session = Depends(get_db), current_user: u
     job = db.query(sql_job.Job).filter(sql_job.Job.id == job_id, sql_job.Job.user_id == current_user.id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-        
+
     if not job.processed_files:
         raise HTTPException(status_code=400, detail="No processed files to download")
 
@@ -216,7 +224,7 @@ def download_job_zip(job_id: str, db: Session = Depends(get_db), current_user: u
                     if job.files and i < len(job.files) \
                     else os.path.splitext(os.path.basename(remaster_path))[0]
                 zip_file.write(remaster_path, f"{original_stem}_remastered.jpg")
-    
+
     zip_buffer.seek(0)
 
     return StreamingResponse(
@@ -255,6 +263,12 @@ async def ai_repair_image(
         raise HTTPException(status_code=402, detail="Insufficient credits")
 
     current_user.credits -= AI_REPAIR_COST
+    record_credit_change(
+        db=db, user_id=current_user.id, action="ai_repair",
+        amount=-AI_REPAIR_COST, balance_after=current_user.credits,
+        actor=current_user.id, job_id=job.id,
+        note=f"file_index={file_index}",
+    )
 
     # Mark as pending immediately so the UI can show spinner on next poll
     while len(status_list) <= file_index:
@@ -322,6 +336,32 @@ def ai_repair_background(job_id: str, file_index: int, user_id: str):
         db.commit()
         logger.info(f"AI repair complete: job {job_id} idx {file_index} → {output_path} ({result.duration_secs}s, {result.input_width}×{result.input_height}px)")
 
+    except RepairContentPolicyError as e:
+        logger.warning(f"AI repair content policy block job {job_id} idx {file_index}: {e}")
+        try:
+            status_list = list(job.ai_repair_status or [])
+            while len(status_list) <= file_index:
+                status_list.append(None)
+            status_list[file_index] = "content_policy"
+            job.ai_repair_status = status_list
+            db.commit()
+        except Exception as se:
+            logger.error(f"Could not persist content_policy status: {se}")
+        # Always refund on content policy block
+        try:
+            u = db.query(user.User).filter(user.User.id == user_id).first()
+            if u:
+                u.credits += AI_REPAIR_COST
+                record_credit_change(
+                    db=db, user_id=user_id, action="refund_repair",
+                    amount=+AI_REPAIR_COST, balance_after=u.credits,
+                    actor="system", job_id=job_id,
+                    note=f"content_policy, file_index={file_index}",
+                )
+                db.commit()
+                logger.info(f"Refunded {AI_REPAIR_COST} credits (content policy) to user {user_id}")
+        except Exception as refund_err:
+            logger.error(f"Refund failed: {refund_err}")
     except Exception as e:
         logger.error(f"AI repair failed job {job_id} idx {file_index}: {e}")
         # Mark failed so the UI re-enables the Retry button
@@ -339,6 +379,12 @@ def ai_repair_background(job_id: str, file_index: int, user_id: str):
             u = db.query(user.User).filter(user.User.id == user_id).first()
             if u:
                 u.credits += AI_REPAIR_COST
+                record_credit_change(
+                    db=db, user_id=user_id, action="refund_repair",
+                    amount=+AI_REPAIR_COST, balance_after=u.credits,
+                    actor="system", job_id=job_id,
+                    note=f"job_error, file_index={file_index}",
+                )
                 db.commit()
                 logger.info(f"Refunded {AI_REPAIR_COST} credits to user {user_id}")
         except Exception as refund_err:
@@ -387,6 +433,12 @@ async def ai_remaster_image(
         raise HTTPException(status_code=402, detail="Insufficient credits")
 
     current_user.credits -= remaster_cost
+    record_credit_change(
+        db=db, user_id=current_user.id, action="ai_remaster",
+        amount=-remaster_cost, balance_after=current_user.credits,
+        actor=current_user.id, job_id=job.id,
+        note=f"file_index={file_index}, cost={remaster_cost}",
+    )
 
     # Mark as pending immediately so the UI can show spinner on next poll
     while len(status_list) <= file_index:
@@ -465,6 +517,32 @@ def ai_remaster_background(job_id: str, file_index: int, user_id: str, credits_c
         db.commit()
         logger.info(f"AI remaster complete: job {job_id} idx {file_index} → {output_path} ({result.duration_secs}s, {result.input_width}×{result.input_height}px)")
 
+    except RemasterContentPolicyError as e:
+        logger.warning(f"AI remaster content policy block job {job_id} idx {file_index}: {e}")
+        try:
+            status_list = list(job.ai_remaster_status or [])
+            while len(status_list) <= file_index:
+                status_list.append(None)
+            status_list[file_index] = "content_policy"
+            job.ai_remaster_status = status_list
+            db.commit()
+        except Exception as se:
+            logger.error(f"Could not persist content_policy status: {se}")
+        # Always refund on content policy block
+        try:
+            u = db.query(user.User).filter(user.User.id == user_id).first()
+            if u:
+                u.credits += credits_charged
+                record_credit_change(
+                    db=db, user_id=user_id, action="refund_remaster",
+                    amount=+credits_charged, balance_after=u.credits,
+                    actor="system", job_id=job_id,
+                    note=f"content_policy, file_index={file_index}",
+                )
+                db.commit()
+                logger.info(f"Refunded {credits_charged} credits (content policy) to user {user_id}")
+        except Exception as refund_err:
+            logger.error(f"Refund failed: {refund_err}")
     except Exception as e:
         logger.error(f"AI remaster failed job {job_id} idx {file_index}: {e}")
         # Mark failed so the UI re-enables the Retry button
@@ -482,6 +560,12 @@ def ai_remaster_background(job_id: str, file_index: int, user_id: str, credits_c
             u = db.query(user.User).filter(user.User.id == user_id).first()
             if u:
                 u.credits += credits_charged
+                record_credit_change(
+                    db=db, user_id=user_id, action="refund_remaster",
+                    amount=+credits_charged, balance_after=u.credits,
+                    actor="system", job_id=job_id,
+                    note=f"job_error, file_index={file_index}",
+                )
                 db.commit()
                 logger.info(f"Refunded {credits_charged} credits to user {user_id}")
         except Exception as refund_err:

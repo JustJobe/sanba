@@ -6,6 +6,7 @@ from ..models.incentive import IncentivePlan
 from ..models.sql_job import Job
 from ..models.activity_log import ActivityLog
 from .auth import get_current_user
+from ..services.credit_ledger import record_credit_change
 from pydantic import BaseModel
 from typing import List, Optional, Any, Dict
 import csv
@@ -57,7 +58,16 @@ def update_user_credits(user_id: str, update: CreditUpdate, db: Session = Depend
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
+    old_balance = user.credits
     user.credits = update.amount
+    delta = update.amount - old_balance
+    record_credit_change(
+        db=db, user_id=user.id,
+        action="admin_grant" if delta >= 0 else "admin_deduct",
+        amount=delta, balance_after=user.credits,
+        actor=admin.id,
+        note=f"Set from {old_balance} to {update.amount}",
+    )
     db.commit()
     return {"message": "Credits updated", "new_balance": user.credits}
 
@@ -300,6 +310,7 @@ def export_reports(
 
 from ..models.system_setting import SystemSetting
 from ..models.payment import Payment
+from ..models.credit_ledger import CreditLedger
 
 class SettingUpdate(BaseModel):
     value: str
@@ -357,5 +368,36 @@ def list_payments(db: Session = Depends(get_db), admin: User = Depends(get_admin
             "completed_at": p.completed_at.isoformat() if p.completed_at else None,
         }
         for p, email in payments
+    ]
+
+
+# --- CREDIT LEDGER ENDPOINTS ---
+
+@router.get("/users/{user_id}/credit-history")
+def get_user_credit_history(
+    user_id: str,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    entries = (
+        db.query(CreditLedger)
+        .filter(CreditLedger.user_id == user_id)
+        .order_by(CreditLedger.created_at.desc())
+        .limit(200)
+        .all()
+    )
+    return [
+        {
+            "id": e.id,
+            "action": e.action,
+            "amount": e.amount,
+            "balance_after": e.balance_after,
+            "actor": e.actor,
+            "job_id": e.job_id,
+            "payment_id": e.payment_id,
+            "note": e.note,
+            "created_at": e.created_at.isoformat() if e.created_at else None,
+        }
+        for e in entries
     ]
 
