@@ -399,7 +399,7 @@ export default function AdminPage() {
                                                     </td>
                                                 </tr>
                                             )}
-                                        </>
+                                        </React.Fragment>
                                         ))}
                                     </tbody>
                                 </table>
