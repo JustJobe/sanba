@@ -10,6 +10,11 @@ from PIL import Image as PILImage
 logger = logging.getLogger(__name__)
 
 
+class GeminiContentPolicyError(Exception):
+    """Raised when Gemini refuses to process an image due to content policy (e.g. images of minors)."""
+    pass
+
+
 class RemasterResult(NamedTuple):
     output_path: str
     thinking_tokens: int
@@ -65,6 +70,59 @@ REMASTER_GENERATION_PREFIX = (
 )
 
 
+# Blocked finish reasons that indicate a content policy / safety refusal
+_BLOCKED_FINISH_REASONS = frozenset({
+    "SAFETY", "PROHIBITED_CONTENT", "IMAGE_SAFETY", "RECITATION", "BLOCKLIST", "OTHER"
+})
+
+_REFUSAL_KEYWORDS = (
+    "content policy", "prohibited", "safety", "cannot process",
+    "can't process", "unable to process", "minors", "children",
+    "not able to generate", "unable to generate",
+)
+
+_CONTENT_POLICY_ERROR_KEYWORDS = (
+    "safety", "prohibited", "content_policy", "blocked", "image_safety",
+    "request_prohibited", "unsupported_user_location",
+)
+
+
+def _check_content_policy(response, stage: str) -> None:
+    """Inspect a Gemini response and raise GeminiContentPolicyError if it was blocked."""
+    try:
+        for candidate in (response.candidates or []):
+            finish_reason = str(getattr(candidate, "finish_reason", "") or "").upper()
+            if any(blocked in finish_reason for blocked in _BLOCKED_FINISH_REASONS):
+                raise GeminiContentPolicyError(
+                    f"Gemini content policy block at {stage}: finish_reason={finish_reason}"
+                )
+    except GeminiContentPolicyError:
+        raise
+    except Exception:
+        pass  # don't crash on attribute errors in SDK version differences
+
+    # Also check text content for soft refusals (no image returned, just text)
+    try:
+        text = (response.text or "").lower()
+        if text and any(kw in text for kw in _REFUSAL_KEYWORDS):
+            raise GeminiContentPolicyError(
+                f"Gemini content policy soft-refusal at {stage}: response contained refusal language"
+            )
+    except GeminiContentPolicyError:
+        raise
+    except Exception:
+        pass
+
+
+def _raise_if_content_policy(exc: Exception, stage: str) -> None:
+    """If the exception looks like a content policy block, re-raise as GeminiContentPolicyError."""
+    msg = str(exc).lower()
+    if any(kw in msg for kw in _CONTENT_POLICY_ERROR_KEYWORDS):
+        raise GeminiContentPolicyError(
+            f"Gemini API content policy error at {stage}: {exc}"
+        )
+
+
 def remaster_image_sync(input_path: str, output_path: str) -> RemasterResult:
     """Two-step pipeline: thinking model analyzes the image, image model executes the remaster.
     Returns RemasterResult(output_path, thinking_tokens, duration_secs, input_width, input_height, input_bytes)."""
@@ -86,13 +144,20 @@ def remaster_image_sync(input_path: str, output_path: str) -> RemasterResult:
     t_start = time.monotonic()
 
     # Step 1: Thinking model analyzes the image and produces a detailed remaster plan
-    analysis_response = client.models.generate_content(
-        model=THINKING_MODEL,
-        contents=[REMASTER_ANALYSIS_PROMPT, image_part],
-        config=types.GenerateContentConfig(
-            thinking_config=types.ThinkingConfig(thinking_budget=8192),
-        ),
-    )
+    try:
+        analysis_response = client.models.generate_content(
+            model=THINKING_MODEL,
+            contents=[REMASTER_ANALYSIS_PROMPT, image_part],
+            config=types.GenerateContentConfig(
+                thinking_config=types.ThinkingConfig(thinking_budget=8192),
+            ),
+        )
+    except Exception as e:
+        _raise_if_content_policy(e, "remaster analysis")
+        raise
+
+    # Detect content policy refusal from the thinking model
+    _check_content_policy(analysis_response, "remaster analysis")
 
     thinking_tokens = getattr(analysis_response.usage_metadata, "thoughts_token_count", 0) or 0
     analysis_text = analysis_response.text or ""
@@ -103,13 +168,20 @@ def remaster_image_sync(input_path: str, output_path: str) -> RemasterResult:
     generation_prompt = REMASTER_GENERATION_PREFIX + analysis_text
     image_part2 = types.Part.from_bytes(data=png_bytes, mime_type="image/png")
 
-    gen_response = client.models.generate_content(
-        model=IMAGE_MODEL,
-        contents=[generation_prompt, image_part2],
-        config=types.GenerateContentConfig(
-            response_modalities=["TEXT", "IMAGE"],
-        ),
-    )
+    try:
+        gen_response = client.models.generate_content(
+            model=IMAGE_MODEL,
+            contents=[generation_prompt, image_part2],
+            config=types.GenerateContentConfig(
+                response_modalities=["TEXT", "IMAGE"],
+            ),
+        )
+    except Exception as e:
+        _raise_if_content_policy(e, "remaster generation")
+        raise
+
+    # Detect content policy refusal from the image model
+    _check_content_policy(gen_response, "remaster generation")
 
     for part in gen_response.parts:
         if part.inline_data is not None:
@@ -127,4 +199,4 @@ def remaster_image_sync(input_path: str, output_path: str) -> RemasterResult:
                 input_bytes=input_bytes,
             )
 
-    raise ValueError("Gemini returned no image in the response")
+    raise GeminiContentPolicyError("Gemini declined to generate an image — content policy refusal")
