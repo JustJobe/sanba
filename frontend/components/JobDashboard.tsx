@@ -216,7 +216,7 @@ export default function JobDashboard() {
                     <RefreshCw className={`${iconSize} animate-spin shrink-0`} />
                     <span className="font-mono text-[10px] uppercase tracking-wide leading-tight">
                         Repairing…<br />
-                        <span className="text-amber-400/50 normal-case tracking-normal">Updates in ~5s</span>
+                        <span className="text-amber-400/50 normal-case tracking-normal">Updates in ~30s</span>
                     </span>
                 </div>
             );
@@ -228,8 +228,7 @@ export default function JobDashboard() {
                     <span className="font-mono text-[10px] leading-tight">
                         Photo declined by AI.<br />
                         <a href="/faq#repair-declined" className="underline hover:text-blue-200">Learn more</a>
-                        <span className="text-blue-400/50"> · No credits charged</span>
-                    </span>
+                                            </span>
                     <button
                         onClick={() => startAiRepair(job.id, index)}
                         className="ml-auto shrink-0 px-2 py-0.5 border border-blue-400/40 text-blue-300 hover:bg-blue-400 hover:text-background transition-colors font-mono text-[10px] uppercase tracking-wide"
@@ -311,7 +310,7 @@ export default function JobDashboard() {
                     <RefreshCw className={`${iconSize} animate-spin shrink-0`} />
                     <span className="font-mono text-[10px] uppercase tracking-wide leading-tight">
                         Remastering…<br />
-                        <span className="text-violet-400/50 normal-case tracking-normal">Updates in ~5s</span>
+                        <span className="text-violet-400/50 normal-case tracking-normal">Updates in ~30s</span>
                     </span>
                 </div>
             );
@@ -323,8 +322,7 @@ export default function JobDashboard() {
                     <span className="font-mono text-[10px] leading-tight">
                         Photo declined by AI.<br />
                         <a href="/faq#repair-declined" className="underline hover:text-blue-200">Learn more</a>
-                        <span className="text-blue-400/50"> · No credits charged</span>
-                    </span>
+                                            </span>
                     <button
                         onClick={() => startAiRemaster(job.id, index)}
                         className="ml-auto shrink-0 px-2 py-0.5 border border-blue-400/40 text-blue-300 hover:bg-blue-400 hover:text-background transition-colors font-mono text-[10px] uppercase tracking-wide"
