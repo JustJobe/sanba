@@ -1,15 +1,29 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import UploadZone from "@/components/UploadZone";
 import JobDashboard from "@/components/JobDashboard";
 import ComparisonSlider from "@/components/ComparisonSlider";
 import { useAuth } from "@/context/AuthContext";
+import api from "@/lib/api";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Loader2, Wand2, ArrowRight, Play, Sparkles } from "lucide-react";
 
+interface Pricing {
+  restore: number;
+  ai_repair: number;
+  ai_remaster_full: number;
+  ai_remaster_discounted: number;
+}
+
 export default function Home() {
   const { user, loading, logout } = useAuth();
+  const [pricing, setPricing] = useState<Pricing>({ restore: 1, ai_repair: 4, ai_remaster_full: 4, ai_remaster_discounted: 3 });
+
+  useEffect(() => {
+    api.get("/jobs/pricing").then(res => setPricing(res.data)).catch(() => {});
+  }, []);
 
   if (loading) {
     return (
@@ -69,10 +83,10 @@ export default function Home() {
                 — Breathe new life into old photographs.
               </p>
 
-              <div className="border-2 border-primary mb-10 brutalist-shadow">
+              <div className="border-2 border-yellow-500/40 bg-yellow-500/10 mb-10 brutalist-shadow">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-5">
                   <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
-                    <span className="font-syne font-bold text-3xl sm:text-4xl text-primary leading-none">10</span>
+                    <span className="font-syne font-bold text-3xl sm:text-4xl text-yellow-400 leading-none">10</span>
                     <div className="text-center sm:text-left">
                       <p className="font-mono text-xs uppercase tracking-widest text-foreground">Free credits on signup</p>
                       <p className="font-mono text-[10px] uppercase tracking-widest text-foreground/50 mt-1">+ 1 free credit daily · no card required</p>
@@ -80,7 +94,7 @@ export default function Home() {
                   </div>
                   <Link
                     href="/login"
-                    className="font-mono text-xs uppercase tracking-widest border border-primary px-4 py-2 text-primary hover:bg-primary hover:text-background transition-colors whitespace-nowrap"
+                    className="font-mono text-xs uppercase tracking-widest border border-yellow-400 px-4 py-2 text-yellow-400 hover:bg-yellow-400 hover:text-background transition-colors whitespace-nowrap"
                   >
                     Claim yours →
                   </Link>
@@ -108,7 +122,7 @@ export default function Home() {
               <div className="flex items-center justify-between mb-4">
                 <Play className="w-8 h-8 text-foreground/60 stroke-1 group-hover:scale-110 transition-transform" />
                 <span className="font-mono text-[10px] font-bold uppercase tracking-widest border border-foreground/30 px-2 py-0.5 text-foreground/50">
-                  1 credit / photo
+                  {pricing.restore} credit{pricing.restore !== 1 ? 's' : ''} / photo
                 </span>
               </div>
               <h3 className="font-syne font-bold text-xl mb-2">Restore</h3>
@@ -122,7 +136,7 @@ export default function Home() {
               <div className="flex items-center justify-between mb-4">
                 <Sparkles className="w-8 h-8 text-amber-400 stroke-1 group-hover:scale-110 transition-transform" />
                 <span className="font-mono text-[10px] font-bold uppercase tracking-widest border border-amber-400/40 px-2 py-0.5 text-amber-400/70">
-                  3 credits / photo
+                  {pricing.ai_repair} credit{pricing.ai_repair !== 1 ? 's' : ''} / photo
                 </span>
               </div>
               <h3 className="font-syne font-bold text-xl mb-2 text-amber-400">Repair</h3>
@@ -136,7 +150,7 @@ export default function Home() {
               <div className="flex items-center justify-between mb-4">
                 <Wand2 className="w-8 h-8 text-violet-400 stroke-1 group-hover:rotate-12 transition-transform" />
                 <span className="font-mono text-[10px] font-bold uppercase tracking-widest border border-violet-400/40 px-2 py-0.5 text-violet-400/70">
-                  3 credits / photo
+                  {pricing.ai_remaster_discounted}–{pricing.ai_remaster_full} credit{pricing.ai_remaster_full !== 1 ? 's' : ''} / photo
                 </span>
               </div>
               <h3 className="font-syne font-bold text-xl mb-2 text-violet-400">Remaster</h3>

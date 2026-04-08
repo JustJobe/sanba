@@ -98,6 +98,18 @@ async def seed_defaults():
             db.commit()
             logger.info("Seeded system setting: daily_credit_threshold = 3")
 
+        # Ensure pricing settings exist
+        for key, default, desc in [
+            ("restore_cost", "1", "Credits charged per photo for basic restoration"),
+            ("ai_repair_cost", "4", "Credits charged per photo for AI repair"),
+            ("ai_remaster_cost_full", "4", "Credits charged per photo for AI remaster (no prior repair)"),
+            ("ai_remaster_cost_discounted", "3", "Credits charged per photo for AI remaster (repair already done)"),
+        ]:
+            if not db.query(SystemSettingModel).filter_by(key=key).first():
+                db.add(SystemSettingModel(key=key, value=default, description=desc))
+                db.commit()
+                logger.info(f"Seeded system setting: {key} = {default}")
+
         # Ensure daily_topup incentive plan exists
         threshold_row = db.query(SystemSettingModel).filter_by(key="daily_credit_threshold").first()
         cap = int(threshold_row.value) if threshold_row and threshold_row.value.isdigit() else 3

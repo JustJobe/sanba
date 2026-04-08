@@ -30,6 +30,7 @@ export default function JobDashboard() {
     const { refreshUser } = useAuth();
     const [expandedJobs, setExpandedJobs] = useState<Set<string>>(new Set());
     const [showCreditModal, setShowCreditModal] = useState(false);
+    const [pricing, setPricing] = useState({ restore: 1, ai_repair: 4, ai_remaster_full: 4, ai_remaster_discounted: 3 });
     const [comparingFiles, setComparingFiles] = useState<{
         before: string; after: string;
         beforeFallback?: string; afterFallback?: string;
@@ -138,6 +139,7 @@ export default function JobDashboard() {
 
     useEffect(() => {
         fetchJobs();
+        api.get('/jobs/pricing').then(res => setPricing(res.data)).catch(() => {});
         const interval = setInterval(fetchJobs, 5000);
         return () => clearInterval(interval);
     }, []);
@@ -241,10 +243,10 @@ export default function JobDashboard() {
                     ${isFailed
                         ? 'border-red-400 text-red-400 hover:bg-red-400 hover:text-background'
                         : 'border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-background'}`}
-                title={`AI Repair — 4 credits\nModel: ${AI_MODEL_DISPLAY}\nOutput resolution may differ from original`}
+                title={`AI Repair — ${pricing.ai_repair} credits\nModel: ${AI_MODEL_DISPLAY}\nOutput resolution may differ from original`}
             >
                 <Sparkles className={iconSize} />
-                {isFailed ? 'Retry' : 'Repair · 4cr'}
+                {isFailed ? 'Retry' : `Repair · ${pricing.ai_repair}cr`}
             </button>
         );
     };
@@ -255,7 +257,7 @@ export default function JobDashboard() {
         const remasterStatus = job.ai_remaster_status?.[index] ?? null;
         const repairDone = !!job.ai_repaired_files?.[index];
         const repairPending = job.ai_repair_status?.[index] === 'pending';
-        const creditCost = repairDone ? 3 : 4;
+        const creditCost = repairDone ? pricing.ai_remaster_discounted : pricing.ai_remaster_full;
         const iconSize = size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4';
         const thumbSize = size === 'sm' ? 'w-10 h-10' : 'w-12 h-12';
         const btnPad = size === 'sm' ? 'p-1.5' : 'p-2';

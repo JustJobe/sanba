@@ -22,7 +22,29 @@ from ..services import ai_repair as ai_repair_service
 from ..services import ai_remaster as ai_remaster_service
 from ..services.ai_repair import GeminiContentPolicyError as RepairContentPolicyError
 from ..services.ai_remaster import GeminiContentPolicyError as RemasterContentPolicyError
+from ..models.system_setting import SystemSetting
 from .auth import get_current_user
+
+
+# ---------------------------------------------------------------------------
+# Dynamic pricing helpers — read from system_settings, fall back to defaults
+# ---------------------------------------------------------------------------
+
+def get_restore_cost(db: Session) -> int:
+    s = db.query(SystemSetting).filter_by(key="restore_cost").first()
+    return int(s.value) if s and s.value and s.value.isdigit() else 1
+
+def get_ai_repair_cost(db: Session) -> int:
+    s = db.query(SystemSetting).filter_by(key="ai_repair_cost").first()
+    return int(s.value) if s and s.value and s.value.isdigit() else 4
+
+def get_ai_remaster_costs(db: Session) -> tuple:
+    """Returns (full_cost, discounted_cost)."""
+    full = db.query(SystemSetting).filter_by(key="ai_remaster_cost_full").first()
+    disc = db.query(SystemSetting).filter_by(key="ai_remaster_cost_discounted").first()
+    full_cost = int(full.value) if full and full.value and full.value.isdigit() else 4
+    disc_cost = int(disc.value) if disc and disc.value and disc.value.isdigit() else 3
+    return full_cost, disc_cost
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +55,19 @@ UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 MAX_FILES_PER_BATCH = 50
+
+
+@router.get("/pricing")
+def get_pricing(db: Session = Depends(get_db)):
+    """Public endpoint — returns current credit costs for all operations."""
+    full, discounted = get_ai_remaster_costs(db)
+    return {
+        "restore": get_restore_cost(db),
+        "ai_repair": get_ai_repair_cost(db),
+        "ai_remaster_full": full,
+        "ai_remaster_discounted": discounted,
+    }
+
 
 @router.post("/upload", response_model=JobSchema)
 @limiter.limit("10/minute")
@@ -160,7 +195,7 @@ async def process_job(
         raise HTTPException(status_code=400, detail="Job has no files to process")
 
     # Check Credits
-    cost = len(job.files)
+    cost = get_restore_cost(db) * len(job.files)
     if current_user.credits < cost:
         raise HTTPException(status_code=402, detail="Insufficient credits")
 
@@ -240,9 +275,6 @@ def download_job_zip(job_id: str, db: Session = Depends(get_db), current_user: u
     )
 
 
-AI_REPAIR_COST = 4
-
-
 @router.post("/{job_id}/ai_repair/{file_index}", response_model=JobSchema)
 @limiter.limit("3/minute")
 async def ai_repair_image(
@@ -266,13 +298,14 @@ async def ai_repair_image(
     if file_index < len(status_list) and status_list[file_index] == "pending":
         raise HTTPException(status_code=400, detail="AI repair already in progress")
 
-    if current_user.credits < AI_REPAIR_COST:
+    repair_cost = get_ai_repair_cost(db)
+    if current_user.credits < repair_cost:
         raise HTTPException(status_code=402, detail="Insufficient credits")
 
-    current_user.credits -= AI_REPAIR_COST
+    current_user.credits -= repair_cost
     record_credit_change(
         db=db, user_id=current_user.id, action="ai_repair",
-        amount=-AI_REPAIR_COST, balance_after=current_user.credits,
+        amount=-repair_cost, balance_after=current_user.credits,
         actor=current_user.id, job_id=job.id,
         note=f"file_index={file_index}",
     )
@@ -285,11 +318,11 @@ async def ai_repair_image(
     db.commit()
     db.refresh(job)
 
-    submit_gemini(ai_repair_background, job_id, file_index, current_user.id)
+    submit_gemini(ai_repair_background, job_id, file_index, current_user.id, repair_cost)
     return job
 
 
-def ai_repair_background(job_id: str, file_index: int, user_id: str):
+def ai_repair_background(job_id: str, file_index: int, user_id: str, credits_charged: int = 4):
     db: Session = SessionLocal()
     try:
         job = db.query(sql_job.Job).filter(sql_job.Job.id == job_id, sql_job.Job.user_id == user_id).first()
@@ -362,15 +395,15 @@ def ai_repair_background(job_id: str, file_index: int, user_id: str):
         try:
             u = db.query(user.User).filter(user.User.id == user_id).first()
             if u:
-                u.credits += AI_REPAIR_COST
+                u.credits += credits_charged
                 record_credit_change(
                     db=db, user_id=user_id, action="refund_repair",
-                    amount=+AI_REPAIR_COST, balance_after=u.credits,
+                    amount=+credits_charged, balance_after=u.credits,
                     actor="system", job_id=job_id,
                     note=f"content_policy, file_index={file_index}",
                 )
                 db.commit()
-                logger.info(f"Refunded {AI_REPAIR_COST} credits (content policy) to user {user_id}")
+                logger.info(f"Refunded {credits_charged} credits (content policy) to user {user_id}")
         except Exception as refund_err:
             logger.error(f"Refund failed: {refund_err}")
     except Exception as e:
@@ -390,23 +423,19 @@ def ai_repair_background(job_id: str, file_index: int, user_id: str):
         try:
             u = db.query(user.User).filter(user.User.id == user_id).first()
             if u:
-                u.credits += AI_REPAIR_COST
+                u.credits += credits_charged
                 record_credit_change(
                     db=db, user_id=user_id, action="refund_repair",
-                    amount=+AI_REPAIR_COST, balance_after=u.credits,
+                    amount=+credits_charged, balance_after=u.credits,
                     actor="system", job_id=job_id,
                     note=f"job_error, file_index={file_index}",
                 )
                 db.commit()
-                logger.info(f"Refunded {AI_REPAIR_COST} credits to user {user_id}")
+                logger.info(f"Refunded {credits_charged} credits to user {user_id}")
         except Exception as refund_err:
             logger.error(f"Refund failed: {refund_err}")
     finally:
         db.close()
-
-
-AI_REMASTER_COST_FULL = 4       # No prior repair
-AI_REMASTER_COST_DISCOUNTED = 3  # Repair already done for this index
 
 
 @router.post("/{job_id}/ai_remaster/{file_index}", response_model=JobSchema)
@@ -438,9 +467,10 @@ async def ai_remaster_image(
         raise HTTPException(status_code=400, detail="AI repair still in progress — wait for it to complete first")
 
     # Discounted cost if repair was already completed for this image
+    remaster_full, remaster_discounted = get_ai_remaster_costs(db)
     repaired_files = list(job.ai_repaired_files or [])
     repair_done = file_index < len(repaired_files) and bool(repaired_files[file_index])
-    remaster_cost = AI_REMASTER_COST_DISCOUNTED if repair_done else AI_REMASTER_COST_FULL
+    remaster_cost = remaster_discounted if repair_done else remaster_full
 
     if current_user.credits < remaster_cost:
         raise HTTPException(status_code=402, detail="Insufficient credits")
@@ -465,7 +495,7 @@ async def ai_remaster_image(
     return job
 
 
-def ai_remaster_background(job_id: str, file_index: int, user_id: str, credits_charged: int = AI_REMASTER_COST_FULL):
+def ai_remaster_background(job_id: str, file_index: int, user_id: str, credits_charged: int = 4):
     db: Session = SessionLocal()
     try:
         job = db.query(sql_job.Job).filter(sql_job.Job.id == job_id, sql_job.Job.user_id == user_id).first()
