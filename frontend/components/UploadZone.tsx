@@ -100,18 +100,14 @@ export default function UploadZone() {
                         <motion.div
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
+                            onAnimationComplete={() => setTimeout(resetAll, 2000)}
                             key="success"
                             className="flex flex-col items-center py-8"
                         >
                             <CheckCircle className="w-16 h-16 text-primary mb-4" />
                             <p className="font-syne font-bold text-2xl mb-2">Complete</p>
-                            <p className="font-mono text-xs bg-accent py-1 px-3 mb-6">{message}</p>
-                            <button
-                                onClick={resetAll}
-                                className="px-8 py-3 bg-foreground text-background hover:bg-primary transition-colors font-mono uppercase text-xs tracking-widest"
-                            >
-                                Start New
-                            </button>
+                            <p className="font-mono text-xs bg-accent py-1 px-3 mb-4">{message}</p>
+                            <Loader2 className="w-5 h-5 text-foreground/30 animate-spin" />
                         </motion.div>
                     ) : (
                         <motion.div
