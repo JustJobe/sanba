@@ -34,6 +34,8 @@ class Job(JobBase):
     ai_remastered_files: List[Optional[str]] = []
     ai_remaster_status: List[Optional[str]] = []
     ai_remaster_thinking_tokens: List[Optional[int]] = []
+    ai_repair_models: List[Optional[str]] = []
+    ai_remaster_models: List[Optional[str]] = []
 
     class Config:
         from_attributes = True

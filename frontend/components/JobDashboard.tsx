@@ -7,7 +7,14 @@ import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import ComparisonSlider from './ComparisonSlider';
 
-const AI_MODEL_DISPLAY = "Gemini 3 Pro Image Preview";
+interface ModelPricing {
+    id: string;
+    display_name: string;
+    description: string;
+    ai_repair: number;
+    ai_remaster_full: number;
+    ai_remaster_discounted: number;
+}
 
 interface Job {
     id: string;
@@ -21,6 +28,8 @@ interface Job {
     ai_repair_status: (string | null)[];
     ai_remastered_files: (string | null)[];
     ai_remaster_status: (string | null)[];
+    ai_repair_models?: (string | null)[];
+    ai_remaster_models?: (string | null)[];
 }
 
 export default function JobDashboard() {
@@ -32,7 +41,12 @@ export default function JobDashboard() {
     const [showCreditModal, setShowCreditModal] = useState(false);
     const [showFailModal, setShowFailModal] = useState(false);
     const [failDontShowAgain, setFailDontShowAgain] = useState(false);
-    const [pricing, setPricing] = useState({ restore: 1, ai_repair: 4, ai_remaster_full: 4, ai_remaster_discounted: 3, daily_credit_threshold: 3 });
+    const [pricing, setPricing] = useState<{
+        restore: number; ai_repair: number; ai_remaster_full: number; ai_remaster_discounted: number;
+        daily_credit_threshold: number; models?: Record<string, ModelPricing>; default_model?: string;
+    }>({ restore: 1, ai_repair: 4, ai_remaster_full: 4, ai_remaster_discounted: 3, daily_credit_threshold: 3 });
+    const [repairModel, setRepairModel] = useState<string>('pro');
+    const [remasterModel, setRemasterModel] = useState<string>('pro');
     const [comparingFiles, setComparingFiles] = useState<{
         before: string; after: string;
         beforeFallback?: string; afterFallback?: string;
@@ -95,9 +109,14 @@ export default function JobDashboard() {
         }
     };
 
+    const getModelDisplay = (tierOrNull: string | null | undefined) => {
+        const tier = tierOrNull || pricing.default_model || 'pro';
+        return pricing.models?.[tier]?.display_name || 'Gemini 3 Pro';
+    };
+
     const startAiRepair = async (jobId: string, fileIndex: number) => {
         try {
-            await api.post(`/jobs/${jobId}/ai_repair/${fileIndex}`);
+            await api.post(`/jobs/${jobId}/ai_repair/${fileIndex}`, { model: repairModel });
             refreshUser();
             fetchJobs(); // immediately picks up the "pending" status set by the endpoint
         } catch (error: any) {
@@ -112,7 +131,7 @@ export default function JobDashboard() {
 
     const startAiRemaster = async (jobId: string, fileIndex: number) => {
         try {
-            await api.post(`/jobs/${jobId}/ai_remaster/${fileIndex}`);
+            await api.post(`/jobs/${jobId}/ai_remaster/${fileIndex}`, { model: remasterModel });
             refreshUser();
             fetchJobs(); // immediately picks up the "pending" status set by the endpoint
         } catch (error: any) {
@@ -197,7 +216,7 @@ export default function JobDashboard() {
                         target="_blank"
                         rel="noopener noreferrer"
                         className={`group/thumb relative block ${thumbSize} border-2 border-amber-400 overflow-hidden hover:scale-105 transition-transform`}
-                        title={`View AI-Repaired (${AI_MODEL_DISPLAY})`}
+                        title={`View AI-Repaired (${getModelDisplay(job.ai_repair_models?.[index])})`}
                     >
                         <img src={getFileUrl(aiFile)} alt="AI Repaired" className="w-full h-full object-cover" />
                         <div className="absolute inset-0 flex items-center justify-center bg-amber-400/20 opacity-0 group-hover/thumb:opacity-100 transition-opacity">
@@ -256,18 +275,34 @@ export default function JobDashboard() {
 
         // Not started or failed — active button (red "Retry" if previously failed)
         const isFailed = aiStatus === "failed";
+        const repairCost = pricing.models?.[repairModel]?.ai_repair ?? pricing.ai_repair;
+        const modelEntries = pricing.models ? Object.entries(pricing.models) : [];
         return (
-            <button
-                onClick={() => startAiRepair(job.id, index)}
-                className={`flex items-center gap-1 px-2 ${btnPad} border text-[10px] font-mono uppercase tracking-wide transition-colors
-                    ${isFailed
-                        ? 'border-red-400 text-red-400 hover:bg-red-400 hover:text-background'
-                        : 'border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-background'}`}
-                title={`AI Repair — ${pricing.ai_repair} credits\nModel: ${AI_MODEL_DISPLAY}\nOutput resolution may differ from original`}
-            >
-                <Sparkles className={iconSize} />
-                {isFailed ? 'Retry' : `Repair · ${pricing.ai_repair}cr`}
-            </button>
+            <div className="flex items-center gap-1">
+                {modelEntries.length > 1 && (
+                    <select
+                        value={repairModel}
+                        onChange={e => setRepairModel(e.target.value)}
+                        className="bg-background border border-amber-400/40 text-amber-400 font-mono text-[10px] uppercase tracking-wide px-1 py-0.5 cursor-pointer focus:outline-none"
+                        title="Select AI model tier"
+                    >
+                        {modelEntries.map(([id, m]) => (
+                            <option key={id} value={id}>{m.display_name} — {m.ai_repair}cr</option>
+                        ))}
+                    </select>
+                )}
+                <button
+                    onClick={() => startAiRepair(job.id, index)}
+                    className={`flex items-center gap-1 px-2 ${btnPad} border text-[10px] font-mono uppercase tracking-wide transition-colors
+                        ${isFailed
+                            ? 'border-red-400 text-red-400 hover:bg-red-400 hover:text-background'
+                            : 'border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-background'}`}
+                    title={`AI Repair — ${repairCost} credits\nModel: ${getModelDisplay(repairModel)}\nOutput resolution may differ from original`}
+                >
+                    <Sparkles className={iconSize} />
+                    {isFailed ? 'Retry' : `Repair · ${repairCost}cr`}
+                </button>
+            </div>
         );
     };
 
@@ -291,7 +326,7 @@ export default function JobDashboard() {
                         target="_blank"
                         rel="noopener noreferrer"
                         className={`group/thumb relative block ${thumbSize} border-2 border-violet-400 overflow-hidden hover:scale-105 transition-transform`}
-                        title={`View Remastered (${AI_MODEL_DISPLAY})`}
+                        title={`View Remastered (${getModelDisplay(job.ai_remaster_models?.[index])})`}
                     >
                         <img src={getFileUrl(remasterFile)} alt="Remastered" className="w-full h-full object-cover" />
                         <div className="absolute inset-0 flex items-center justify-center bg-violet-400/20 opacity-0 group-hover/thumb:opacity-100 transition-opacity">
@@ -364,18 +399,38 @@ export default function JobDashboard() {
 
         // Not started or failed — active button (red "Retry" if previously failed)
         const isFailed = remasterStatus === "failed";
+        const modelPricing = pricing.models?.[remasterModel];
+        const dynamicCost = repairDone
+            ? (modelPricing?.ai_remaster_discounted ?? pricing.ai_remaster_discounted)
+            : (modelPricing?.ai_remaster_full ?? pricing.ai_remaster_full);
+        const modelEntries = pricing.models ? Object.entries(pricing.models) : [];
         return (
-            <button
-                onClick={() => startAiRemaster(job.id, index)}
-                className={`flex items-center gap-1 px-2 ${btnPad} border text-[10px] font-mono uppercase tracking-wide transition-colors
-                    ${isFailed
-                        ? 'border-red-400 text-red-400 hover:bg-red-400 hover:text-background'
-                        : 'border-violet-400 text-violet-400 hover:bg-violet-400 hover:text-background'}`}
-                title={`AI Remaster — ${creditCost} credits${repairDone ? ' (1 credit discount applied — Repair already done)' : ''}\nModel: ${AI_MODEL_DISPLAY}\nOutput resolution may differ from original`}
-            >
-                <Wand2 className={iconSize} />
-                {isFailed ? 'Retry' : `Remaster · ${creditCost}cr`}
-            </button>
+            <div className="flex items-center gap-1">
+                {modelEntries.length > 1 && (
+                    <select
+                        value={remasterModel}
+                        onChange={e => setRemasterModel(e.target.value)}
+                        className="bg-background border border-violet-400/40 text-violet-400 font-mono text-[10px] uppercase tracking-wide px-1 py-0.5 cursor-pointer focus:outline-none"
+                        title="Select AI model tier"
+                    >
+                        {modelEntries.map(([id, m]) => {
+                            const cost = repairDone ? m.ai_remaster_discounted : m.ai_remaster_full;
+                            return <option key={id} value={id}>{m.display_name} — {cost}cr</option>;
+                        })}
+                    </select>
+                )}
+                <button
+                    onClick={() => startAiRemaster(job.id, index)}
+                    className={`flex items-center gap-1 px-2 ${btnPad} border text-[10px] font-mono uppercase tracking-wide transition-colors
+                        ${isFailed
+                            ? 'border-red-400 text-red-400 hover:bg-red-400 hover:text-background'
+                            : 'border-violet-400 text-violet-400 hover:bg-violet-400 hover:text-background'}`}
+                    title={`AI Remaster — ${dynamicCost} credits${repairDone ? ' (discount applied — Repair already done)' : ''}\nModel: ${getModelDisplay(remasterModel)}\nOutput resolution may differ from original`}
+                >
+                    <Wand2 className={iconSize} />
+                    {isFailed ? 'Retry' : `Remaster · ${dynamicCost}cr`}
+                </button>
+            </div>
         );
     };
 

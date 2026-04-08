@@ -535,68 +535,75 @@ export default function AdminPage() {
                                             </div>
                                         </div>
 
-                                        <div className="grid gap-2">
-                                            <label className="font-mono text-sm font-bold uppercase tracking-wider">AI Repair Cost</label>
-                                            <p className="text-xs text-foreground/60 mb-2">Credits charged per photo for AI repair (damage reconstruction).</p>
-                                            <div className="flex gap-4">
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    className="flex-1 bg-accent/10 border-2 border-foreground p-3 font-mono text-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                                                    value={settings['ai_repair_cost'] ?? '4'}
-                                                    onChange={(e) => setSettings({ ...settings, ai_repair_cost: e.target.value })}
-                                                />
-                                                <button
-                                                    onClick={() => saveSetting('ai_repair_cost', settings['ai_repair_cost'] ?? '4')}
-                                                    disabled={isSavingStart}
-                                                    className="bg-foreground text-background px-6 font-bold hover:bg-primary hover:text-foreground transition-colors border-2 border-transparent hover:border-foreground"
-                                                >
-                                                    {isSavingStart ? <Loader2 className="animate-spin" /> : "SAVE"}
-                                                </button>
-                                            </div>
-                                        </div>
+                                        {/* Per-tier AI pricing */}
+                                        {[
+                                            { tier: 'pro', label: 'Pro', repairDefault: '4', fullDefault: '4', discDefault: '3' },
+                                            { tier: 'flash', label: 'Flash', repairDefault: '2', fullDefault: '2', discDefault: '1' },
+                                        ].map(({ tier, label, repairDefault, fullDefault, discDefault }) => (
+                                            <div key={tier} className="space-y-4 border border-foreground/20 p-4">
+                                                <h4 className="font-mono text-sm font-bold uppercase tracking-wider text-primary">{label} Tier Pricing</h4>
 
-                                        <div className="grid gap-2">
-                                            <label className="font-mono text-sm font-bold uppercase tracking-wider">AI Remaster Cost (Full)</label>
-                                            <p className="text-xs text-foreground/60 mb-2">Credits charged per photo for AI remaster when no prior repair exists.</p>
-                                            <div className="flex gap-4">
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    className="flex-1 bg-accent/10 border-2 border-foreground p-3 font-mono text-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                                                    value={settings['ai_remaster_cost_full'] ?? '4'}
-                                                    onChange={(e) => setSettings({ ...settings, ai_remaster_cost_full: e.target.value })}
-                                                />
-                                                <button
-                                                    onClick={() => saveSetting('ai_remaster_cost_full', settings['ai_remaster_cost_full'] ?? '4')}
-                                                    disabled={isSavingStart}
-                                                    className="bg-foreground text-background px-6 font-bold hover:bg-primary hover:text-foreground transition-colors border-2 border-transparent hover:border-foreground"
-                                                >
-                                                    {isSavingStart ? <Loader2 className="animate-spin" /> : "SAVE"}
-                                                </button>
-                                            </div>
-                                        </div>
+                                                <div className="grid gap-2">
+                                                    <label className="font-mono text-xs font-bold uppercase tracking-wider">AI Repair Cost ({label})</label>
+                                                    <div className="flex gap-4">
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            className="flex-1 bg-accent/10 border-2 border-foreground p-3 font-mono text-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                                            value={settings[`ai_repair_cost_${tier}`] ?? repairDefault}
+                                                            onChange={(e) => setSettings({ ...settings, [`ai_repair_cost_${tier}`]: e.target.value })}
+                                                        />
+                                                        <button
+                                                            onClick={() => saveSetting(`ai_repair_cost_${tier}`, settings[`ai_repair_cost_${tier}`] ?? repairDefault)}
+                                                            disabled={isSavingStart}
+                                                            className="bg-foreground text-background px-6 font-bold hover:bg-primary hover:text-foreground transition-colors border-2 border-transparent hover:border-foreground"
+                                                        >
+                                                            {isSavingStart ? <Loader2 className="animate-spin" /> : "SAVE"}
+                                                        </button>
+                                                    </div>
+                                                </div>
 
-                                        <div className="grid gap-2">
-                                            <label className="font-mono text-sm font-bold uppercase tracking-wider">AI Remaster Cost (Discounted)</label>
-                                            <p className="text-xs text-foreground/60 mb-2">Credits charged per photo for AI remaster when repair was already done.</p>
-                                            <div className="flex gap-4">
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    className="flex-1 bg-accent/10 border-2 border-foreground p-3 font-mono text-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                                                    value={settings['ai_remaster_cost_discounted'] ?? '3'}
-                                                    onChange={(e) => setSettings({ ...settings, ai_remaster_cost_discounted: e.target.value })}
-                                                />
-                                                <button
-                                                    onClick={() => saveSetting('ai_remaster_cost_discounted', settings['ai_remaster_cost_discounted'] ?? '3')}
-                                                    disabled={isSavingStart}
-                                                    className="bg-foreground text-background px-6 font-bold hover:bg-primary hover:text-foreground transition-colors border-2 border-transparent hover:border-foreground"
-                                                >
-                                                    {isSavingStart ? <Loader2 className="animate-spin" /> : "SAVE"}
-                                                </button>
+                                                <div className="grid gap-2">
+                                                    <label className="font-mono text-xs font-bold uppercase tracking-wider">AI Remaster Cost — Full ({label})</label>
+                                                    <div className="flex gap-4">
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            className="flex-1 bg-accent/10 border-2 border-foreground p-3 font-mono text-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                                            value={settings[`ai_remaster_cost_full_${tier}`] ?? fullDefault}
+                                                            onChange={(e) => setSettings({ ...settings, [`ai_remaster_cost_full_${tier}`]: e.target.value })}
+                                                        />
+                                                        <button
+                                                            onClick={() => saveSetting(`ai_remaster_cost_full_${tier}`, settings[`ai_remaster_cost_full_${tier}`] ?? fullDefault)}
+                                                            disabled={isSavingStart}
+                                                            className="bg-foreground text-background px-6 font-bold hover:bg-primary hover:text-foreground transition-colors border-2 border-transparent hover:border-foreground"
+                                                        >
+                                                            {isSavingStart ? <Loader2 className="animate-spin" /> : "SAVE"}
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid gap-2">
+                                                    <label className="font-mono text-xs font-bold uppercase tracking-wider">AI Remaster Cost — Discounted ({label})</label>
+                                                    <div className="flex gap-4">
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            className="flex-1 bg-accent/10 border-2 border-foreground p-3 font-mono text-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                                            value={settings[`ai_remaster_cost_discounted_${tier}`] ?? discDefault}
+                                                            onChange={(e) => setSettings({ ...settings, [`ai_remaster_cost_discounted_${tier}`]: e.target.value })}
+                                                        />
+                                                        <button
+                                                            onClick={() => saveSetting(`ai_remaster_cost_discounted_${tier}`, settings[`ai_remaster_cost_discounted_${tier}`] ?? discDefault)}
+                                                            disabled={isSavingStart}
+                                                            className="bg-foreground text-background px-6 font-bold hover:bg-primary hover:text-foreground transition-colors border-2 border-transparent hover:border-foreground"
+                                                        >
+                                                            {isSavingStart ? <Loader2 className="animate-spin" /> : "SAVE"}
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
+                                        ))}
                                     </div>
                                 </div>
                             </div>

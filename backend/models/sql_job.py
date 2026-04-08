@@ -30,3 +30,5 @@ class Job(Base):
     ai_repair_input_meta   = Column(JSON, default=[])  # Per-index {"w":int,"h":int,"bytes":int}
     ai_remaster_durations  = Column(JSON, default=[])  # Per-index wall-clock seconds (float)
     ai_remaster_input_meta = Column(JSON, default=[])  # Per-index {"w":int,"h":int,"bytes":int}
+    ai_repair_models       = Column(JSON, default=[])  # Per-index: "pro" | "flash" | null
+    ai_remaster_models     = Column(JSON, default=[])  # Per-index: "pro" | "flash" | null

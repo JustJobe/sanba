@@ -65,6 +65,8 @@ async def migrate_db():
             ("ai_remaster_durations",       '"[]"'),
             ("ai_remaster_input_meta",      '"[]"'),
             ("file_types",                  '"[]"'),
+            ("ai_repair_models",            '"[]"'),
+            ("ai_remaster_models",          '"[]"'),
         ]:
             if col not in existing:
                 conn.execute(sa.text(f'ALTER TABLE jobs ADD COLUMN {col} JSON DEFAULT {defval}'))
@@ -104,6 +106,12 @@ async def seed_defaults():
             ("ai_repair_cost", "4", "Credits charged per photo for AI repair"),
             ("ai_remaster_cost_full", "4", "Credits charged per photo for AI remaster (no prior repair)"),
             ("ai_remaster_cost_discounted", "3", "Credits charged per photo for AI remaster (repair already done)"),
+            ("ai_repair_cost_pro", "4", "Credits for AI repair — Pro tier"),
+            ("ai_repair_cost_flash", "2", "Credits for AI repair — Flash tier"),
+            ("ai_remaster_cost_full_pro", "4", "Credits for AI remaster (full) — Pro tier"),
+            ("ai_remaster_cost_full_flash", "2", "Credits for AI remaster (full) — Flash tier"),
+            ("ai_remaster_cost_discounted_pro", "3", "Credits for AI remaster (discounted) — Pro tier"),
+            ("ai_remaster_cost_discounted_flash", "1", "Credits for AI remaster (discounted) — Flash tier"),
         ]:
             if not db.query(SystemSettingModel).filter_by(key=key).first():
                 db.add(SystemSettingModel(key=key, value=default, description=desc))

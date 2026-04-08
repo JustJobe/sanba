@@ -1,5 +1,6 @@
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, Request
-from typing import List
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, Request, Body
+from typing import List, Optional
+from pydantic import BaseModel
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from uuid import uuid4
@@ -24,7 +25,12 @@ from ..services.ai_repair import GeminiContentPolicyError as RepairContentPolicy
 from ..services.ai_remaster import GeminiContentPolicyError as RemasterContentPolicyError
 from ..models.system_setting import SystemSetting
 from ..models.incentive import IncentivePlan
+from ..services.model_tiers import MODEL_TIERS, DEFAULT_TIER
 from .auth import get_current_user
+
+
+class AiModelRequest(BaseModel):
+    model: str = DEFAULT_TIER
 
 
 # ---------------------------------------------------------------------------
@@ -35,17 +41,26 @@ def get_restore_cost(db: Session) -> int:
     s = db.query(SystemSetting).filter_by(key="restore_cost").first()
     return int(s.value) if s and s.value and s.value.isdigit() else 1
 
-def get_ai_repair_cost(db: Session) -> int:
-    s = db.query(SystemSetting).filter_by(key="ai_repair_cost").first()
-    return int(s.value) if s and s.value and s.value.isdigit() else 4
+def _setting_int(db: Session, key: str, default: int) -> int:
+    s = db.query(SystemSetting).filter_by(key=key).first()
+    return int(s.value) if s and s.value and s.value.isdigit() else default
 
-def get_ai_remaster_costs(db: Session) -> tuple:
+def get_ai_repair_cost(db: Session, tier_id: str = DEFAULT_TIER) -> int:
+    # Try tier-specific key first, then legacy key, then hardcoded default
+    cost = _setting_int(db, f"ai_repair_cost_{tier_id}", -1)
+    if cost >= 0:
+        return cost
+    return _setting_int(db, "ai_repair_cost", 4)
+
+def get_ai_remaster_costs(db: Session, tier_id: str = DEFAULT_TIER) -> tuple:
     """Returns (full_cost, discounted_cost)."""
-    full = db.query(SystemSetting).filter_by(key="ai_remaster_cost_full").first()
-    disc = db.query(SystemSetting).filter_by(key="ai_remaster_cost_discounted").first()
-    full_cost = int(full.value) if full and full.value and full.value.isdigit() else 4
-    disc_cost = int(disc.value) if disc and disc.value and disc.value.isdigit() else 3
-    return full_cost, disc_cost
+    full = _setting_int(db, f"ai_remaster_cost_full_{tier_id}", -1)
+    if full < 0:
+        full = _setting_int(db, "ai_remaster_cost_full", 4)
+    disc = _setting_int(db, f"ai_remaster_cost_discounted_{tier_id}", -1)
+    if disc < 0:
+        disc = _setting_int(db, "ai_remaster_cost_discounted", 3)
+    return full, disc
 
 logger = logging.getLogger(__name__)
 
@@ -60,16 +75,32 @@ MAX_FILES_PER_BATCH = 50
 
 @router.get("/pricing")
 def get_pricing(db: Session = Depends(get_db)):
-    """Public endpoint — returns current credit costs and thresholds."""
+    """Public endpoint — returns current credit costs, thresholds, and per-model pricing."""
     full, discounted = get_ai_remaster_costs(db)
     plan = db.query(IncentivePlan).filter(IncentivePlan.is_active == True).first()
     daily_credit_threshold = plan.max_balance_cap if plan else 3
+
+    # Build per-model pricing map
+    models = {}
+    for tier_id, tier in MODEL_TIERS.items():
+        t_full, t_disc = get_ai_remaster_costs(db, tier_id)
+        models[tier_id] = {
+            "id": tier_id,
+            "display_name": tier["display_name"],
+            "description": tier["description"],
+            "ai_repair": get_ai_repair_cost(db, tier_id),
+            "ai_remaster_full": t_full,
+            "ai_remaster_discounted": t_disc,
+        }
+
     return {
         "restore": get_restore_cost(db),
         "ai_repair": get_ai_repair_cost(db),
         "ai_remaster_full": full,
         "ai_remaster_discounted": discounted,
         "daily_credit_threshold": daily_credit_threshold,
+        "models": models,
+        "default_model": DEFAULT_TIER,
     }
 
 
@@ -285,9 +316,14 @@ async def ai_repair_image(
     request: Request,
     job_id: str,
     file_index: int,
+    body: AiModelRequest = Body(default=AiModelRequest()),
     db: Session = Depends(get_db),
     current_user: user.User = Depends(get_current_user),
 ):
+    tier_id = body.model
+    if tier_id not in MODEL_TIERS:
+        raise HTTPException(status_code=400, detail=f"Invalid model tier: {tier_id}")
+
     job = db.query(sql_job.Job).filter(sql_job.Job.id == job_id, sql_job.Job.user_id == current_user.id).first()
     if not job or job.status != "completed":
         raise HTTPException(status_code=400, detail="Job not found or not completed")
@@ -302,7 +338,7 @@ async def ai_repair_image(
     if file_index < len(status_list) and status_list[file_index] == "pending":
         raise HTTPException(status_code=400, detail="AI repair already in progress")
 
-    repair_cost = get_ai_repair_cost(db)
+    repair_cost = get_ai_repair_cost(db, tier_id)
     if current_user.credits < repair_cost:
         raise HTTPException(status_code=402, detail="Insufficient credits")
 
@@ -311,7 +347,7 @@ async def ai_repair_image(
         db=db, user_id=current_user.id, action="ai_repair",
         amount=-repair_cost, balance_after=current_user.credits,
         actor=current_user.id, job_id=job.id,
-        note=f"file_index={file_index}",
+        note=f"file_index={file_index}, tier={tier_id}",
     )
 
     # Mark as pending immediately so the UI can show spinner on next poll
@@ -322,11 +358,11 @@ async def ai_repair_image(
     db.commit()
     db.refresh(job)
 
-    submit_gemini(ai_repair_background, job_id, file_index, current_user.id, repair_cost)
+    submit_gemini(ai_repair_background, job_id, file_index, current_user.id, repair_cost, tier_id)
     return job
 
 
-def ai_repair_background(job_id: str, file_index: int, user_id: str, credits_charged: int = 4):
+def ai_repair_background(job_id: str, file_index: int, user_id: str, credits_charged: int = 4, tier_id: str = DEFAULT_TIER):
     db: Session = SessionLocal()
     try:
         job = db.query(sql_job.Job).filter(sql_job.Job.id == job_id, sql_job.Job.user_id == user_id).first()
@@ -338,7 +374,7 @@ def ai_repair_background(job_id: str, file_index: int, user_id: str, credits_cha
         stem, ext = os.path.splitext(os.path.basename(input_path))
         output_path = os.path.join(os.path.dirname(input_path), f"{stem}_ai{ext}")
 
-        result = ai_repair_service.repair_image_sync(input_path, output_path)
+        result = ai_repair_service.repair_image_sync(input_path, output_path, tier_id=tier_id)
         output_path, thinking_tokens = result.output_path, result.thinking_tokens
 
         try:
@@ -380,8 +416,14 @@ def ai_repair_background(job_id: str, file_index: int, user_id: str, credits_cha
         meta_list[file_index] = {"w": result.input_width, "h": result.input_height, "bytes": result.input_bytes}
         job.ai_repair_input_meta = meta_list
 
+        models_list = list(job.ai_repair_models or [])
+        while len(models_list) <= file_index:
+            models_list.append(None)
+        models_list[file_index] = tier_id
+        job.ai_repair_models = models_list
+
         db.commit()
-        logger.info(f"AI repair complete: job {job_id} idx {file_index} → {output_path} ({result.duration_secs}s, {result.input_width}×{result.input_height}px)")
+        logger.info(f"AI repair complete: job {job_id} idx {file_index} tier={tier_id} → {output_path} ({result.duration_secs}s, {result.input_width}×{result.input_height}px)")
 
     except RepairContentPolicyError as e:
         logger.warning(f"AI repair content policy block job {job_id} idx {file_index}: {e}")
@@ -448,9 +490,14 @@ async def ai_remaster_image(
     request: Request,
     job_id: str,
     file_index: int,
+    body: AiModelRequest = Body(default=AiModelRequest()),
     db: Session = Depends(get_db),
     current_user: user.User = Depends(get_current_user),
 ):
+    tier_id = body.model
+    if tier_id not in MODEL_TIERS:
+        raise HTTPException(status_code=400, detail=f"Invalid model tier: {tier_id}")
+
     job = db.query(sql_job.Job).filter(sql_job.Job.id == job_id, sql_job.Job.user_id == current_user.id).first()
     if not job or job.status != "completed":
         raise HTTPException(status_code=400, detail="Job not found or not completed")
@@ -471,7 +518,7 @@ async def ai_remaster_image(
         raise HTTPException(status_code=400, detail="AI repair still in progress — wait for it to complete first")
 
     # Discounted cost if repair was already completed for this image
-    remaster_full, remaster_discounted = get_ai_remaster_costs(db)
+    remaster_full, remaster_discounted = get_ai_remaster_costs(db, tier_id)
     repaired_files = list(job.ai_repaired_files or [])
     repair_done = file_index < len(repaired_files) and bool(repaired_files[file_index])
     remaster_cost = remaster_discounted if repair_done else remaster_full
@@ -484,7 +531,7 @@ async def ai_remaster_image(
         db=db, user_id=current_user.id, action="ai_remaster",
         amount=-remaster_cost, balance_after=current_user.credits,
         actor=current_user.id, job_id=job.id,
-        note=f"file_index={file_index}, cost={remaster_cost}",
+        note=f"file_index={file_index}, cost={remaster_cost}, tier={tier_id}",
     )
 
     # Mark as pending immediately so the UI can show spinner on next poll
@@ -495,11 +542,11 @@ async def ai_remaster_image(
     db.commit()
     db.refresh(job)
 
-    submit_gemini(ai_remaster_background, job_id, file_index, current_user.id, remaster_cost)
+    submit_gemini(ai_remaster_background, job_id, file_index, current_user.id, remaster_cost, tier_id)
     return job
 
 
-def ai_remaster_background(job_id: str, file_index: int, user_id: str, credits_charged: int = 4):
+def ai_remaster_background(job_id: str, file_index: int, user_id: str, credits_charged: int = 4, tier_id: str = DEFAULT_TIER):
     db: Session = SessionLocal()
     try:
         job = db.query(sql_job.Job).filter(sql_job.Job.id == job_id, sql_job.Job.user_id == user_id).first()
@@ -522,7 +569,7 @@ def ai_remaster_background(job_id: str, file_index: int, user_id: str, credits_c
         output_dir = os.path.dirname(job.processed_files[file_index])
         output_path = os.path.join(output_dir, f"{clean_stem}_remaster{ext}")
 
-        result = ai_remaster_service.remaster_image_sync(input_path, output_path)
+        result = ai_remaster_service.remaster_image_sync(input_path, output_path, tier_id=tier_id)
         output_path, thinking_tokens = result.output_path, result.thinking_tokens
 
         try:
@@ -564,8 +611,14 @@ def ai_remaster_background(job_id: str, file_index: int, user_id: str, credits_c
         meta_list[file_index] = {"w": result.input_width, "h": result.input_height, "bytes": result.input_bytes}
         job.ai_remaster_input_meta = meta_list
 
+        models_list = list(job.ai_remaster_models or [])
+        while len(models_list) <= file_index:
+            models_list.append(None)
+        models_list[file_index] = tier_id
+        job.ai_remaster_models = models_list
+
         db.commit()
-        logger.info(f"AI remaster complete: job {job_id} idx {file_index} → {output_path} ({result.duration_secs}s, {result.input_width}×{result.input_height}px)")
+        logger.info(f"AI remaster complete: job {job_id} idx {file_index} tier={tier_id} → {output_path} ({result.duration_secs}s, {result.input_width}×{result.input_height}px)")
 
     except RemasterContentPolicyError as e:
         logger.warning(f"AI remaster content policy block job {job_id} idx {file_index}: {e}")

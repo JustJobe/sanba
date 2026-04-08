@@ -47,9 +47,7 @@ class RepairResult(NamedTuple):
     input_height: int
     input_bytes: int
 
-THINKING_MODEL = "gemini-3-flash-preview"
-IMAGE_MODEL = "gemini-3-pro-image-preview"
-IMAGE_MODEL_DISPLAY_NAME = "Gemini 3 Pro Image Preview"
+from .model_tiers import MODEL_TIERS, DEFAULT_TIER
 
 REPAIR_ANALYSIS_PROMPT = (
     "You are a professional photo restoration expert preparing a job for an AI image generator.\n\n"
@@ -142,18 +140,22 @@ def _raise_if_content_policy(exc: Exception, stage: str) -> None:
         )
 
 
-def repair_image_sync(input_path: str, output_path: str) -> RepairResult:
+def repair_image_sync(input_path: str, output_path: str, tier_id: str = DEFAULT_TIER) -> RepairResult:
     """Two-step pipeline: thinking model analyzes damage, image model executes the repair.
     Returns RepairResult(output_path, thinking_tokens, duration_secs, input_width, input_height, input_bytes)."""
     from .gemini_limiter import gemini_semaphore
     with gemini_semaphore:
-        return _repair_image_sync_inner(input_path, output_path)
+        return _repair_image_sync_inner(input_path, output_path, tier_id)
 
 
-def _repair_image_sync_inner(input_path: str, output_path: str) -> RepairResult:
+def _repair_image_sync_inner(input_path: str, output_path: str, tier_id: str = DEFAULT_TIER) -> RepairResult:
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise ValueError("GEMINI_API_KEY is not set")
+
+    tier = MODEL_TIERS.get(tier_id, MODEL_TIERS[DEFAULT_TIER])
+    thinking_model = tier["thinking_model"]
+    image_model = tier["image_model"]
 
     client = genai.Client(api_key=api_key)
 
@@ -167,12 +169,13 @@ def _repair_image_sync_inner(input_path: str, output_path: str) -> RepairResult:
     image_part = types.Part.from_bytes(data=png_bytes, mime_type="image/png")
 
     t_start = time.monotonic()
+    logger.info(f"AI repair starting — tier={tier_id}, image_model={image_model}")
 
     # Step 1: Thinking model analyzes the image and produces a detailed repair plan
     try:
         analysis_response = _call_with_retry(
             client.models.generate_content,
-            model=THINKING_MODEL,
+            model=thinking_model,
             contents=[REPAIR_ANALYSIS_PROMPT, image_part],
             config=types.GenerateContentConfig(
                 thinking_config=types.ThinkingConfig(thinking_budget=8192),
@@ -197,7 +200,7 @@ def _repair_image_sync_inner(input_path: str, output_path: str) -> RepairResult:
     try:
         gen_response = _call_with_retry(
             client.models.generate_content,
-            model=IMAGE_MODEL,
+            model=image_model,
             contents=[generation_prompt, image_part2],
             config=types.GenerateContentConfig(
                 response_modalities=["TEXT", "IMAGE"],
