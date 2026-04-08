@@ -241,7 +241,7 @@ export default function JobDashboard() {
                     ${isFailed
                         ? 'border-red-400 text-red-400 hover:bg-red-400 hover:text-background'
                         : 'border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-background'}`}
-                title={`AI Repair — 4 credits\nModel: ${AI_MODEL_DISPLAY}`}
+                title={`AI Repair — 4 credits\nModel: ${AI_MODEL_DISPLAY}\nOutput resolution may differ from original`}
             >
                 <Sparkles className={iconSize} />
                 {isFailed ? 'Retry' : 'Repair · 4cr'}
@@ -344,7 +344,7 @@ export default function JobDashboard() {
                     ${isFailed
                         ? 'border-red-400 text-red-400 hover:bg-red-400 hover:text-background'
                         : 'border-violet-400 text-violet-400 hover:bg-violet-400 hover:text-background'}`}
-                title={`AI Remaster — ${creditCost} credits${repairDone ? ' (1 credit discount applied — Repair already done)' : ''}\nModel: ${AI_MODEL_DISPLAY}`}
+                title={`AI Remaster — ${creditCost} credits${repairDone ? ' (1 credit discount applied — Repair already done)' : ''}\nModel: ${AI_MODEL_DISPLAY}\nOutput resolution may differ from original`}
             >
                 <Wand2 className={iconSize} />
                 {isFailed ? 'Retry' : `Remaster · ${creditCost}cr`}

@@ -52,6 +52,19 @@ const faqs = [
         ),
     },
     {
+        id: "resolution",
+        q: "Will AI Repair or Remaster change my photo's resolution?",
+        a: (
+            <p>
+                Yes — AI Repair and Remaster are powered by Gemini&apos;s image generation model,
+                which may output images at a different resolution than the original (typically
+                around 800–1400 px on the longest side). The Restore step always preserves
+                your original resolution. You can download both the Restored and AI-processed
+                versions from your dashboard.
+            </p>
+        ),
+    },
+    {
         id: "concierge",
         q: "What is the Concierge Service?",
         a: (

@@ -109,7 +109,7 @@ export default function Home() {
               </div>
               <h3 className="font-syne font-bold text-xl mb-2 text-amber-400">Repair</h3>
               <p className="font-mono text-xs text-foreground/60 leading-relaxed">
-                Gemini AI reconstructs torn edges, fills missing areas, and removes heavy damage. Available after Restore completes.
+                Gemini AI reconstructs torn edges, fills missing areas, and removes heavy damage. Output resolution may differ from original. Available after Restore completes.
               </p>
             </div>
 
@@ -123,7 +123,7 @@ export default function Home() {
               </div>
               <h3 className="font-syne font-bold text-xl mb-2 text-violet-400">Remaster</h3>
               <p className="font-mono text-xs text-foreground/60 leading-relaxed">
-                Gemini AI enhances sharpness and upscales resolution. Uses the Repaired image if available, otherwise Restored. Available after Restore.
+                Gemini AI colorizes and enhances detail. Output resolution may differ from original. Uses the Repaired image if available, otherwise Restored. Available after Restore.
               </p>
             </div>
           </div>
