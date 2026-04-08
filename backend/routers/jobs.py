@@ -23,6 +23,7 @@ from ..services import ai_remaster as ai_remaster_service
 from ..services.ai_repair import GeminiContentPolicyError as RepairContentPolicyError
 from ..services.ai_remaster import GeminiContentPolicyError as RemasterContentPolicyError
 from ..models.system_setting import SystemSetting
+from ..models.incentive import IncentivePlan
 from .auth import get_current_user
 
 
@@ -59,13 +60,16 @@ MAX_FILES_PER_BATCH = 50
 
 @router.get("/pricing")
 def get_pricing(db: Session = Depends(get_db)):
-    """Public endpoint — returns current credit costs for all operations."""
+    """Public endpoint — returns current credit costs and thresholds."""
     full, discounted = get_ai_remaster_costs(db)
+    plan = db.query(IncentivePlan).filter(IncentivePlan.is_active == True).first()
+    daily_credit_threshold = plan.max_balance_cap if plan else 3
     return {
         "restore": get_restore_cost(db),
         "ai_repair": get_ai_repair_cost(db),
         "ai_remaster_full": full,
         "ai_remaster_discounted": discounted,
+        "daily_credit_threshold": daily_credit_threshold,
     }
 
 

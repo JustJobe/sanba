@@ -75,6 +75,7 @@ class UserResponse(BaseModel):
     full_name: Optional[str]
     credits: int
     is_admin: int
+    credit_replenished: bool = False
 
 class UserUpdate(BaseModel):
     full_name: Optional[str]
@@ -98,24 +99,25 @@ def get_new_user_credits(db: Session) -> int:
         return int(setting.value)
     return 10 # Default fallback
 
-def replenish_credits(user: User, db: Session):
+def replenish_credits(user: User, db: Session) -> bool:
+    """Try to grant daily free credit. Returns True if credit was awarded."""
     now = datetime.datetime.utcnow()
-    
+
     # Get active incentive plans
     active_plans = db.query(IncentivePlan).filter(IncentivePlan.is_active == True).all()
-    
+
     # For now, we'll just process the FIRST applicable plan to avoid stacking complexity
     # In future, we might want to stack them or have tiers.
-    
+
     for plan in active_plans:
         # Check requirements
         if plan.requires_profile_complete:
             if not user.full_name: # Simple check: name required
                 continue
-        
+
         # Check cooldown
         last_replenish = user.last_credit_replenishment or datetime.datetime.min
-        
+
         # If cooldown is >= 20 hours, treat as "Daily Reset" (resets at UTC+8 midnight)
         if plan.cooldown_hours >= 20:
             tz_utc8 = datetime.timezone(datetime.timedelta(hours=8))
@@ -129,11 +131,11 @@ def replenish_credits(user: User, db: Session):
             # Standard hourly check
             if (now - last_replenish).total_seconds() / 3600 < plan.cooldown_hours:
                 continue
-            
+
         # Check balance cap
         if user.credits >= plan.max_balance_cap:
             continue
-            
+
         # Apply Reward
         user.credits += plan.reward_amount
         user.last_credit_replenishment = now
@@ -144,7 +146,8 @@ def replenish_credits(user: User, db: Session):
         )
         db.commit()
         db.refresh(user)
-        break # Apply one plan only per refresh cycle
+        return True  # Credit awarded
+    return False  # No plan qualified
 
 @router.post("/request-otp")
 def request_otp(request: EmailRequest):
@@ -208,9 +211,7 @@ def verify_otp(request: VerifyOTPRequest, db: Session = Depends(get_db)):
         )
         db.commit()
         db.refresh(user)
-    else:
-        # Check replenishment on login
-        replenish_credits(user, db)
+    # Replenishment is handled by GET /auth/me which the frontend calls immediately after login
 
     access_token = create_access_token(data={"sub": user.email, "user_id": user.id})
     return {"access_token": access_token, "token_type": "bearer"}
@@ -241,8 +242,16 @@ def get_current_user(authorization: Optional[str] = Header(None), db: Session = 
 
 @router.get("/me", response_model=UserResponse)
 def read_users_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    replenish_credits(current_user, db)
-    return current_user
+    replenished = replenish_credits(current_user, db)
+    return UserResponse(
+        id=current_user.id,
+        email=current_user.email,
+        phone=current_user.phone,
+        full_name=current_user.full_name,
+        credits=current_user.credits,
+        is_admin=current_user.is_admin,
+        credit_replenished=replenished,
+    )
 
 @router.put("/me", response_model=UserResponse)
 def update_user_me(user_update: UserUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):

@@ -45,6 +45,10 @@ const faqs = [
                     <li><strong className="text-foreground">AI Repair</strong> — 4 credits per photo (damage repair via Gemini)</li>
                     <li><strong className="text-foreground">AI Remaster</strong> — 4 credits per photo (3 credits if Repair was already done)</li>
                 </ul>
+                <p className="mt-3 text-foreground/70 text-sm leading-relaxed">
+                    <strong className="text-foreground">Running low?</strong> If your balance falls below the free-credit
+                    threshold, simply log in once per day to claim a bonus credit — up to the threshold. No purchase required.
+                </p>
                 <p className="mt-2 text-foreground/60 text-xs font-mono">
                     Credits are refunded automatically if processing fails for any reason.
                 </p>

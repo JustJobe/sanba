@@ -11,11 +11,14 @@ interface User {
     full_name?: string;
     phone?: string;
     is_admin?: number;
+    credit_replenished?: boolean;
 }
 
 interface AuthContextType {
     user: User | null;
     loading: boolean;
+    creditReplenished: boolean;
+    clearCreditReplenished: () => void;
     login: (email: string, otp: string) => Promise<void>;
     loginWithToken: (token: string) => Promise<void>;
     requestOtp: (email: string) => Promise<void>;
@@ -29,6 +32,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
+    const [creditReplenished, setCreditReplenished] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
@@ -46,11 +50,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             const { data } = await api.get("/auth/me");
             setUser(data);
+            if (data.credit_replenished) {
+                setCreditReplenished(true);
+            }
         } catch (error) {
             console.error("Failed to fetch user", error);
             logout();
         }
     };
+
+    const clearCreditReplenished = () => setCreditReplenished(false);
 
     const requestOtp = async (email: string) => {
         await api.post("/auth/request-otp", { email });
@@ -75,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem("token");
         delete api.defaults.headers.common["Authorization"];
         setUser(null);
+        setCreditReplenished(false);
         router.push("/");
     };
 
@@ -90,7 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, loginWithToken, requestOtp, logout, refreshUser, updateProfile }}>
+        <AuthContext.Provider value={{ user, loading, creditReplenished, clearCreditReplenished, login, loginWithToken, requestOtp, logout, refreshUser, updateProfile }}>
             {children}
         </AuthContext.Provider>
     );

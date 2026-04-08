@@ -8,6 +8,8 @@ import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import CreditClaimPopup from "@/components/CreditClaimPopup";
+import CreditCountdown from "@/components/CreditCountdown";
 import { Loader2, Wand2, ArrowRight, Play, Sparkles } from "lucide-react";
 
 interface Pricing {
@@ -15,11 +17,12 @@ interface Pricing {
   ai_repair: number;
   ai_remaster_full: number;
   ai_remaster_discounted: number;
+  daily_credit_threshold: number;
 }
 
 export default function Home() {
   const { user, loading, logout } = useAuth();
-  const [pricing, setPricing] = useState<Pricing>({ restore: 1, ai_repair: 4, ai_remaster_full: 4, ai_remaster_discounted: 3 });
+  const [pricing, setPricing] = useState<Pricing>({ restore: 1, ai_repair: 4, ai_remaster_full: 4, ai_remaster_discounted: 3, daily_credit_threshold: 3 });
 
   useEffect(() => {
     api.get("/jobs/pricing").then(res => setPricing(res.data)).catch(() => {});
@@ -35,6 +38,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden selection:bg-secondary selection:text-primary-foreground">
+      {user && <CreditClaimPopup />}
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-50 mix-blend-difference text-white px-6 py-8 flex justify-between items-start pointer-events-none">
         <div className="pointer-events-auto flex items-center gap-6">
@@ -51,13 +55,13 @@ export default function Home() {
             <>
               <Link href="/faq" className="hover:underline decoration-1">FAQ</Link>
               <Link href="/login" className="hover:underline decoration-1">Login</Link>
-              <Link href="/signup" className="hover:underline decoration-1">Join</Link>
             </>
           ) : (
             <>
               <Link href="/store" className="hover:underline decoration-1 text-primary font-bold">
                 Credits: {user.credits}
               </Link>
+              {user.credits < pricing.daily_credit_threshold && <CreditCountdown />}
               <Link href="/store" className="hover:underline decoration-1 opacity-60 hidden sm:inline">
                 Buy More
               </Link>
@@ -89,7 +93,7 @@ export default function Home() {
                     <span className="font-syne font-bold text-3xl sm:text-4xl text-yellow-400 leading-none">10</span>
                     <div className="text-center sm:text-left">
                       <p className="font-mono text-xs uppercase tracking-widest text-foreground">Free credits on signup</p>
-                      <p className="font-mono text-[10px] uppercase tracking-widest text-foreground/50 mt-1">+ 1 free credit daily · no card required</p>
+                      <p className="font-mono text-[10px] uppercase tracking-widest text-foreground/50 mt-1">Daily free credit if you are short! Login to claim!</p>
                     </div>
                   </div>
                   <Link

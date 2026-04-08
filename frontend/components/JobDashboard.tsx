@@ -30,7 +30,7 @@ export default function JobDashboard() {
     const { refreshUser } = useAuth();
     const [expandedJobs, setExpandedJobs] = useState<Set<string>>(new Set());
     const [showCreditModal, setShowCreditModal] = useState(false);
-    const [pricing, setPricing] = useState({ restore: 1, ai_repair: 4, ai_remaster_full: 4, ai_remaster_discounted: 3 });
+    const [pricing, setPricing] = useState({ restore: 1, ai_repair: 4, ai_remaster_full: 4, ai_remaster_discounted: 3, daily_credit_threshold: 3 });
     const [comparingFiles, setComparingFiles] = useState<{
         before: string; after: string;
         beforeFallback?: string; afterFallback?: string;
