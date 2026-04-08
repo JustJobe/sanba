@@ -30,12 +30,27 @@ export default function JobDashboard() {
     const { refreshUser } = useAuth();
     const [expandedJobs, setExpandedJobs] = useState<Set<string>>(new Set());
     const [showCreditModal, setShowCreditModal] = useState(false);
+    const [showFailModal, setShowFailModal] = useState(false);
+    const [failDontShowAgain, setFailDontShowAgain] = useState(false);
     const [pricing, setPricing] = useState({ restore: 1, ai_repair: 4, ai_remaster_full: 4, ai_remaster_discounted: 3, daily_credit_threshold: 3 });
     const [comparingFiles, setComparingFiles] = useState<{
         before: string; after: string;
         beforeFallback?: string; afterFallback?: string;
         label?: string;
     } | null>(null);
+
+    const showFailurePopup = () => {
+        if (typeof window !== 'undefined' && localStorage.getItem('hideFailModal') === '1') return;
+        setShowFailModal(true);
+    };
+
+    const dismissFailModal = () => {
+        if (failDontShowAgain && typeof window !== 'undefined') {
+            localStorage.setItem('hideFailModal', '1');
+        }
+        setShowFailModal(false);
+        setFailDontShowAgain(false);
+    };
 
     const fetchJobs = async () => {
         try {
@@ -90,7 +105,7 @@ export default function JobDashboard() {
             if (error.response?.status === 402) {
                 setShowCreditModal(true);
             } else {
-                alert("AI repair failed: " + (error.response?.data?.detail || "Unknown error"));
+                showFailurePopup();
             }
         }
     };
@@ -105,7 +120,7 @@ export default function JobDashboard() {
             if (error.response?.status === 402) {
                 setShowCreditModal(true);
             } else {
-                alert("AI remaster failed: " + (error.response?.data?.detail || "Unknown error"));
+                showFailurePopup();
             }
         }
     };
@@ -710,6 +725,33 @@ export default function JobDashboard() {
                             />
                         </div>
                         <p className="text-center text-xs font-mono text-white/40 uppercase tracking-widest">Drag slider to compare</p>
+                    </div>
+                </div>
+            )}
+
+            {/* AI Failure Modal */}
+            {showFailModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-sm p-4">
+                    <div className="bg-background border-2 border-foreground p-10 max-w-sm w-full text-center shadow-[8px_8px_0px_rgba(0,0,0,1)]">
+                        <h3 className="font-syne font-bold text-2xl mb-3 text-foreground">Processing Hiccup</h3>
+                        <p className="font-mono text-xs text-foreground/60 mb-6 leading-relaxed">
+                            AI models occasionally fail due to high demand. No credits were charged — simply hit Retry when ready.
+                        </p>
+                        <label className="flex items-center justify-center gap-2 cursor-pointer mb-6">
+                            <input
+                                type="checkbox"
+                                checked={failDontShowAgain}
+                                onChange={(e) => setFailDontShowAgain(e.target.checked)}
+                                className="w-3.5 h-3.5 accent-primary cursor-pointer"
+                            />
+                            <span className="font-mono text-[10px] text-foreground/40 uppercase tracking-widest">{"Don't show this again"}</span>
+                        </label>
+                        <button
+                            onClick={dismissFailModal}
+                            className="w-full py-3 bg-foreground text-background hover:bg-primary font-mono text-xs uppercase tracking-widest transition-colors"
+                        >
+                            Got it
+                        </button>
                     </div>
                 </div>
             )}
