@@ -65,6 +65,24 @@ const faqs = [
         ),
     },
     {
+        id: "ai-models",
+        q: "What AI models power Repair and Remaster?",
+        a: (
+            <>
+                <p className="mb-2">
+                    Both AI Repair and AI Remaster use a two-phase pipeline powered by Google Gemini:
+                </p>
+                <ul className="list-disc list-inside space-y-1 text-foreground/70">
+                    <li><strong className="text-foreground">Analysis</strong> — <code className="text-xs bg-foreground/10 px-1 py-0.5 rounded">gemini-3-flash-preview</code> evaluates the photo&apos;s damage, colours, and context.</li>
+                    <li><strong className="text-foreground">Generation</strong> — <code className="text-xs bg-foreground/10 px-1 py-0.5 rounded">gemini-3-pro-image-preview</code> produces the restored or remastered output.</li>
+                </ul>
+                <p className="mt-2 text-foreground/60 text-xs font-mono">
+                    The basic Restore step uses local OpenCV processing — no AI model is involved.
+                </p>
+            </>
+        ),
+    },
+    {
         id: "concierge",
         q: "What is the Concierge Service?",
         a: (
