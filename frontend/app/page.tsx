@@ -68,6 +68,24 @@ export default function Home() {
               <p className="font-mono text-xs uppercase tracking-widest text-foreground/50 mb-6">
                 — Breathe new life into old photographs.
               </p>
+
+              <div className="border-2 border-primary mb-10 brutalist-shadow">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-5">
+                  <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
+                    <span className="font-syne font-bold text-3xl sm:text-4xl text-primary leading-none">10</span>
+                    <div className="text-center sm:text-left">
+                      <p className="font-mono text-xs uppercase tracking-widest text-foreground">Free credits on signup</p>
+                      <p className="font-mono text-[10px] uppercase tracking-widest text-foreground/50 mt-1">+ 1 free credit daily · no card required</p>
+                    </div>
+                  </div>
+                  <Link
+                    href="/login"
+                    className="font-mono text-xs uppercase tracking-widest border border-primary px-4 py-2 text-primary hover:bg-primary hover:text-background transition-colors whitespace-nowrap"
+                  >
+                    Claim yours →
+                  </Link>
+                </div>
+              </div>
             </>
           )}
 
@@ -230,7 +248,7 @@ export default function Home() {
                   ))}
                 </div>
 
-                <div className="flex justify-center md:justify-start">
+                <div className="flex flex-col items-center md:items-start">
                   <Link
                     href="/login"
                     className="group inline-flex items-center gap-4 px-8 py-4 bg-foreground text-background font-syne font-bold text-xl hover:bg-primary transition-colors brutalist-shadow border border-foreground w-full md:w-auto justify-center md:justify-start"
@@ -238,6 +256,9 @@ export default function Home() {
                     Reclaim your moments
                     <ArrowRight className="group-hover:translate-x-1 transition-transform" />
                   </Link>
+                  <p className="font-mono text-xs text-foreground/50 mt-4 text-center md:text-left">
+                    Sign up free — 10 credits included, no card required.
+                  </p>
                 </div>
               </section>
 

@@ -120,7 +120,7 @@ export default function GalleryClient() {
               Ready to restore<br />your memories?
             </h2>
             <p className="font-mono text-xs text-foreground/50 mt-4 max-w-sm leading-relaxed">
-              Sign up free and get 10 credits to try. No card required.
+              Sign up free and get 10 credits to try. Plus 1 free credit daily. No card required.
             </p>
           </div>
           <Link
