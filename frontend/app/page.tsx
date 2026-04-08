@@ -152,30 +152,82 @@ export default function Home() {
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-                  <div className="border-2 border-foreground p-2 bg-background brutalist-shadow">
-                    <ComparisonSlider
-                      before="/examples/bw-before.jpg"
-                      after="/examples/bw-after.jpg"
-                      beforeLabel="Aged"
-                      afterLabel="Restored"
-                      maxHeightVh={45}
-                    />
-                    <p className="font-mono text-[10px] mt-2 text-right uppercase tracking-widest text-foreground/40">
-                      Wedding Portrait // 1954
-                    </p>
-                  </div>
-                  <div className="border-2 border-foreground p-2 bg-background brutalist-shadow">
-                    <ComparisonSlider
-                      before="/examples/color-before.jpg"
-                      after="/examples/color-after.jpg"
-                      beforeLabel="Original"
-                      afterLabel="Remastered"
-                      maxHeightVh={45}
-                    />
-                    <p className="font-mono text-[10px] mt-2 text-right uppercase tracking-widest text-foreground/40">
-                      Summer Holiday // 1982
-                    </p>
-                  </div>
+                  {[
+                    {
+                      before: "/examples/gentleman-before.jpg",
+                      after: "/examples/gentleman-after.jpg",
+                      beforeLabel: "Original",
+                      afterLabel: "Remastered",
+                      title: "The Walk",
+                      year: "c. 1960",
+                      type: "Remaster",
+                      typeColor: "text-violet-400",
+                      typeBorder: "border-violet-400/40",
+                      description: "Black-and-white wedding procession colorized with AI. Foliage, clothing, and skin tones brought to life.",
+                    },
+                    {
+                      before: "/examples/wedding-before.jpg",
+                      after: "/examples/wedding-after.jpg",
+                      beforeLabel: "Original",
+                      afterLabel: "Remastered",
+                      title: "Wedding Day",
+                      year: "c. 1960",
+                      type: "Remaster",
+                      typeColor: "text-violet-400",
+                      typeBorder: "border-violet-400/40",
+                      description: "Black-and-white wedding photo brought to life with AI colorization and enhanced clarity.",
+                    },
+                    {
+                      before: "/examples/bicycle-before.jpg",
+                      after: "/examples/bicycle-after.jpg",
+                      beforeLabel: "Original",
+                      afterLabel: "Remastered",
+                      title: "The Cyclist",
+                      year: "c. 1950",
+                      type: "Remaster",
+                      typeColor: "text-violet-400",
+                      typeBorder: "border-violet-400/40",
+                      description: "Faded black-and-white snapshot colorized and sharpened. Background and clothing details restored.",
+                    },
+                    {
+                      before: "/examples/gathering-before.jpg",
+                      after: "/examples/gathering-after.jpg",
+                      beforeLabel: "Original",
+                      afterLabel: "Remastered",
+                      title: "Village Kids",
+                      year: "c. 1950",
+                      type: "Remaster",
+                      typeColor: "text-violet-400",
+                      typeBorder: "border-violet-400/40",
+                      description: "Faded black-and-white group photo colorized and sharpened. Faces, clothing, and village backdrop restored.",
+                    },
+                  ].map((ex) => (
+                    <div key={ex.title} className="border-2 border-foreground p-3 bg-background brutalist-shadow">
+                      <ComparisonSlider
+                        before={ex.before}
+                        after={ex.after}
+                        beforeLabel={ex.beforeLabel}
+                        afterLabel={ex.afterLabel}
+                        maxHeightVh={45}
+                      />
+                      <div className="mt-3 flex items-start justify-between gap-4">
+                        <div>
+                          <h3 className="font-syne font-bold text-lg leading-tight">{ex.title}</h3>
+                          <p className="font-mono text-[10px] uppercase tracking-widest text-foreground/40 mt-0.5">
+                            {ex.year}
+                          </p>
+                          <p className="font-mono text-xs text-foreground/50 mt-2 max-w-xs leading-relaxed">
+                            {ex.description}
+                          </p>
+                        </div>
+                        <span
+                          className={`font-mono text-[10px] font-bold uppercase tracking-widest border px-2 py-0.5 shrink-0 ${ex.typeBorder} ${ex.typeColor}`}
+                        >
+                          {ex.type}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
                 <div className="flex justify-center md:justify-start">
