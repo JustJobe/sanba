@@ -1,5 +1,7 @@
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, Request
 from typing import List
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from uuid import uuid4
 from datetime import datetime
 import shutil
@@ -24,6 +26,7 @@ from .auth import get_current_user
 
 logger = logging.getLogger(__name__)
 
+limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 UPLOAD_DIR = "uploads"
@@ -32,7 +35,9 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 MAX_FILES_PER_BATCH = 50
 
 @router.post("/upload", response_model=JobSchema)
+@limiter.limit("10/minute")
 async def upload_files(
+    request: Request,
     files: List[UploadFile] = File(...),
     photo_type: str = Form("auto"),
     db: Session = Depends(get_db),
@@ -82,8 +87,8 @@ def get_job(job_id: str, db: Session = Depends(get_db), current_user: user.User 
         raise HTTPException(status_code=404, detail="Job not found")
     return job
 
-from fastapi import BackgroundTasks
 from ..database import SessionLocal
+from ..services.job_queue import submit_opencv, submit_gemini
 
 def process_job_background(job_id: str, operation: str, user_id: str):
     db: Session = SessionLocal()
@@ -139,9 +144,10 @@ def process_job_background(job_id: str, operation: str, user_id: str):
 
 
 @router.post("/{job_id}/process", response_model=JobSchema)
+@limiter.limit("5/minute")
 async def process_job(
+    request: Request,
     job_id: str,
-    background_tasks: BackgroundTasks,
     operation: str = "denoise",
     db: Session = Depends(get_db),
     current_user: user.User = Depends(get_current_user)
@@ -170,8 +176,8 @@ async def process_job(
     db.commit()
     db.refresh(job)
 
-    # Offload to background task
-    background_tasks.add_task(process_job_background, job.id, operation, current_user.id)
+    # Offload to bounded thread pool (rejects with 503 if queue is full)
+    submit_opencv(process_job_background, job.id, operation, current_user.id)
 
     return job
 
@@ -238,10 +244,11 @@ AI_REPAIR_COST = 4
 
 
 @router.post("/{job_id}/ai_repair/{file_index}", response_model=JobSchema)
+@limiter.limit("3/minute")
 async def ai_repair_image(
+    request: Request,
     job_id: str,
     file_index: int,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: user.User = Depends(get_current_user),
 ):
@@ -278,7 +285,7 @@ async def ai_repair_image(
     db.commit()
     db.refresh(job)
 
-    background_tasks.add_task(ai_repair_background, job_id, file_index, current_user.id)
+    submit_gemini(ai_repair_background, job_id, file_index, current_user.id)
     return job
 
 
@@ -302,7 +309,10 @@ def ai_repair_background(job_id: str, file_index: int, user_id: str):
         except Exception as prev_err:
             logger.warning(f"AI repair preview generation failed: {prev_err}")
 
-        # Store result and clear pending status
+        # Re-read from DB to avoid stale-state overwrites when multiple
+        # background tasks update different indices of the same job.
+        db.refresh(job)
+
         repaired = list(job.ai_repaired_files or [])
         while len(repaired) <= file_index:
             repaired.append(None)
@@ -339,6 +349,7 @@ def ai_repair_background(job_id: str, file_index: int, user_id: str):
     except RepairContentPolicyError as e:
         logger.warning(f"AI repair content policy block job {job_id} idx {file_index}: {e}")
         try:
+            db.refresh(job)
             status_list = list(job.ai_repair_status or [])
             while len(status_list) <= file_index:
                 status_list.append(None)
@@ -366,6 +377,7 @@ def ai_repair_background(job_id: str, file_index: int, user_id: str):
         logger.error(f"AI repair failed job {job_id} idx {file_index}: {e}")
         # Mark failed so the UI re-enables the Retry button
         try:
+            db.refresh(job)
             status_list = list(job.ai_repair_status or [])
             while len(status_list) <= file_index:
                 status_list.append(None)
@@ -398,10 +410,11 @@ AI_REMASTER_COST_DISCOUNTED = 3  # Repair already done for this index
 
 
 @router.post("/{job_id}/ai_remaster/{file_index}", response_model=JobSchema)
+@limiter.limit("3/minute")
 async def ai_remaster_image(
+    request: Request,
     job_id: str,
     file_index: int,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: user.User = Depends(get_current_user),
 ):
@@ -448,7 +461,7 @@ async def ai_remaster_image(
     db.commit()
     db.refresh(job)
 
-    background_tasks.add_task(ai_remaster_background, job_id, file_index, current_user.id, remaster_cost)
+    submit_gemini(ai_remaster_background, job_id, file_index, current_user.id, remaster_cost)
     return job
 
 
@@ -483,7 +496,10 @@ def ai_remaster_background(job_id: str, file_index: int, user_id: str, credits_c
         except Exception as prev_err:
             logger.warning(f"AI remaster preview generation failed: {prev_err}")
 
-        # Store result and clear pending status
+        # Re-read from DB to avoid stale-state overwrites when multiple
+        # background tasks update different indices of the same job.
+        db.refresh(job)
+
         remastered = list(job.ai_remastered_files or [])
         while len(remastered) <= file_index:
             remastered.append(None)
@@ -520,6 +536,7 @@ def ai_remaster_background(job_id: str, file_index: int, user_id: str, credits_c
     except RemasterContentPolicyError as e:
         logger.warning(f"AI remaster content policy block job {job_id} idx {file_index}: {e}")
         try:
+            db.refresh(job)
             status_list = list(job.ai_remaster_status or [])
             while len(status_list) <= file_index:
                 status_list.append(None)
@@ -547,6 +564,7 @@ def ai_remaster_background(job_id: str, file_index: int, user_id: str, credits_c
         logger.error(f"AI remaster failed job {job_id} idx {file_index}: {e}")
         # Mark failed so the UI re-enables the Retry button
         try:
+            db.refresh(job)
             status_list = list(job.ai_remaster_status or [])
             while len(status_list) <= file_index:
                 status_list.append(None)

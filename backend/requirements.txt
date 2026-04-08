@@ -17,3 +17,4 @@ Authlib
 itsdangerous
 httpx
 stripe
+slowapi

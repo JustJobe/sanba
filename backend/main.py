@@ -1,8 +1,12 @@
 # NOTE: The backend application is configured to run on port 8002.
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 from starlette.middleware.sessions import SessionMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from .database import engine
 from .models import sql_job, user, incentive, activity_log, system_setting, payment, credit_ledger
 from .routers import jobs, auth, admin, payments
@@ -19,7 +23,10 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="SanBa API")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Session Middleware for Authlib (Required for OAuth)
 app.add_middleware(SessionMiddleware, secret_key="super-secret-session-key")
@@ -63,6 +70,13 @@ async def migrate_db():
                 conn.execute(sa.text(f'ALTER TABLE jobs ADD COLUMN {col} JSON DEFAULT {defval}'))
                 conn.commit()
                 logger.info(f"DB migration: added jobs.{col}")
+
+
+@app.on_event("startup")
+async def start_cleanup():
+    """Launch the daily storage cleanup background thread."""
+    from .services.cleanup import start_cleanup_scheduler
+    start_cleanup_scheduler()
 
 
 @app.on_event("startup")

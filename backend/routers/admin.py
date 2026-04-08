@@ -14,9 +14,14 @@ from pydantic import BaseModel
 from typing import List, Optional, Any, Dict
 import csv
 import io
+import os
+import shutil
+import logging
 from fastapi.responses import StreamingResponse
 from sqlalchemy import func
 from datetime import datetime, timedelta
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -400,3 +405,96 @@ def get_user_credit_history(
         for e in entries
     ]
 
+
+# --- STORAGE MANAGEMENT ENDPOINTS ---
+
+UPLOAD_DIR = "uploads"
+
+
+def _dir_size_bytes(path: str) -> int:
+    total = 0
+    for dirpath, _dirnames, filenames in os.walk(path):
+        for f in filenames:
+            fp = os.path.join(dirpath, f)
+            try:
+                total += os.path.getsize(fp)
+            except OSError:
+                pass
+    return total
+
+
+@router.get("/storage")
+def get_storage_info(
+    older_than_days: int = 30,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """Return storage usage summary and list of jobs older than the threshold."""
+    total_size = _dir_size_bytes(UPLOAD_DIR) if os.path.isdir(UPLOAD_DIR) else 0
+    total_jobs = db.query(Job).count()
+
+    cutoff = datetime.utcnow() - timedelta(days=older_than_days)
+    old_jobs = (
+        db.query(Job)
+        .filter(Job.created_at < cutoff, Job.status.in_(["completed", "failed"]))
+        .all()
+    )
+
+    old_job_details = []
+    old_total_size = 0
+    for j in old_jobs:
+        job_dir = os.path.join(UPLOAD_DIR, j.id)
+        size = _dir_size_bytes(job_dir) if os.path.isdir(job_dir) else 0
+        old_total_size += size
+        old_job_details.append({
+            "id": j.id,
+            "status": j.status,
+            "created_at": j.created_at.isoformat() if j.created_at else None,
+            "size_bytes": size,
+            "file_count": len(j.files) if j.files else 0,
+        })
+
+    return {
+        "total_size_bytes": total_size,
+        "total_size_mb": round(total_size / (1024 * 1024), 1),
+        "total_jobs": total_jobs,
+        "older_than_days": older_than_days,
+        "old_jobs_count": len(old_job_details),
+        "old_jobs_size_bytes": old_total_size,
+        "old_jobs_size_mb": round(old_total_size / (1024 * 1024), 1),
+        "old_jobs": old_job_details,
+    }
+
+
+@router.post("/cleanup")
+def cleanup_old_jobs(
+    older_than_days: int = 30,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """Delete files and DB records for completed/failed jobs older than the threshold."""
+    cutoff = datetime.utcnow() - timedelta(days=older_than_days)
+    old_jobs = (
+        db.query(Job)
+        .filter(Job.created_at < cutoff, Job.status.in_(["completed", "failed"]))
+        .all()
+    )
+
+    deleted_count = 0
+    freed_bytes = 0
+    for j in old_jobs:
+        job_dir = os.path.join(UPLOAD_DIR, j.id)
+        if os.path.isdir(job_dir):
+            freed_bytes += _dir_size_bytes(job_dir)
+            shutil.rmtree(job_dir)
+        db.delete(j)
+        deleted_count += 1
+
+    db.commit()
+    logger.info(f"Storage cleanup: deleted {deleted_count} jobs, freed {freed_bytes} bytes (older than {older_than_days} days)")
+
+    return {
+        "deleted_jobs": deleted_count,
+        "freed_bytes": freed_bytes,
+        "freed_mb": round(freed_bytes / (1024 * 1024), 1),
+    }

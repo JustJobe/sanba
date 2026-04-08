@@ -121,6 +121,12 @@ def _raise_if_content_policy(exc: Exception, stage: str) -> None:
 def repair_image_sync(input_path: str, output_path: str) -> RepairResult:
     """Two-step pipeline: thinking model analyzes damage, image model executes the repair.
     Returns RepairResult(output_path, thinking_tokens, duration_secs, input_width, input_height, input_bytes)."""
+    from .gemini_limiter import gemini_semaphore
+    with gemini_semaphore:
+        return _repair_image_sync_inner(input_path, output_path)
+
+
+def _repair_image_sync_inner(input_path: str, output_path: str) -> RepairResult:
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise ValueError("GEMINI_API_KEY is not set")

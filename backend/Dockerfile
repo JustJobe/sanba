@@ -25,4 +25,4 @@ ENV PYTHONPATH=/app
 EXPOSE 8002
 
 # Run command to start the application
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8002"]
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8002", "--workers", "2"]
