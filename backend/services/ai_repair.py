@@ -9,6 +9,30 @@ from PIL import Image as PILImage
 
 logger = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# Retry helper for transient Gemini API errors
+# ---------------------------------------------------------------------------
+_MAX_RETRIES = 3
+_RETRY_BASE_DELAY = 2  # seconds — exponential: 2s, 4s, 8s
+
+_RETRYABLE_KEYWORDS = ("429", "503", "500", "overloaded", "timeout", "deadline", "unavailable", "resource_exhausted")
+
+
+def _call_with_retry(fn, *args, **kwargs):
+    """Call fn with exponential backoff on transient Gemini errors."""
+    for attempt in range(_MAX_RETRIES):
+        try:
+            return fn(*args, **kwargs)
+        except Exception as e:
+            err_str = str(e).lower()
+            is_retryable = any(kw in err_str for kw in _RETRYABLE_KEYWORDS)
+            if is_retryable and attempt < _MAX_RETRIES - 1:
+                delay = _RETRY_BASE_DELAY * (2 ** attempt)
+                logger.warning(f"Gemini API transient error (attempt {attempt + 1}/{_MAX_RETRIES}), retrying in {delay}s: {type(e).__name__}: {e}")
+                time.sleep(delay)
+            else:
+                raise
+
 
 class GeminiContentPolicyError(Exception):
     """Raised when Gemini refuses to process an image due to content policy (e.g. images of minors)."""
@@ -146,7 +170,8 @@ def _repair_image_sync_inner(input_path: str, output_path: str) -> RepairResult:
 
     # Step 1: Thinking model analyzes the image and produces a detailed repair plan
     try:
-        analysis_response = client.models.generate_content(
+        analysis_response = _call_with_retry(
+            client.models.generate_content,
             model=THINKING_MODEL,
             contents=[REPAIR_ANALYSIS_PROMPT, image_part],
             config=types.GenerateContentConfig(
@@ -170,7 +195,8 @@ def _repair_image_sync_inner(input_path: str, output_path: str) -> RepairResult:
     image_part2 = types.Part.from_bytes(data=png_bytes, mime_type="image/png")
 
     try:
-        gen_response = client.models.generate_content(
+        gen_response = _call_with_retry(
+            client.models.generate_content,
             model=IMAGE_MODEL,
             contents=[generation_prompt, image_part2],
             config=types.GenerateContentConfig(
