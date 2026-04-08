@@ -171,7 +171,7 @@ export default function JobHistoryPage() {
                                         {job.files_on_disk ? (
                                             <HardDrive className="w-3.5 h-3.5 text-green-400 mx-auto" />
                                         ) : (
-                                            <AlertTriangle className="w-3.5 h-3.5 text-red-400/60 mx-auto" title="Files pruned" />
+                                            <span title="Files pruned"><AlertTriangle className="w-3.5 h-3.5 text-red-400/60 mx-auto" /></span>
                                         )}
                                     </td>
                                     <td className="px-4 py-2.5 font-mono text-[10px] text-foreground/30 max-w-[120px] truncate">
