@@ -26,6 +26,7 @@ export default function LoginPage() {
     const [step, setStep] = useState<"email" | "otp">("email");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [termsAccepted, setTermsAccepted] = useState(false);
 
     const handleEmailSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -76,15 +77,39 @@ export default function LoginPage() {
                 <div className="max-w-md w-full mx-auto">
                     <h2 className="font-syne font-bold text-3xl mb-8">Sign In</h2>
 
+                    {/* Terms Checkbox */}
+                    <label className="flex items-start gap-3 cursor-pointer mb-8 select-none">
+                        <input
+                            type="checkbox"
+                            checked={termsAccepted}
+                            onChange={(e) => setTermsAccepted(e.target.checked)}
+                            className="mt-0.5 w-4 h-4 shrink-0 accent-primary cursor-pointer"
+                        />
+                        <span className="font-mono text-xs text-foreground/60 leading-relaxed">
+                            I agree to the{" "}
+                            <Link href="/terms" target="_blank" className="underline text-foreground/80 hover:text-primary">
+                                Terms of Use
+                            </Link>{" "}
+                            and acknowledge that AI-processed results may differ from originals.
+                        </span>
+                    </label>
+
                     {/* Social Login */}
                     <div className="space-y-4 mb-12">
-                        <a
-                            href={`${process.env.NEXT_PUBLIC_API_URL}/auth/login/google`}
-                            className="w-full bg-background border border-foreground text-foreground font-mono text-sm font-bold py-4 flex items-center justify-center gap-3 hover:bg-foreground hover:text-background transition-colors brutalist-shadow"
-                        >
-                            <GoogleIcon className="w-5 h-5" />
-                            Continue with Google
-                        </a>
+                        {termsAccepted ? (
+                            <a
+                                href={`${process.env.NEXT_PUBLIC_API_URL}/auth/login/google`}
+                                className="w-full bg-background border border-foreground text-foreground font-mono text-sm font-bold py-4 flex items-center justify-center gap-3 hover:bg-foreground hover:text-background transition-colors brutalist-shadow"
+                            >
+                                <GoogleIcon className="w-5 h-5" />
+                                Continue with Google
+                            </a>
+                        ) : (
+                            <span className="w-full bg-background border border-foreground/30 text-foreground/30 font-mono text-sm font-bold py-4 flex items-center justify-center gap-3 cursor-not-allowed brutalist-shadow">
+                                <GoogleIcon className="w-5 h-5 opacity-30" />
+                                Continue with Google
+                            </span>
+                        )}
                     </div>
 
                     <div className="relative mb-12">
@@ -120,8 +145,8 @@ export default function LoginPage() {
                             </div>
                             <button
                                 type="submit"
-                                disabled={loading}
-                                className="w-full bg-foreground text-background font-syne font-bold text-xl py-4 hover:bg-primary transition-colors flex items-center justify-center gap-2 group brutalist-shadow"
+                                disabled={!termsAccepted || loading}
+                                className={`w-full font-syne font-bold text-xl py-4 flex items-center justify-center gap-2 group brutalist-shadow transition-colors ${termsAccepted ? 'bg-foreground text-background hover:bg-primary' : 'bg-foreground/30 text-background/50 cursor-not-allowed'}`}
                             >
                                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Continue"}
                                 {!loading && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
