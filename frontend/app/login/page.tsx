@@ -86,11 +86,10 @@ export default function LoginPage() {
                             className="mt-0.5 w-4 h-4 shrink-0 accent-primary cursor-pointer"
                         />
                         <span className="font-mono text-xs text-foreground/60 leading-relaxed">
-                            I agree to the{" "}
+                            I acknowledge and agree to the{" "}
                             <Link href="/terms" target="_blank" className="underline text-foreground/80 hover:text-primary">
                                 Terms of Use
-                            </Link>{" "}
-                            and acknowledge that AI-processed results may differ from originals.
+                            </Link>
                         </span>
                     </label>
 
