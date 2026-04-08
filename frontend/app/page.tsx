@@ -98,7 +98,7 @@ export default function Home() {
                   </div>
                   <Link
                     href="/login"
-                    className="font-mono text-xs uppercase tracking-widest border border-yellow-400 px-4 py-2 text-yellow-400 hover:bg-yellow-400 hover:text-background transition-colors whitespace-nowrap"
+                    className="font-mono text-xs uppercase tracking-widest border border-foreground px-4 py-2 bg-foreground text-background hover:bg-primary transition-colors whitespace-nowrap"
                   >
                     Claim yours →
                   </Link>
