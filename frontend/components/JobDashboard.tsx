@@ -7,7 +7,7 @@ import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import ComparisonSlider from './ComparisonSlider';
 
-const AI_MODEL_DISPLAY = "Gemini 2.5 Flash Image";
+const AI_MODEL_DISPLAY = "Gemini 3 Pro Image Preview";
 
 interface Job {
     id: string;
