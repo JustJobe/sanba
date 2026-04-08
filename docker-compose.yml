@@ -8,7 +8,7 @@ services:
       - "8002:8002"
     volumes:
       - ./backend/uploads:/app/uploads
-      - ./backend/thepurplebox.db:/app/thepurplebox.db
+      - ./backend/data:/app/data
     env_file:
       - .env
     restart: always

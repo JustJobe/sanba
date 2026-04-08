@@ -7,7 +7,8 @@ import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     BarChart, Bar, Legend
 } from "recharts";
-import { Download, Calendar, Activity, Users, FileImage, Clock, Zap, Image, Sparkles, Wand2, BrainCircuit } from "lucide-react";
+import { Download, Calendar, Activity, Users, FileImage, Clock, Zap, Image, Sparkles, Wand2, BrainCircuit, List } from "lucide-react";
+import Link from "next/link";
 import { Loader2 } from "lucide-react";
 
 import { useTheme } from "next-themes";
@@ -135,6 +136,9 @@ export default function ReportsDashboard() {
                     </select>
                 </div>
                 <div className="flex gap-2">
+                    <Link href="/admin/jobs" className="flex items-center gap-2 px-3 py-1.5 bg-foreground text-background border border-foreground hover:bg-primary transition-colors text-xs uppercase tracking-widest font-bold">
+                        <List className="w-4 h-4" /> Job History
+                    </Link>
                     <button onClick={() => downloadCSV('users')} className="flex items-center gap-2 px-3 py-1.5 bg-background border border-foreground hover:bg-foreground hover:text-background transition-colors text-xs uppercase tracking-widest font-bold">
                         <Download className="w-4 h-4" /> Export Users
                     </button>

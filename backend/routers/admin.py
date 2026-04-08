@@ -498,3 +498,38 @@ def cleanup_old_jobs(
         "freed_bytes": freed_bytes,
         "freed_mb": round(freed_bytes / (1024 * 1024), 1),
     }
+
+
+@router.get("/jobs")
+def list_all_jobs(
+    limit: int = 100,
+    offset: int = 0,
+    status: Optional[str] = None,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """Job history ledger — returns all jobs with user email, file counts, and pruned status."""
+    query = db.query(Job, User.email).outerjoin(User, Job.user_id == User.id)
+    if status:
+        query = query.filter(Job.status == status)
+    total = query.count()
+    jobs = query.order_by(Job.created_at.desc()).offset(offset).limit(limit).all()
+
+    result = []
+    for job, user_email in jobs:
+        files = job.files or []
+        repaired = [f for f in (job.ai_repaired_files or []) if f]
+        remastered = [f for f in (job.ai_remastered_files or []) if f]
+        job_dir = os.path.join(UPLOAD_DIR, job.id)
+        result.append({
+            "id": job.id,
+            "user_email": user_email or "unknown",
+            "status": job.status,
+            "created_at": job.created_at.isoformat() if job.created_at else None,
+            "completed_at": job.completed_at.isoformat() if job.completed_at else None,
+            "file_count": len(files),
+            "repair_count": len(repaired),
+            "remaster_count": len(remastered),
+            "files_on_disk": os.path.isdir(job_dir),
+        })
+    return {"total": total, "jobs": result}
