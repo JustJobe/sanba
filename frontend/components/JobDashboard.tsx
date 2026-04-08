@@ -548,15 +548,22 @@ export default function JobDashboard() {
 
                         {job.status === 'completed' &&
                             (job.ai_repair_status?.some(s => s === 'pending') ||
-                             job.ai_remaster_status?.some(s => s === 'pending')) && (
-                            <div className="mt-4 flex items-center gap-3 px-4 py-3 border border-amber-500/30 bg-amber-500/10 text-amber-400/80">
-                                <RefreshCw className="w-4 h-4 animate-spin shrink-0" />
-                                <div>
-                                    <p className="font-mono text-xs font-bold uppercase tracking-widest">AI operation in progress</p>
-                                    <p className="font-mono text-[10px] text-amber-400/50 mt-0.5">Results will appear automatically when complete.</p>
+                             job.ai_remaster_status?.some(s => s === 'pending')) && (() => {
+                            const repairPending = job.ai_repair_status?.some(s => s === 'pending');
+                            const remasterPending = job.ai_remaster_status?.some(s => s === 'pending');
+                            const isRemaster = remasterPending && !repairPending;
+                            return (
+                                <div className={`mt-4 flex items-center gap-3 px-4 py-3 border ${isRemaster ? 'border-violet-500/30 bg-violet-500/10 text-violet-400/80' : 'border-amber-500/30 bg-amber-500/10 text-amber-400/80'}`}>
+                                    <RefreshCw className="w-4 h-4 animate-spin shrink-0" />
+                                    <div>
+                                        <p className="font-mono text-xs font-bold uppercase tracking-widest">
+                                            {isRemaster ? 'Remastering in progress' : repairPending ? 'Repairing in progress' : 'AI operation in progress'}
+                                        </p>
+                                        <p className={`font-mono text-[10px] mt-0.5 ${isRemaster ? 'text-violet-400/50' : 'text-amber-400/50'}`}>Results will appear automatically when complete.</p>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            );
+                        })()}
 
                         {/* Collapsible Batch View */}
                         {job.files.length > 1 && (
