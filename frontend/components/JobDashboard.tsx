@@ -240,7 +240,7 @@ export default function JobDashboard() {
                                     label: `Original vs Repaired`,
                                     modelBadge: repairModel ? modelShort[repairModel] || repairModel : undefined,
                                     beforeLabel: 'Original',
-                                    afterLabel: `Repaired (${getModelDisplay(repairModel)})`,
+                                    afterLabel: `Repaired\n(${getModelDisplay(repairModel)})`,
                                 });
                             }}
                             className={`${btnPad} border border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-background transition-colors`}
@@ -346,7 +346,7 @@ export default function JobDashboard() {
                                     label: `Original vs Remastered`,
                                     modelBadge: remasterModel ? modelShort[remasterModel] || remasterModel : undefined,
                                     beforeLabel: 'Original',
-                                    afterLabel: `Remastered (${getModelDisplay(remasterModel)})`,
+                                    afterLabel: `Remastered\n(${getModelDisplay(remasterModel)})`,
                                 });
                             }}
                             className={`${btnPad} border border-violet-400 text-violet-400 hover:bg-violet-400 hover:text-background transition-colors`}

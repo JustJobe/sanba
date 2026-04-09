@@ -109,7 +109,7 @@ export default function ComparisonSlider({
             />
 
             {/* Label After */}
-            <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 text-xs font-bold text-white z-10">
+            <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-xs font-bold text-white text-center leading-snug whitespace-pre-line z-10">
                 {afterLabel}
             </div>
 
@@ -133,7 +133,7 @@ export default function ComparisonSlider({
                 />
 
                 {/* Label Before */}
-                <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 text-xs font-bold text-white z-10">
+                <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-xs font-bold text-white text-center leading-snug z-10">
                     {beforeLabel}
                 </div>
             </div>
