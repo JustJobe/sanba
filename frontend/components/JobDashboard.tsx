@@ -45,8 +45,7 @@ export default function JobDashboard() {
         restore: number; ai_repair: number; ai_remaster_full: number; ai_remaster_discounted: number;
         daily_credit_threshold: number; models?: Record<string, ModelPricing>; default_model?: string;
     }>({ restore: 1, ai_repair: 4, ai_remaster_full: 4, ai_remaster_discounted: 3, daily_credit_threshold: 3 });
-    const [repairModel, setRepairModel] = useState<string>('pro');
-    const [remasterModel, setRemasterModel] = useState<string>('pro');
+    const [aiModel, setAiModel] = useState<string>('pro');
     const [comparingFiles, setComparingFiles] = useState<{
         before: string; after: string;
         beforeFallback?: string; afterFallback?: string;
@@ -116,7 +115,7 @@ export default function JobDashboard() {
 
     const startAiRepair = async (jobId: string, fileIndex: number) => {
         try {
-            await api.post(`/jobs/${jobId}/ai_repair/${fileIndex}`, { model: repairModel });
+            await api.post(`/jobs/${jobId}/ai_repair/${fileIndex}`, { model: aiModel });
             refreshUser();
             fetchJobs(); // immediately picks up the "pending" status set by the endpoint
         } catch (error: any) {
@@ -131,7 +130,7 @@ export default function JobDashboard() {
 
     const startAiRemaster = async (jobId: string, fileIndex: number) => {
         try {
-            await api.post(`/jobs/${jobId}/ai_remaster/${fileIndex}`, { model: remasterModel });
+            await api.post(`/jobs/${jobId}/ai_remaster/${fileIndex}`, { model: aiModel });
             refreshUser();
             fetchJobs(); // immediately picks up the "pending" status set by the endpoint
         } catch (error: any) {
@@ -275,34 +274,19 @@ export default function JobDashboard() {
 
         // Not started or failed — active button (red "Retry" if previously failed)
         const isFailed = aiStatus === "failed";
-        const repairCost = pricing.models?.[repairModel]?.ai_repair ?? pricing.ai_repair;
-        const modelEntries = pricing.models ? Object.entries(pricing.models) : [];
+        const repairCost = pricing.models?.[aiModel]?.ai_repair ?? pricing.ai_repair;
         return (
-            <div className="flex items-center gap-1">
-                {modelEntries.length > 1 && (
-                    <select
-                        value={repairModel}
-                        onChange={e => setRepairModel(e.target.value)}
-                        className="bg-background border border-amber-400/40 text-amber-400 font-mono text-[10px] uppercase tracking-wide px-1 py-0.5 cursor-pointer focus:outline-none"
-                        title="Select AI model tier"
-                    >
-                        {modelEntries.map(([id, m]) => (
-                            <option key={id} value={id}>{m.display_name} — {m.ai_repair}cr</option>
-                        ))}
-                    </select>
-                )}
-                <button
-                    onClick={() => startAiRepair(job.id, index)}
-                    className={`flex items-center gap-1 px-2 ${btnPad} border text-[10px] font-mono uppercase tracking-wide transition-colors
-                        ${isFailed
-                            ? 'border-red-400 text-red-400 hover:bg-red-400 hover:text-background'
-                            : 'border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-background'}`}
-                    title={`AI Repair — ${repairCost} credits\nModel: ${getModelDisplay(repairModel)}\nOutput resolution may differ from original`}
-                >
-                    <Sparkles className={iconSize} />
-                    {isFailed ? 'Retry' : `Repair · ${repairCost}cr`}
-                </button>
-            </div>
+            <button
+                onClick={() => startAiRepair(job.id, index)}
+                className={`flex items-center gap-1 px-2 ${btnPad} border text-[10px] font-mono uppercase tracking-wide transition-colors
+                    ${isFailed
+                        ? 'border-red-400 text-red-400 hover:bg-red-400 hover:text-background'
+                        : 'border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-background'}`}
+                title={`AI Repair — ${repairCost} credits\nModel: ${getModelDisplay(aiModel)}\nOutput resolution may differ from original`}
+            >
+                <Sparkles className={iconSize} />
+                {isFailed ? 'Retry' : `Repair · ${repairCost}cr`}
+            </button>
         );
     };
 
@@ -399,38 +383,22 @@ export default function JobDashboard() {
 
         // Not started or failed — active button (red "Retry" if previously failed)
         const isFailed = remasterStatus === "failed";
-        const modelPricing = pricing.models?.[remasterModel];
+        const modelPricing = pricing.models?.[aiModel];
         const dynamicCost = repairDone
             ? (modelPricing?.ai_remaster_discounted ?? pricing.ai_remaster_discounted)
             : (modelPricing?.ai_remaster_full ?? pricing.ai_remaster_full);
-        const modelEntries = pricing.models ? Object.entries(pricing.models) : [];
         return (
-            <div className="flex items-center gap-1">
-                {modelEntries.length > 1 && (
-                    <select
-                        value={remasterModel}
-                        onChange={e => setRemasterModel(e.target.value)}
-                        className="bg-background border border-violet-400/40 text-violet-400 font-mono text-[10px] uppercase tracking-wide px-1 py-0.5 cursor-pointer focus:outline-none"
-                        title="Select AI model tier"
-                    >
-                        {modelEntries.map(([id, m]) => {
-                            const cost = repairDone ? m.ai_remaster_discounted : m.ai_remaster_full;
-                            return <option key={id} value={id}>{m.display_name} — {cost}cr</option>;
-                        })}
-                    </select>
-                )}
-                <button
-                    onClick={() => startAiRemaster(job.id, index)}
-                    className={`flex items-center gap-1 px-2 ${btnPad} border text-[10px] font-mono uppercase tracking-wide transition-colors
-                        ${isFailed
-                            ? 'border-red-400 text-red-400 hover:bg-red-400 hover:text-background'
-                            : 'border-violet-400 text-violet-400 hover:bg-violet-400 hover:text-background'}`}
-                    title={`AI Remaster — ${dynamicCost} credits${repairDone ? ' (discount applied — Repair already done)' : ''}\nModel: ${getModelDisplay(remasterModel)}\nOutput resolution may differ from original`}
-                >
-                    <Wand2 className={iconSize} />
-                    {isFailed ? 'Retry' : `Remaster · ${dynamicCost}cr`}
-                </button>
-            </div>
+            <button
+                onClick={() => startAiRemaster(job.id, index)}
+                className={`flex items-center gap-1 px-2 ${btnPad} border text-[10px] font-mono uppercase tracking-wide transition-colors
+                    ${isFailed
+                        ? 'border-red-400 text-red-400 hover:bg-red-400 hover:text-background'
+                        : 'border-violet-400 text-violet-400 hover:bg-violet-400 hover:text-background'}`}
+                title={`AI Remaster — ${dynamicCost} credits${repairDone ? ' (discount applied — Repair already done)' : ''}\nModel: ${getModelDisplay(aiModel)}\nOutput resolution may differ from original`}
+            >
+                <Wand2 className={iconSize} />
+                {isFailed ? 'Retry' : `Remaster · ${dynamicCost}cr`}
+            </button>
         );
     };
 
@@ -535,13 +503,27 @@ export default function JobDashboard() {
 
                                 {job.status === 'completed' && job.files.length > 1 ? (
                                     <div className="flex flex-col items-center gap-2">
-                                        <button
-                                            onClick={() => handleDownloadZip(job.id)}
-                                            className="flex items-center gap-2 px-4 py-2 bg-background border border-foreground hover:bg-foreground hover:text-background text-xs font-mono uppercase tracking-widest transition-colors"
-                                        >
-                                            <Download className="w-4 h-4" />
-                                            <span className="hidden sm:inline">Download</span> ZIP
-                                        </button>
+                                        <div className="flex items-center gap-2">
+                                            {pricing.models && Object.keys(pricing.models).length > 1 && (
+                                                <select
+                                                    value={aiModel}
+                                                    onChange={e => setAiModel(e.target.value)}
+                                                    className="bg-background border border-foreground/40 text-foreground font-mono text-[10px] uppercase tracking-wide px-2 py-2 cursor-pointer focus:outline-none"
+                                                    title="Select AI model for Repair & Remaster"
+                                                >
+                                                    {Object.entries(pricing.models).map(([id, m]) => (
+                                                        <option key={id} value={id}>{m.display_name}</option>
+                                                    ))}
+                                                </select>
+                                            )}
+                                            <button
+                                                onClick={() => handleDownloadZip(job.id)}
+                                                className="flex items-center gap-2 px-4 py-2 bg-background border border-foreground hover:bg-foreground hover:text-background text-xs font-mono uppercase tracking-widest transition-colors"
+                                            >
+                                                <Download className="w-4 h-4" />
+                                                <span className="hidden sm:inline">Download</span> ZIP
+                                            </button>
+                                        </div>
                                         <div
                                             className="relative w-16 h-16 cursor-pointer group/stack mt-1"
                                             onClick={() => toggleExpand(job.id)}
@@ -563,13 +545,27 @@ export default function JobDashboard() {
                                         </div>
                                     </div>
                                 ) : job.status === 'completed' && (
-                                    <button
-                                        onClick={() => handleDownloadZip(job.id)}
-                                        className="flex items-center gap-2 px-4 py-2 bg-background border border-foreground hover:bg-foreground hover:text-background text-xs font-mono uppercase tracking-widest transition-colors"
-                                    >
-                                        <Download className="w-4 h-4" />
-                                        <span className="hidden sm:inline">Download</span> ZIP
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        {pricing.models && Object.keys(pricing.models).length > 1 && (
+                                            <select
+                                                value={aiModel}
+                                                onChange={e => setAiModel(e.target.value)}
+                                                className="bg-background border border-foreground/40 text-foreground font-mono text-[10px] uppercase tracking-wide px-2 py-2 cursor-pointer focus:outline-none"
+                                                title="Select AI model for Repair & Remaster"
+                                            >
+                                                {Object.entries(pricing.models).map(([id, m]) => (
+                                                    <option key={id} value={id}>{m.display_name}</option>
+                                                ))}
+                                            </select>
+                                        )}
+                                        <button
+                                            onClick={() => handleDownloadZip(job.id)}
+                                            className="flex items-center gap-2 px-4 py-2 bg-background border border-foreground hover:bg-foreground hover:text-background text-xs font-mono uppercase tracking-widest transition-colors"
+                                        >
+                                            <Download className="w-4 h-4" />
+                                            <span className="hidden sm:inline">Download</span> ZIP
+                                        </button>
+                                    </div>
                                 )}
 
                                 {/* Single-file completed job — thumbnails + actions (no repeated original, it's on the left) */}
