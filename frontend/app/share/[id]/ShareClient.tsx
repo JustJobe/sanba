@@ -28,10 +28,8 @@ export default function ShareClient({ data, label }: { data: ShareData; label: s
             {/* Comparison Slider */}
             <div className="w-full border border-foreground/20 rounded-2xl overflow-hidden shadow-2xl">
                 <ComparisonSlider
-                    before={data.before_preview}
-                    after={data.after_preview}
-                    beforeFallback={data.before}
-                    afterFallback={data.after}
+                    before={data.before}
+                    after={data.after}
                     beforeLabel={data.before_label}
                     afterLabel={data.after_label}
                     maxHeightVh={72}
