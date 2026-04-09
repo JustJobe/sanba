@@ -14,7 +14,6 @@ from authlib.integrations.starlette_client import OAuth
 import os
 import random
 from ..services.credit_ledger import record_credit_change
-from .jobs import seed_sample_job
 
 router = APIRouter()
 
@@ -213,6 +212,7 @@ def verify_otp(request: VerifyOTPRequest, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(user)
         # Seed a sample job so the dashboard isn't empty on first visit
+        from .jobs import seed_sample_job
         seed_sample_job(db, user.id)
     # Replenishment is handled by GET /auth/me which the frontend calls immediately after login
 
@@ -332,6 +332,7 @@ async def auth_callback(provider: str, request: Request, db: Session = Depends(g
         )
         db.commit()
         db.refresh(user)
+        from .jobs import seed_sample_job
         seed_sample_job(db, user.id)
     else:
         # Update name if missing
