@@ -279,7 +279,7 @@ export default function JobDashboard() {
 
         // Not started or failed — active button (red "Retry" if previously failed)
         const isFailed = aiStatus === "failed";
-        const repairCost = pricing.models?.[aiModel]?.ai_repair ?? pricing.ai_repair;
+        const repairCost = pricing.models?.[getAiModel(job.id)]?.ai_repair ?? pricing.ai_repair;
         return (
             <button
                 onClick={() => startAiRepair(job.id, index)}
@@ -287,7 +287,7 @@ export default function JobDashboard() {
                     ${isFailed
                         ? 'border-red-400 text-red-400 hover:bg-red-400 hover:text-background'
                         : 'border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-background'}`}
-                title={`AI Repair — ${repairCost} credits\nModel: ${getModelDisplay(aiModel)}\nOutput resolution may differ from original`}
+                title={`AI Repair — ${repairCost} credits\nModel: ${getModelDisplay(getAiModel(job.id))}\nOutput resolution may differ from original`}
             >
                 <Sparkles className={iconSize} />
                 {isFailed ? 'Retry' : `Repair · ${repairCost}cr`}
@@ -390,7 +390,7 @@ export default function JobDashboard() {
 
         // Not started or failed — active button (red "Retry" if previously failed)
         const isFailed = remasterStatus === "failed";
-        const modelPricing = pricing.models?.[aiModel];
+        const modelPricing = pricing.models?.[getAiModel(job.id)];
         const dynamicCost = repairDone
             ? (modelPricing?.ai_remaster_discounted ?? pricing.ai_remaster_discounted)
             : (modelPricing?.ai_remaster_full ?? pricing.ai_remaster_full);
@@ -401,7 +401,7 @@ export default function JobDashboard() {
                     ${isFailed
                         ? 'border-red-400 text-red-400 hover:bg-red-400 hover:text-background'
                         : 'border-violet-400 text-violet-400 hover:bg-violet-400 hover:text-background'}`}
-                title={`AI Remaster — ${dynamicCost} credits${repairDone ? ' (discount applied — Repair already done)' : ''}\nModel: ${getModelDisplay(aiModel)}\nOutput resolution may differ from original`}
+                title={`AI Remaster — ${dynamicCost} credits${repairDone ? ' (discount applied — Repair already done)' : ''}\nModel: ${getModelDisplay(getAiModel(job.id))}\nOutput resolution may differ from original`}
             >
                 <Wand2 className={iconSize} />
                 {isFailed ? 'Retry' : `Remaster · ${dynamicCost}cr`}
