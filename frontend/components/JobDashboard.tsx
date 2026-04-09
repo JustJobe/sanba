@@ -606,6 +606,15 @@ export default function JobDashboard() {
                                 {/* Single-file completed job — thumbnails + actions (no repeated original, it's on the left) */}
                                 {job.status === 'completed' && job.files.length === 1 && !expandedJobs.has(job.id) && (
                                     <div className="flex items-center gap-2 flex-wrap">
+                                        {job.processed_files?.[0] && (job.ai_repaired_files?.[0] || job.ai_remastered_files?.[0]) && (
+                                            <button
+                                                onClick={() => duplicateJob(job.id, 0)}
+                                                className="p-2 bg-background border border-foreground/40 text-foreground/60 hover:bg-foreground hover:text-background transition-colors"
+                                                title="Duplicate restored image to a new job for another Repair/Remaster attempt"
+                                            >
+                                                <Copy className="w-4 h-4" />
+                                            </button>
+                                        )}
                                         {job.processed_files?.[0] && (
                                             <a
                                                 href={getFileUrl(job.processed_files[0])}
@@ -639,15 +648,6 @@ export default function JobDashboard() {
                                                 title="Review: Original vs Restored"
                                             >
                                                 <Eye className="w-4 h-4" />
-                                            </button>
-                                        )}
-                                        {job.processed_files?.[0] && (job.ai_repaired_files?.[0] || job.ai_remastered_files?.[0]) && (
-                                            <button
-                                                onClick={() => duplicateJob(job.id, 0)}
-                                                className="p-2 bg-background border border-foreground/40 text-foreground/60 hover:bg-foreground hover:text-background transition-colors"
-                                                title="Duplicate restored image to a new job for another Repair/Remaster attempt"
-                                            >
-                                                <Copy className="w-4 h-4" />
                                             </button>
                                         )}
                                         {/* AI Repair + Remaster */}
@@ -742,6 +742,15 @@ export default function JobDashboard() {
                                                         {/* Restored + AI actions */}
                                                         {processed && (
                                                             <>
+                                                                {(job.ai_repaired_files?.[index] || job.ai_remastered_files?.[index]) && (
+                                                                    <button
+                                                                        onClick={() => duplicateJob(job.id, index)}
+                                                                        className="p-1.5 border border-foreground/20 text-foreground/50 hover:bg-foreground hover:text-background transition-colors"
+                                                                        title="Duplicate restored image to a new job"
+                                                                    >
+                                                                        <Copy className="w-3.5 h-3.5" />
+                                                                    </button>
+                                                                )}
                                                                 <a
                                                                     href={getFileUrl(processed)}
                                                                     target="_blank"
@@ -770,15 +779,6 @@ export default function JobDashboard() {
                                                                 >
                                                                     <Eye className="w-3.5 h-3.5" />
                                                                 </button>
-                                                                {(job.ai_repaired_files?.[index] || job.ai_remastered_files?.[index]) && (
-                                                                    <button
-                                                                        onClick={() => duplicateJob(job.id, index)}
-                                                                        className="p-1.5 border border-foreground/20 text-foreground/50 hover:bg-foreground hover:text-background transition-colors"
-                                                                        title="Duplicate restored image to a new job"
-                                                                    >
-                                                                        <Copy className="w-3.5 h-3.5" />
-                                                                    </button>
-                                                                )}
                                                                 {renderAiRepair(job, index, 'sm')}
                                                                 {renderAiRemaster(job, index, 'sm')}
                                                             </>
