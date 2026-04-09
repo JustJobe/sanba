@@ -852,24 +852,11 @@ export default function JobDashboard() {
                         className="w-full max-w-4xl flex flex-col gap-4 my-auto py-12"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <h3 className="font-syne font-bold text-xl flex items-center gap-2 text-white">
-                            <Eye className="w-5 h-5 text-white/60" />
-                            {comparingFiles.label ?? 'Comparison View'}
-                        </h3>
-                        <div className="border border-white/20 rounded-2xl overflow-hidden shadow-2xl">
-                            <ComparisonSlider
-                                before={comparingFiles.before}
-                                after={comparingFiles.after}
-                                beforeFallback={comparingFiles.beforeFallback}
-                                afterFallback={comparingFiles.afterFallback}
-                                beforeLabel={comparingFiles.beforeLabel}
-                                afterLabel={comparingFiles.afterLabel}
-                                maxHeightVh={72}
-                                modelBadge={comparingFiles.modelBadge}
-                            />
-                        </div>
                         <div className="flex items-center justify-between">
-                            <p className="text-xs font-mono text-white/40 uppercase tracking-widest">Drag slider to compare</p>
+                            <h3 className="font-syne font-bold text-xl flex items-center gap-2 text-white">
+                                <Eye className="w-5 h-5 text-white/60" />
+                                {comparingFiles.label ?? 'Comparison View'}
+                            </h3>
                             {comparingFiles.comparisonType && (
                                 <button
                                     onClick={async () => {
@@ -889,13 +876,26 @@ export default function JobDashboard() {
                                             setShareStatus('idle');
                                         }
                                     }}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 border border-white/20 text-white/60 hover:text-white hover:border-white/40 transition-colors text-xs font-mono uppercase tracking-widest"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 border border-white/30 text-white hover:bg-white/20 transition-colors text-xs font-mono uppercase tracking-widest rounded"
                                 >
                                     <Share2 className="w-3.5 h-3.5" />
                                     {shareStatus === 'copied' ? 'Link Copied!' : shareStatus === 'copying' ? 'Copying...' : 'Share'}
                                 </button>
                             )}
                         </div>
+                        <div className="border border-white/20 rounded-2xl overflow-hidden shadow-2xl">
+                            <ComparisonSlider
+                                before={comparingFiles.before}
+                                after={comparingFiles.after}
+                                beforeFallback={comparingFiles.beforeFallback}
+                                afterFallback={comparingFiles.afterFallback}
+                                beforeLabel={comparingFiles.beforeLabel}
+                                afterLabel={comparingFiles.afterLabel}
+                                maxHeightVh={72}
+                                modelBadge={comparingFiles.modelBadge}
+                            />
+                        </div>
+                        <p className="text-center text-xs font-mono text-white/40 uppercase tracking-widest">Drag slider to compare</p>
                     </div>
                 </div>
             )}
