@@ -23,7 +23,7 @@ const cormorant = Cormorant_Garamond({
 export const metadata: Metadata = {
   metadataBase: new URL("https://sanba.my"),
   title: {
-    default: "SanBa — Photo Restoration & Colorisation Service | Malaysia",
+    default: "SanBa — Photo Restoration, Repair & Remastering Services | Malaysia",
     template: "%s | SanBa",
   },
   description:
@@ -57,7 +57,7 @@ export const metadata: Metadata = {
     locale: "en_MY",
     url: "https://sanba.my",
     siteName: "SanBa",
-    title: "SanBa — Photo Restoration & Colorisation Service",
+    title: "SanBa — Photo Restoration, Repair & Remastering Services",
     description:
       "Restore and colorise your old, damaged, or black-and-white photographs with AI. Malaysia's photo restoration service.",
     images: [
@@ -71,7 +71,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "SanBa — Photo Restoration & Colorisation",
+    title: "SanBa — Photo Restoration, Repair & Remastering Services",
     description:
       "Restore and colorise old photos with AI. Malaysia-based photo restoration service.",
     images: ["/og-image.jpg"],
