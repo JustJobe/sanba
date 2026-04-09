@@ -75,7 +75,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 MAX_FILES_PER_BATCH = 50
 
-SAMPLE_JOB_ID = "6745c95f"   # Source job to clone for new-user onboarding
+SAMPLE_JOB_ID = "6745c95f-64f3-402f-906d-8a50facff19d"   # Source job to clone for new-user onboarding
 
 
 def seed_sample_job(db: Session, user_id: str) -> None:
@@ -181,6 +181,7 @@ def seed_sample_job(db: Session, user_id: str) -> None:
             ai_remastered_files=new_remastered,
             ai_repair_models=new_repair_models,
             ai_remaster_models=new_remaster_models,
+            is_sample=True,
         )
         db.add(new_job)
         db.commit()

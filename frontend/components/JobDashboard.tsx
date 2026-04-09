@@ -30,6 +30,7 @@ interface Job {
     ai_remaster_status: (string | null)[];
     ai_repair_models?: (string | null)[];
     ai_remaster_models?: (string | null)[];
+    is_sample?: boolean;
 }
 
 export default function JobDashboard() {
@@ -498,7 +499,7 @@ export default function JobDashboard() {
                                 )}
                                 <div>
                                     <div className="flex items-center gap-3 mb-2">
-                                        <span className="font-mono font-bold text-lg">Job #{job.id.slice(0, 8)}</span>
+                                        <span className="font-mono font-bold text-lg">Job #{job.id.slice(0, 8)}{job.is_sample ? ' (sample)' : ''}</span>
                                         <span className={`text-[10px] uppercase font-bold px-2 py-0.5 border ${getStatusColor(job.status)}`}>
                                             {job.status}
                                         </span>

@@ -73,6 +73,11 @@ async def migrate_db():
                 conn.commit()
                 logger.info(f"DB migration: added jobs.{col}")
 
+        if "is_sample" not in existing:
+            conn.execute(sa.text("ALTER TABLE jobs ADD COLUMN is_sample BOOLEAN DEFAULT 0"))
+            conn.commit()
+            logger.info("DB migration: added jobs.is_sample")
+
 
 @app.on_event("startup")
 async def start_cleanup():

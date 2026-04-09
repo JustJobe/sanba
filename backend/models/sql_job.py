@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, JSON, Integer
+from sqlalchemy import Column, String, DateTime, JSON, Integer, Boolean
 from ..database import Base
 import datetime
 import uuid
@@ -32,3 +32,4 @@ class Job(Base):
     ai_remaster_input_meta = Column(JSON, default=[])  # Per-index {"w":int,"h":int,"bytes":int}
     ai_repair_models       = Column(JSON, default=[])  # Per-index: "pro" | "flash" | null
     ai_remaster_models     = Column(JSON, default=[])  # Per-index: "pro" | "flash" | null
+    is_sample              = Column(Boolean, default=False)  # Seeded sample job for new users
