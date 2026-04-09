@@ -32,7 +32,6 @@ export default function ShareClient({ data, label }: { data: ShareData; label: s
                     after={data.after}
                     beforeLabel={data.before_label}
                     afterLabel={data.after_label}
-                    maxHeightVh={72}
                     modelBadge={data.model_badge ?? undefined}
                 />
             </div>
