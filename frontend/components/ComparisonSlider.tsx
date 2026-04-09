@@ -12,6 +12,7 @@ interface ComparisonSliderProps {
     beforeFallback?: string;
     afterFallback?: string;
     modelBadge?: string;
+    fitScreen?: boolean;
 }
 
 export default function ComparisonSlider({
@@ -23,6 +24,7 @@ export default function ComparisonSlider({
     beforeFallback,
     afterFallback,
     modelBadge,
+    fitScreen,
 }: ComparisonSliderProps) {
     const [isResizing, setIsResizing] = useState(false);
     const [position, setPosition] = useState(50);
@@ -75,9 +77,11 @@ export default function ComparisonSlider({
         };
     }, [handleMouseMove, stopResizing, handleTouchMove]);
 
-    const sizeConstraint = maxHeightVh
-        ? { maxHeight: `${maxHeightVh}vh`, maxWidth: `calc(${maxHeightVh}vh * ${naturalRatio})` }
-        : {};
+    const sizeConstraint = fitScreen
+        ? { maxHeight: '80vh', maxWidth: `calc(80vh * ${naturalRatio})`, width: '100%' }
+        : maxHeightVh
+            ? { maxHeight: `${maxHeightVh}vh`, maxWidth: `calc(${maxHeightVh}vh * ${naturalRatio})` }
+            : {};
 
     return (
         <div

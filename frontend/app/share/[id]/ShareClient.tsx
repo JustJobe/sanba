@@ -33,6 +33,7 @@ export default function ShareClient({ data, label }: { data: ShareData; label: s
                     beforeLabel={data.before_label}
                     afterLabel={data.after_label}
                     modelBadge={data.model_badge ?? undefined}
+                    fitScreen
                 />
             </div>
             <p className="text-center text-xs font-mono text-foreground/40 uppercase tracking-widest">
