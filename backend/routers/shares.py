@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+from typing import Optional
 import logging
 import os
 
@@ -38,7 +39,7 @@ def _to_preview_url(url: str) -> str:
     return url[:dot] + "_preview" + url[dot:]
 
 
-def _get_model_display(tier_id: str | None) -> str:
+def _get_model_display(tier_id: Optional[str]) -> str:
     if not tier_id:
         return "Gemini 3 Pro"
     t = MODEL_TIERS.get(tier_id)
@@ -69,7 +70,7 @@ class ShareDataResponse(BaseModel):
     before_label: str
     after_label: str
     comparison_type: str
-    model_badge: str | None = None
+    model_badge: Optional[str] = None
     og_image: str
 
 
