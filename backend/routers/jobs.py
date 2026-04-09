@@ -75,6 +75,119 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 MAX_FILES_PER_BATCH = 50
 
+SAMPLE_JOB_ID = "6745c95f"   # Source job to clone for new-user onboarding
+
+
+def seed_sample_job(db: Session, user_id: str) -> None:
+    """Copy the sample job into a new job owned by *user_id*.
+
+    Best-effort: if the sample job doesn't exist or files are missing the
+    function silently returns so signup is never blocked.
+    """
+    try:
+        sample = db.query(sql_job.Job).filter(sql_job.Job.id == SAMPLE_JOB_ID).first()
+        if not sample or sample.status != "completed":
+            logger.info(f"Sample job {SAMPLE_JOB_ID} not found or not completed — skipping seed")
+            return
+
+        new_id = str(uuid4())
+        new_orig_dir = os.path.join(UPLOAD_DIR, new_id, "original")
+        new_proc_dir = os.path.join(UPLOAD_DIR, new_id, "processed")
+        os.makedirs(new_orig_dir, exist_ok=True)
+        os.makedirs(new_proc_dir, exist_ok=True)
+
+        new_files, new_processed, new_file_types = [], [], []
+        new_repaired, new_remastered = [], []
+        new_repair_models, new_remaster_models = [], []
+
+        for idx in range(len(sample.files or [])):
+            # Copy original
+            src_orig = (sample.files or [])[idx]
+            if not os.path.exists(src_orig):
+                continue
+            dst_orig = os.path.join(new_orig_dir, os.path.basename(src_orig))
+            shutil.copy2(src_orig, dst_orig)
+            new_files.append(dst_orig)
+            # Copy original preview if exists
+            stem, ext = os.path.splitext(src_orig)
+            if os.path.exists(f"{stem}_preview{ext}"):
+                dst_stem, dst_ext = os.path.splitext(dst_orig)
+                shutil.copy2(f"{stem}_preview{ext}", f"{dst_stem}_preview{dst_ext}")
+
+            # Copy processed
+            src_proc = (sample.processed_files or [None])[idx] if idx < len(sample.processed_files or []) else None
+            if src_proc and os.path.exists(src_proc):
+                dst_proc = os.path.join(new_proc_dir, os.path.basename(src_proc))
+                shutil.copy2(src_proc, dst_proc)
+                new_processed.append(dst_proc)
+                stem, ext = os.path.splitext(src_proc)
+                if os.path.exists(f"{stem}_preview{ext}"):
+                    dst_stem, dst_ext = os.path.splitext(dst_proc)
+                    shutil.copy2(f"{stem}_preview{ext}", f"{dst_stem}_preview{dst_ext}")
+            else:
+                new_processed.append(None)
+
+            # Copy AI repaired
+            src_ai = (sample.ai_repaired_files or [None])[idx] if idx < len(sample.ai_repaired_files or []) else None
+            if src_ai and os.path.exists(src_ai):
+                dst_ai = os.path.join(new_proc_dir, os.path.basename(src_ai))
+                shutil.copy2(src_ai, dst_ai)
+                new_repaired.append(dst_ai)
+                stem, ext = os.path.splitext(src_ai)
+                if os.path.exists(f"{stem}_preview{ext}"):
+                    dst_stem, dst_ext = os.path.splitext(dst_ai)
+                    shutil.copy2(f"{stem}_preview{ext}", f"{dst_stem}_preview{dst_ext}")
+            else:
+                new_repaired.append(None)
+
+            # Copy AI remastered
+            src_rem = (sample.ai_remastered_files or [None])[idx] if idx < len(sample.ai_remastered_files or []) else None
+            if src_rem and os.path.exists(src_rem):
+                dst_rem = os.path.join(new_proc_dir, os.path.basename(src_rem))
+                shutil.copy2(src_rem, dst_rem)
+                new_remastered.append(dst_rem)
+                stem, ext = os.path.splitext(src_rem)
+                if os.path.exists(f"{stem}_preview{ext}"):
+                    dst_stem, dst_ext = os.path.splitext(dst_rem)
+                    shutil.copy2(f"{stem}_preview{ext}", f"{dst_stem}_preview{dst_ext}")
+            else:
+                new_remastered.append(None)
+
+            # Carry over per-file metadata
+            ft = (sample.file_types or [])[idx] if idx < len(sample.file_types or []) else "color"
+            new_file_types.append(ft)
+            rm = (sample.ai_repair_models or [None])[idx] if idx < len(sample.ai_repair_models or []) else None
+            new_repair_models.append(rm)
+            rmm = (sample.ai_remaster_models or [None])[idx] if idx < len(sample.ai_remaster_models or []) else None
+            new_remaster_models.append(rmm)
+
+        if not new_files:
+            logger.info("Sample job seed: no files copied — skipping")
+            return
+
+        new_job = sql_job.Job(
+            id=new_id,
+            status="completed",
+            created_at=datetime.utcnow(),
+            completed_at=datetime.utcnow(),
+            execution_time=0,
+            files=new_files,
+            processed_files=new_processed,
+            file_types=new_file_types,
+            source="online",
+            photo_type=sample.photo_type or "auto",
+            user_id=user_id,
+            ai_repaired_files=new_repaired,
+            ai_remastered_files=new_remastered,
+            ai_repair_models=new_repair_models,
+            ai_remaster_models=new_remaster_models,
+        )
+        db.add(new_job)
+        db.commit()
+        logger.info(f"Seeded sample job {new_id} for user {user_id} from {SAMPLE_JOB_ID}")
+    except Exception as e:
+        logger.warning(f"Failed to seed sample job for user {user_id}: {e}")
+
 
 @router.get("/pricing")
 def get_pricing(db: Session = Depends(get_db)):

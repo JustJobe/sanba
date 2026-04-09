@@ -12,17 +12,31 @@ import CreditClaimPopup from "@/components/CreditClaimPopup";
 import CreditCountdown from "@/components/CreditCountdown";
 import { Loader2, Wand2, ArrowRight, Play, Sparkles } from "lucide-react";
 
+interface ModelPricing {
+  ai_repair: number;
+  ai_remaster_full: number;
+  ai_remaster_discounted: number;
+}
+
 interface Pricing {
   restore: number;
   ai_repair: number;
   ai_remaster_full: number;
   ai_remaster_discounted: number;
   daily_credit_threshold: number;
+  models?: Record<string, ModelPricing>;
 }
 
 export default function Home() {
   const { user, loading, logout } = useAuth();
   const [pricing, setPricing] = useState<Pricing>({ restore: 1, ai_repair: 4, ai_remaster_full: 4, ai_remaster_discounted: 3, daily_credit_threshold: 3 });
+
+  // Compute min/max across all model tiers for display ranges
+  const modelValues = pricing.models ? Object.values(pricing.models) : [];
+  const repairMin = modelValues.length ? Math.min(...modelValues.map(m => m.ai_repair)) : pricing.ai_repair;
+  const repairMax = modelValues.length ? Math.max(...modelValues.map(m => m.ai_repair)) : pricing.ai_repair;
+  const remasterMin = modelValues.length ? Math.min(...modelValues.map(m => m.ai_remaster_discounted)) : pricing.ai_remaster_discounted;
+  const remasterMax = modelValues.length ? Math.max(...modelValues.map(m => m.ai_remaster_full)) : pricing.ai_remaster_full;
 
   useEffect(() => {
     api.get("/jobs/pricing").then(res => setPricing(res.data)).catch(() => {});
@@ -140,7 +154,7 @@ export default function Home() {
               <div className="flex items-center justify-between mb-4">
                 <Sparkles className="w-8 h-8 text-amber-400 stroke-1 group-hover:scale-110 transition-transform" />
                 <span className="font-mono text-[10px] font-bold uppercase tracking-widest border border-amber-400/40 px-2 py-0.5 text-amber-400/70">
-                  {pricing.ai_repair} credit{pricing.ai_repair !== 1 ? 's' : ''} / photo
+                  {repairMin === repairMax ? repairMin : `${repairMin}–${repairMax}`} credit{repairMax !== 1 ? 's' : ''} / photo
                 </span>
               </div>
               <h3 className="font-syne font-bold text-xl mb-2 text-amber-400">Repair</h3>
@@ -154,7 +168,7 @@ export default function Home() {
               <div className="flex items-center justify-between mb-4">
                 <Wand2 className="w-8 h-8 text-violet-400 stroke-1 group-hover:rotate-12 transition-transform" />
                 <span className="font-mono text-[10px] font-bold uppercase tracking-widest border border-violet-400/40 px-2 py-0.5 text-violet-400/70">
-                  {pricing.ai_remaster_discounted}–{pricing.ai_remaster_full} credit{pricing.ai_remaster_full !== 1 ? 's' : ''} / photo
+                  {remasterMin === remasterMax ? remasterMin : `${remasterMin}–${remasterMax}`} credit{remasterMax !== 1 ? 's' : ''} / photo
                 </span>
               </div>
               <h3 className="font-syne font-bold text-xl mb-2 text-violet-400">Remaster</h3>

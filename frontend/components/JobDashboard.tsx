@@ -40,6 +40,7 @@ export default function JobDashboard() {
     const [expandedJobs, setExpandedJobs] = useState<Set<string>>(new Set());
     const [showCreditModal, setShowCreditModal] = useState(false);
     const [showFailModal, setShowFailModal] = useState(false);
+    const [highlightJobId, setHighlightJobId] = useState<string | null>(null);
     const [failDontShowAgain, setFailDontShowAgain] = useState(false);
     const [pricing, setPricing] = useState<{
         restore: number; ai_repair: number; ai_remaster_full: number; ai_remaster_discounted: number;
@@ -149,8 +150,17 @@ export default function JobDashboard() {
 
     const duplicateJob = async (jobId: string, fileIndex: number) => {
         try {
-            await api.post(`/jobs/${jobId}/duplicate/${fileIndex}`);
-            fetchJobs();
+            const res = await api.post(`/jobs/${jobId}/duplicate/${fileIndex}`);
+            const newJobId = res.data?.id;
+            await fetchJobs();
+            if (newJobId) {
+                setHighlightJobId(newJobId);
+                setTimeout(() => {
+                    const el = document.getElementById(`job-${newJobId}`);
+                    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100);
+                setTimeout(() => setHighlightJobId(null), 2000);
+            }
         } catch (error: any) {
             console.error("Duplicate failed", error);
         }
@@ -283,7 +293,7 @@ export default function JobDashboard() {
             return (
                 <div className={`flex items-center gap-2 px-2 ${btnPad} border border-blue-400/40 bg-blue-400/10 text-blue-300`}>
                     <span className="font-mono text-[10px] leading-tight">
-                        Photo declined by AI.<br />
+                        AI Declined.<br />
                         <a href="/faq#repair-declined" className="underline hover:text-blue-200">Learn more</a>
                                             </span>
                     <button
@@ -389,7 +399,7 @@ export default function JobDashboard() {
             return (
                 <div className={`flex items-center gap-2 px-2 ${btnPad} border border-blue-400/40 bg-blue-400/10 text-blue-300`}>
                     <span className="font-mono text-[10px] leading-tight">
-                        Photo declined by AI.<br />
+                        AI Declined.<br />
                         <a href="/faq#repair-declined" className="underline hover:text-blue-200">Learn more</a>
                                             </span>
                     <button
@@ -456,7 +466,8 @@ export default function JobDashboard() {
                 {jobs.map((job) => (
                     <div
                         key={job.id}
-                        className="relative bg-background border-2 border-foreground p-6 brutalist-shadow group hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
+                        id={`job-${job.id}`}
+                        className={`relative bg-background border-2 border-foreground p-6 brutalist-shadow group hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all ${highlightJobId === job.id ? 'animate-highlight-flash' : ''}`}
                     >
                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                             <div className="flex items-start gap-4">
@@ -609,7 +620,7 @@ export default function JobDashboard() {
                                         {job.processed_files?.[0] && (job.ai_repaired_files?.[0] || job.ai_remastered_files?.[0]) && (
                                             <button
                                                 onClick={() => duplicateJob(job.id, 0)}
-                                                className="p-2 bg-background border border-foreground/40 text-foreground/60 hover:bg-foreground hover:text-background transition-colors"
+                                                className="p-2 text-foreground/40 hover:text-foreground transition-colors"
                                                 title="Duplicate restored image to a new job for another Repair/Remaster attempt"
                                             >
                                                 <Copy className="w-4 h-4" />
@@ -745,7 +756,7 @@ export default function JobDashboard() {
                                                                 {(job.ai_repaired_files?.[index] || job.ai_remastered_files?.[index]) && (
                                                                     <button
                                                                         onClick={() => duplicateJob(job.id, index)}
-                                                                        className="p-1.5 border border-foreground/20 text-foreground/50 hover:bg-foreground hover:text-background transition-colors"
+                                                                        className="p-1.5 text-foreground/40 hover:text-foreground transition-colors"
                                                                         title="Duplicate restored image to a new job"
                                                                     >
                                                                         <Copy className="w-3.5 h-3.5" />

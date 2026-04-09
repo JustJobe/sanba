@@ -105,3 +105,14 @@ body {
   background: var(--primary);
   border: 1px solid var(--background);
 }
+
+/* Highlight flash for newly duplicated jobs */
+@keyframes highlight-flash {
+  0%   { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.6); }
+  30%  { box-shadow: 0 0 20px 4px rgba(251, 191, 36, 0.4); }
+  100% { box-shadow: none; }
+}
+
+.animate-highlight-flash {
+  animation: highlight-flash 1.5s ease-out;
+}
