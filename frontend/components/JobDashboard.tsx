@@ -52,6 +52,7 @@ export default function JobDashboard() {
         before: string; after: string;
         beforeFallback?: string; afterFallback?: string;
         label?: string; modelBadge?: string;
+        beforeLabel?: string; afterLabel?: string;
     } | null>(null);
     const modelShort: Record<string, string> = { pro: '30pp', flash: '31fp' };
 
@@ -238,6 +239,8 @@ export default function JobDashboard() {
                                     afterFallback: aiUrl,
                                     label: `Original vs Repaired`,
                                     modelBadge: repairModel ? modelShort[repairModel] || repairModel : undefined,
+                                    beforeLabel: 'Original',
+                                    afterLabel: `Repaired (${getModelDisplay(repairModel)})`,
                                 });
                             }}
                             className={`${btnPad} border border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-background transition-colors`}
@@ -342,6 +345,8 @@ export default function JobDashboard() {
                                     afterFallback: remasterUrl,
                                     label: `Original vs Remastered`,
                                     modelBadge: remasterModel ? modelShort[remasterModel] || remasterModel : undefined,
+                                    beforeLabel: 'Original',
+                                    afterLabel: `Remastered (${getModelDisplay(remasterModel)})`,
                                 });
                             }}
                             className={`${btnPad} border border-violet-400 text-violet-400 hover:bg-violet-400 hover:text-background transition-colors`}
@@ -617,6 +622,8 @@ export default function JobDashboard() {
                                                         beforeFallback: beforeUrl,
                                                         afterFallback: afterUrl,
                                                         label: 'Original vs Restored',
+                                                        beforeLabel: 'Original',
+                                                        afterLabel: 'Restored (Sanba Restore)',
                                                     });
                                                 }}
                                                 className="p-2 bg-background border border-foreground hover:bg-foreground hover:text-background transition-colors"
@@ -736,6 +743,8 @@ export default function JobDashboard() {
                                                                             beforeFallback: beforeUrl,
                                                                             afterFallback: afterUrl,
                                                                             label: 'Original vs Restored',
+                                                                            beforeLabel: 'Original',
+                                                                            afterLabel: 'Restored (Sanba Restore)',
                                                                         });
                                                                     }}
                                                                     className="p-1.5 border border-foreground/20 hover:bg-foreground hover:text-background transition-colors"
@@ -793,6 +802,8 @@ export default function JobDashboard() {
                                 after={comparingFiles.after}
                                 beforeFallback={comparingFiles.beforeFallback}
                                 afterFallback={comparingFiles.afterFallback}
+                                beforeLabel={comparingFiles.beforeLabel}
+                                afterLabel={comparingFiles.afterLabel}
                                 maxHeightVh={72}
                                 modelBadge={comparingFiles.modelBadge}
                             />
