@@ -225,25 +225,32 @@ export default function JobDashboard() {
                             <Sparkles className={`${iconSize} text-amber-300 drop-shadow-md`} />
                         </div>
                     </a>
-                    <button
-                        onClick={() => {
-                            const origUrl = getFileUrl(job.files[index]);
-                            const aiUrl = getFileUrl(aiFile);
-                            const repairModel = job.ai_repair_models?.[index];
-                            setComparingFiles({
-                                before: toPreviewUrl(origUrl),
-                                after: toPreviewUrl(aiUrl),
-                                beforeFallback: origUrl,
-                                afterFallback: aiUrl,
-                                label: `Original vs Repaired`,
-                                modelBadge: repairModel ? modelShort[repairModel] || repairModel : undefined,
-                            });
-                        }}
-                        className={`${btnPad} border border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-background transition-colors`}
-                        title="Review: Original vs Repaired"
-                    >
-                        <Eye className={iconSize} />
-                    </button>
+                    <div className="flex flex-col items-center">
+                        <button
+                            onClick={() => {
+                                const origUrl = getFileUrl(job.files[index]);
+                                const aiUrl = getFileUrl(aiFile);
+                                const repairModel = job.ai_repair_models?.[index];
+                                setComparingFiles({
+                                    before: toPreviewUrl(origUrl),
+                                    after: toPreviewUrl(aiUrl),
+                                    beforeFallback: origUrl,
+                                    afterFallback: aiUrl,
+                                    label: `Original vs Repaired`,
+                                    modelBadge: repairModel ? modelShort[repairModel] || repairModel : undefined,
+                                });
+                            }}
+                            className={`${btnPad} border border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-background transition-colors`}
+                            title="Review: Original vs Repaired"
+                        >
+                            <Eye className={iconSize} />
+                        </button>
+                        {job.ai_repair_models?.[index] && (
+                            <span className="font-mono text-[8px] font-bold text-amber-400/70 uppercase tracking-wider mt-0.5">
+                                {modelShort[job.ai_repair_models[index]!] || job.ai_repair_models[index]}
+                            </span>
+                        )}
+                    </div>
                 </>
             );
         }
@@ -322,25 +329,32 @@ export default function JobDashboard() {
                             <Wand2 className={`${iconSize} text-violet-300 drop-shadow-md`} />
                         </div>
                     </a>
-                    <button
-                        onClick={() => {
-                            const origUrl = getFileUrl(job.files[index]);
-                            const remasterUrl = getFileUrl(remasterFile);
-                            const remasterModel = job.ai_remaster_models?.[index];
-                            setComparingFiles({
-                                before: toPreviewUrl(origUrl),
-                                after: toPreviewUrl(remasterUrl),
-                                beforeFallback: origUrl,
-                                afterFallback: remasterUrl,
-                                label: `Original vs Remastered`,
-                                modelBadge: remasterModel ? modelShort[remasterModel] || remasterModel : undefined,
-                            });
-                        }}
-                        className={`${btnPad} border border-violet-400 text-violet-400 hover:bg-violet-400 hover:text-background transition-colors`}
-                        title="Review: Original vs Remastered"
-                    >
-                        <Eye className={iconSize} />
-                    </button>
+                    <div className="flex flex-col items-center">
+                        <button
+                            onClick={() => {
+                                const origUrl = getFileUrl(job.files[index]);
+                                const remasterUrl = getFileUrl(remasterFile);
+                                const remasterModel = job.ai_remaster_models?.[index];
+                                setComparingFiles({
+                                    before: toPreviewUrl(origUrl),
+                                    after: toPreviewUrl(remasterUrl),
+                                    beforeFallback: origUrl,
+                                    afterFallback: remasterUrl,
+                                    label: `Original vs Remastered`,
+                                    modelBadge: remasterModel ? modelShort[remasterModel] || remasterModel : undefined,
+                                });
+                            }}
+                            className={`${btnPad} border border-violet-400 text-violet-400 hover:bg-violet-400 hover:text-background transition-colors`}
+                            title="Review: Original vs Remastered"
+                        >
+                            <Eye className={iconSize} />
+                        </button>
+                        {job.ai_remaster_models?.[index] && (
+                            <span className="font-mono text-[8px] font-bold text-violet-400/70 uppercase tracking-wider mt-0.5">
+                                {modelShort[job.ai_remaster_models[index]!] || job.ai_remaster_models[index]}
+                            </span>
+                        )}
+                    </div>
                 </>
             );
         }
