@@ -464,9 +464,22 @@ export default function JobDashboard() {
             </div>
 
             <div className="space-y-6">
-                {jobs.map((job) => (
+                {jobs.map((job, jobIdx) => (
+                    <div key={job.id}>
+                        {job.is_sample && jobIdx > 0 && (
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="flex-1 border-t border-foreground/15" />
+                                <span className="font-mono text-[10px] uppercase tracking-widest text-foreground/30">sample</span>
+                                <div className="flex-1 border-t border-foreground/15" />
+                            </div>
+                        )}
+                        {job.is_sample && jobIdx === 0 && (
+                            <div className="flex items-center gap-3 mb-4">
+                                <span className="font-mono text-[10px] uppercase tracking-widest text-foreground/30">sample</span>
+                                <div className="flex-1 border-t border-foreground/15" />
+                            </div>
+                        )}
                     <div
-                        key={job.id}
                         id={`job-${job.id}`}
                         className={`relative bg-background border-2 border-foreground p-6 brutalist-shadow group hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all ${highlightJobId === job.id ? 'animate-highlight-flash' : ''}`}
                     >
@@ -499,7 +512,7 @@ export default function JobDashboard() {
                                 )}
                                 <div>
                                     <div className="flex items-center gap-3 mb-2">
-                                        <span className="font-mono font-bold text-lg">Job #{job.id.slice(0, 8)}{job.is_sample ? ' (sample)' : ''}</span>
+                                        <span className="font-mono font-bold text-lg">Job #{job.id.slice(0, 8)}</span>
                                         <span className={`text-[10px] uppercase font-bold px-2 py-0.5 border ${getStatusColor(job.status)}`}>
                                             {job.status}
                                         </span>
@@ -803,6 +816,7 @@ export default function JobDashboard() {
                                 )}
                             </div>
                         )}
+                    </div>
                     </div>
                 ))}
 
