@@ -145,7 +145,7 @@ export default function Home() {
               </div>
               <h3 className="font-syne font-bold text-xl mb-2">Restore</h3>
               <p className="font-mono text-xs text-foreground/60 leading-relaxed">
-                Sanba's restoration algorithm focuses on restoring faded colors and other effects of time. There is no AI based interpretation involved, thus best at preserving resolution and details of the original.
+                Authentic photo restoration without the guesswork. Sanba's algorithm reverses fading and aging while preserving every original detail. No AI interpretation—just your memories restored to their true state.
               </p>
             </div>
 
