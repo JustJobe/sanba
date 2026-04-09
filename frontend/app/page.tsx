@@ -144,8 +144,9 @@ export default function Home() {
                 </span>
               </div>
               <h3 className="font-syne font-bold text-xl mb-2">Restore</h3>
+              <p className="font-mono text-xs text-foreground/80 font-bold leading-relaxed mb-1">Authentic restoration without the guesswork.</p>
               <p className="font-mono text-xs text-foreground/60 leading-relaxed">
-                Authentic photo restoration without the guesswork. Sanba's algorithm reverses fading and aging while preserving every original detail. No AI interpretation—just your memories restored to their true state.
+                Sanba's algorithm reverses fading and aging while preserving every original detail. No AI interpretation—just your memories restored to their true state.
               </p>
             </div>
 
@@ -158,8 +159,9 @@ export default function Home() {
                 </span>
               </div>
               <h3 className="font-syne font-bold text-xl mb-2 text-amber-400">Repair</h3>
+              <p className="font-mono text-xs text-foreground/80 font-bold leading-relaxed mb-1">Structural healing for damaged memories.</p>
               <p className="font-mono text-xs text-foreground/60 leading-relaxed">
-                Gemini AI reconstructs torn edges, fills missing areas, and removes heavy damage. Output resolution may differ from original. Available after Restore completes.
+                Gemini AI reconstructs tears, fills missing gaps, and removes heavy scratches while Sanba works to anchor the AI to your original details. The essential fix for physical damage where reconstruction meets fidelity.
               </p>
             </div>
 
@@ -172,8 +174,9 @@ export default function Home() {
                 </span>
               </div>
               <h3 className="font-syne font-bold text-xl mb-2 text-violet-400">Remaster</h3>
+              <p className="font-mono text-xs text-foreground/80 font-bold leading-relaxed mb-1">Vibrant color and modern depth.</p>
               <p className="font-mono text-xs text-foreground/60 leading-relaxed">
-                Gemini AI colorizes and enhances detail. Output resolution may differ from original. Uses the Repaired image if available, otherwise Restored. Available after Restore.
+                Bring B&W shots to life and enhance lighting without reinterpreting the subjects of your photo. The perfect finishing touch for a professional look—plus a credit discount when applied to a Repaired image.
               </p>
             </div>
           </div>
