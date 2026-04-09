@@ -24,4 +24,4 @@ MODEL_TIERS = {
     },
 }
 
-DEFAULT_TIER = "pro"
+DEFAULT_TIER = "flash"

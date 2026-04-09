@@ -145,7 +145,7 @@ export default function Home() {
               </div>
               <h3 className="font-syne font-bold text-xl mb-2">Restore</h3>
               <p className="font-mono text-xs text-foreground/60 leading-relaxed">
-                Denoise, colour-correct, and recover black-and-white tones. The required first step — run this before Repair or Remaster.
+                Sanba's restoration algorithm focuses on restoring faded colors and other effects of time. There is no AI based interpretation involved, thus best at preserving resolution and details of the original.
               </p>
             </div>
 
