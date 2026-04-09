@@ -2,7 +2,7 @@
 // AI Repair: button text is "Repair" in both single-file and batch views (v2 — conservative Gemini prompt)
 
 import { useEffect, useState } from 'react';
-import { RefreshCw, Download, Image as ImageIcon, Clock, Play, ChevronDown, ChevronUp, Trash2, Eye, X, Sparkles, Wand2 } from 'lucide-react';
+import { RefreshCw, Download, Image as ImageIcon, Clock, Play, ChevronDown, ChevronUp, Trash2, Eye, X, Sparkles, Wand2, Copy } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import ComparisonSlider from './ComparisonSlider';
@@ -144,6 +144,15 @@ export default function JobDashboard() {
             } else {
                 showFailurePopup();
             }
+        }
+    };
+
+    const duplicateJob = async (jobId: string, fileIndex: number) => {
+        try {
+            await api.post(`/jobs/${jobId}/duplicate/${fileIndex}`);
+            fetchJobs();
+        } catch (error: any) {
+            console.error("Duplicate failed", error);
         }
     };
 
@@ -632,6 +641,15 @@ export default function JobDashboard() {
                                                 <Eye className="w-4 h-4" />
                                             </button>
                                         )}
+                                        {job.processed_files?.[0] && (job.ai_repaired_files?.[0] || job.ai_remastered_files?.[0]) && (
+                                            <button
+                                                onClick={() => duplicateJob(job.id, 0)}
+                                                className="p-2 bg-background border border-foreground/40 text-foreground/60 hover:bg-foreground hover:text-background transition-colors"
+                                                title="Duplicate restored image to a new job for another Repair/Remaster attempt"
+                                            >
+                                                <Copy className="w-4 h-4" />
+                                            </button>
+                                        )}
                                         {/* AI Repair + Remaster */}
                                         {job.processed_files?.[0] && renderAiRepair(job, 0, 'md')}
                                         {job.processed_files?.[0] && renderAiRemaster(job, 0, 'md')}
@@ -752,6 +770,15 @@ export default function JobDashboard() {
                                                                 >
                                                                     <Eye className="w-3.5 h-3.5" />
                                                                 </button>
+                                                                {(job.ai_repaired_files?.[index] || job.ai_remastered_files?.[index]) && (
+                                                                    <button
+                                                                        onClick={() => duplicateJob(job.id, index)}
+                                                                        className="p-1.5 border border-foreground/20 text-foreground/50 hover:bg-foreground hover:text-background transition-colors"
+                                                                        title="Duplicate restored image to a new job"
+                                                                    >
+                                                                        <Copy className="w-3.5 h-3.5" />
+                                                                    </button>
+                                                                )}
                                                                 {renderAiRepair(job, index, 'sm')}
                                                                 {renderAiRemaster(job, index, 'sm')}
                                                             </>

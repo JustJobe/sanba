@@ -160,6 +160,81 @@ def get_job(job_id: str, db: Session = Depends(get_db), current_user: user.User 
         raise HTTPException(status_code=404, detail="Job not found")
     return job
 
+
+@router.post("/{job_id}/duplicate/{file_index}", response_model=JobSchema)
+@limiter.limit("10/minute")
+async def duplicate_job(
+    request: Request,
+    job_id: str,
+    file_index: int,
+    db: Session = Depends(get_db),
+    current_user: user.User = Depends(get_current_user),
+):
+    """Duplicate a single restored file into a new job, skipping the restore step."""
+    source_job = db.query(sql_job.Job).filter(
+        sql_job.Job.id == job_id, sql_job.Job.user_id == current_user.id
+    ).first()
+    if not source_job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if source_job.status != "completed":
+        raise HTTPException(status_code=400, detail="Source job is not completed")
+    if not source_job.processed_files or file_index >= len(source_job.processed_files):
+        raise HTTPException(status_code=400, detail="No restored file at that index")
+
+    src_original = source_job.files[file_index]
+    src_processed = source_job.processed_files[file_index]
+    src_file_type = (source_job.file_types or [])[file_index] if source_job.file_types and file_index < len(source_job.file_types) else "color"
+
+    new_job_id = str(uuid4())
+    new_orig_dir = os.path.join(UPLOAD_DIR, new_job_id, "original")
+    new_proc_dir = os.path.join(UPLOAD_DIR, new_job_id, "processed")
+    os.makedirs(new_orig_dir, exist_ok=True)
+    os.makedirs(new_proc_dir, exist_ok=True)
+
+    # Copy original file
+    orig_filename = os.path.basename(src_original)
+    new_orig_path = os.path.join(new_orig_dir, orig_filename)
+    shutil.copy2(src_original, new_orig_path)
+
+    # Copy restored file
+    proc_filename = os.path.basename(src_processed)
+    new_proc_path = os.path.join(new_proc_dir, proc_filename)
+    shutil.copy2(src_processed, new_proc_path)
+
+    # Copy preview if it exists
+    src_stem, src_ext = os.path.splitext(src_processed)
+    src_preview = f"{src_stem}_preview{src_ext}"
+    if os.path.exists(src_preview):
+        dst_stem, dst_ext = os.path.splitext(new_proc_path)
+        shutil.copy2(src_preview, f"{dst_stem}_preview{dst_ext}")
+
+    # Also copy original preview if exists
+    orig_stem, orig_ext = os.path.splitext(src_original)
+    orig_preview = f"{orig_stem}_preview{orig_ext}"
+    if os.path.exists(orig_preview):
+        dst_orig_stem, dst_orig_ext = os.path.splitext(new_orig_path)
+        shutil.copy2(orig_preview, f"{dst_orig_stem}_preview{dst_orig_ext}")
+
+    new_job = sql_job.Job(
+        id=new_job_id,
+        status="completed",
+        created_at=datetime.utcnow(),
+        completed_at=datetime.utcnow(),
+        execution_time=0,
+        files=[new_orig_path],
+        processed_files=[new_proc_path],
+        file_types=[src_file_type],
+        source="online",
+        photo_type=source_job.photo_type,
+        user_id=current_user.id,
+    )
+    db.add(new_job)
+    db.commit()
+    db.refresh(new_job)
+    logger.info(f"Duplicated job {job_id} idx {file_index} → new job {new_job_id}")
+    return new_job
+
+
 from ..database import SessionLocal
 from ..services.job_queue import submit_opencv, submit_gemini
 
