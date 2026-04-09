@@ -2,7 +2,7 @@
 // AI Repair: button text is "Repair" in both single-file and batch views (v2 — conservative Gemini prompt)
 
 import { useEffect, useState } from 'react';
-import { RefreshCw, Download, Image as ImageIcon, Clock, Play, ChevronDown, ChevronUp, Trash2, Eye, X, Sparkles, Wand2, Copy } from 'lucide-react';
+import { RefreshCw, Download, Image as ImageIcon, Clock, Play, ChevronDown, ChevronUp, Trash2, Eye, X, Sparkles, Wand2, Copy, Share2 } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import ComparisonSlider from './ComparisonSlider';
@@ -55,7 +55,10 @@ export default function JobDashboard() {
         beforeFallback?: string; afterFallback?: string;
         label?: string; modelBadge?: string;
         beforeLabel?: string; afterLabel?: string;
+        jobId?: string; fileIndex?: number;
+        comparisonType?: "restored" | "repaired" | "remastered";
     } | null>(null);
+    const [shareStatus, setShareStatus] = useState<'idle' | 'copying' | 'copied'>('idle');
     const modelShort: Record<string, string> = { pro: '30pp', flash: '31fp' };
 
     const showFailurePopup = () => {
@@ -261,6 +264,7 @@ export default function JobDashboard() {
                                     modelBadge: repairModel ? modelShort[repairModel] || repairModel : undefined,
                                     beforeLabel: 'Original',
                                     afterLabel: `Repaired\n(${getModelDisplay(repairModel)})`,
+                                    jobId: job.id, fileIndex: index, comparisonType: 'repaired',
                                 });
                             }}
                             className={`${btnPad} border border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-background transition-colors`}
@@ -367,6 +371,7 @@ export default function JobDashboard() {
                                     modelBadge: remasterModel ? modelShort[remasterModel] || remasterModel : undefined,
                                     beforeLabel: 'Original',
                                     afterLabel: `Remastered\n(${getModelDisplay(remasterModel)})`,
+                                    jobId: job.id, fileIndex: index, comparisonType: 'remastered',
                                 });
                             }}
                             className={`${btnPad} border border-violet-400 text-violet-400 hover:bg-violet-400 hover:text-background transition-colors`}
@@ -667,6 +672,7 @@ export default function JobDashboard() {
                                                         label: 'Original vs Restored',
                                                         beforeLabel: 'Original',
                                                         afterLabel: 'Restored (Sanba Restore)',
+                                                        jobId: job.id, fileIndex: 0, comparisonType: 'restored',
                                                     });
                                                 }}
                                                 className="p-2 bg-background border border-foreground hover:bg-foreground hover:text-background transition-colors"
@@ -797,6 +803,7 @@ export default function JobDashboard() {
                                                                             label: 'Original vs Restored',
                                                                             beforeLabel: 'Original',
                                                                             afterLabel: 'Restored (Sanba Restore)',
+                                                                            jobId: job.id, fileIndex: index, comparisonType: 'restored',
                                                                         });
                                                                     }}
                                                                     className="p-1.5 border border-foreground/20 hover:bg-foreground hover:text-background transition-colors"
@@ -832,10 +839,10 @@ export default function JobDashboard() {
             {comparingFiles && (
                 <div
                     className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-black/90 backdrop-blur-md p-4"
-                    onClick={() => setComparingFiles(null)}
+                    onClick={() => { setComparingFiles(null); setShareStatus('idle'); }}
                 >
                     <button
-                        onClick={() => setComparingFiles(null)}
+                        onClick={() => { setComparingFiles(null); setShareStatus('idle'); }}
                         className="fixed top-4 right-4 z-[110] p-2 bg-black/60 hover:bg-white/20 rounded-full transition-colors"
                     >
                         <X className="w-6 h-6 text-white" />
@@ -861,7 +868,34 @@ export default function JobDashboard() {
                                 modelBadge={comparingFiles.modelBadge}
                             />
                         </div>
-                        <p className="text-center text-xs font-mono text-white/40 uppercase tracking-widest">Drag slider to compare</p>
+                        <div className="flex items-center justify-between">
+                            <p className="text-xs font-mono text-white/40 uppercase tracking-widest">Drag slider to compare</p>
+                            {comparingFiles.comparisonType && (
+                                <button
+                                    onClick={async () => {
+                                        if (shareStatus !== 'idle') return;
+                                        setShareStatus('copying');
+                                        try {
+                                            const res = await api.post('/shares/', {
+                                                job_id: comparingFiles.jobId,
+                                                file_index: comparingFiles.fileIndex,
+                                                comparison_type: comparingFiles.comparisonType,
+                                            });
+                                            await navigator.clipboard.writeText(res.data.url);
+                                            setShareStatus('copied');
+                                            setTimeout(() => setShareStatus('idle'), 2000);
+                                        } catch (err) {
+                                            console.error('Share failed', err);
+                                            setShareStatus('idle');
+                                        }
+                                    }}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 border border-white/20 text-white/60 hover:text-white hover:border-white/40 transition-colors text-xs font-mono uppercase tracking-widest"
+                                >
+                                    <Share2 className="w-3.5 h-3.5" />
+                                    {shareStatus === 'copied' ? 'Link Copied!' : shareStatus === 'copying' ? 'Copying...' : 'Share'}
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}

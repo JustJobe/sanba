@@ -8,8 +8,8 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from .database import engine
-from .models import sql_job, user, incentive, activity_log, system_setting, payment, credit_ledger
-from .routers import jobs, auth, admin, payments
+from .models import sql_job, user, incentive, activity_log, system_setting, payment, credit_ledger, share
+from .routers import jobs, auth, admin, payments, shares
 
 sql_job.Base.metadata.create_all(bind=engine)
 user.Base.metadata.create_all(bind=engine)
@@ -18,6 +18,7 @@ activity_log.Base.metadata.create_all(bind=engine)
 system_setting.Base.metadata.create_all(bind=engine)
 payment.Base.metadata.create_all(bind=engine)
 credit_ledger.Base.metadata.create_all(bind=engine)
+share.Base.metadata.create_all(bind=engine)
 
 import logging
 logging.basicConfig(level=logging.INFO)
@@ -45,6 +46,7 @@ app.include_router(jobs.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1/auth")
 app.include_router(admin.router, prefix="/api/v1/admin")
 app.include_router(payments.router, prefix="/api/v1")
+app.include_router(shares.router, prefix="/api/v1/shares")
 
 
 @app.on_event("startup")
