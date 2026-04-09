@@ -45,12 +45,15 @@ export default function JobDashboard() {
         restore: number; ai_repair: number; ai_remaster_full: number; ai_remaster_discounted: number;
         daily_credit_threshold: number; models?: Record<string, ModelPricing>; default_model?: string;
     }>({ restore: 1, ai_repair: 4, ai_remaster_full: 4, ai_remaster_discounted: 3, daily_credit_threshold: 3 });
-    const [aiModel, setAiModel] = useState<string>('pro');
+    const [aiModels, setAiModels] = useState<Record<string, string>>({});
+    const getAiModel = (jobId: string) => aiModels[jobId] || pricing.default_model || 'pro';
+    const setAiModel = (jobId: string, model: string) => setAiModels(prev => ({ ...prev, [jobId]: model }));
     const [comparingFiles, setComparingFiles] = useState<{
         before: string; after: string;
         beforeFallback?: string; afterFallback?: string;
-        label?: string;
+        label?: string; modelBadge?: string;
     } | null>(null);
+    const modelShort: Record<string, string> = { pro: '30pp', flash: '31fp' };
 
     const showFailurePopup = () => {
         if (typeof window !== 'undefined' && localStorage.getItem('hideFailModal') === '1') return;
@@ -115,7 +118,7 @@ export default function JobDashboard() {
 
     const startAiRepair = async (jobId: string, fileIndex: number) => {
         try {
-            await api.post(`/jobs/${jobId}/ai_repair/${fileIndex}`, { model: aiModel });
+            await api.post(`/jobs/${jobId}/ai_repair/${fileIndex}`, { model: getAiModel(jobId) });
             refreshUser();
             fetchJobs(); // immediately picks up the "pending" status set by the endpoint
         } catch (error: any) {
@@ -130,7 +133,7 @@ export default function JobDashboard() {
 
     const startAiRemaster = async (jobId: string, fileIndex: number) => {
         try {
-            await api.post(`/jobs/${jobId}/ai_remaster/${fileIndex}`, { model: aiModel });
+            await api.post(`/jobs/${jobId}/ai_remaster/${fileIndex}`, { model: getAiModel(jobId) });
             refreshUser();
             fetchJobs(); // immediately picks up the "pending" status set by the endpoint
         } catch (error: any) {
@@ -226,12 +229,14 @@ export default function JobDashboard() {
                         onClick={() => {
                             const origUrl = getFileUrl(job.files[index]);
                             const aiUrl = getFileUrl(aiFile);
+                            const repairModel = job.ai_repair_models?.[index];
                             setComparingFiles({
                                 before: toPreviewUrl(origUrl),
                                 after: toPreviewUrl(aiUrl),
                                 beforeFallback: origUrl,
                                 afterFallback: aiUrl,
                                 label: `Original vs Repaired`,
+                                modelBadge: repairModel ? modelShort[repairModel] || repairModel : undefined,
                             });
                         }}
                         className={`${btnPad} border border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-background transition-colors`}
@@ -321,12 +326,14 @@ export default function JobDashboard() {
                         onClick={() => {
                             const origUrl = getFileUrl(job.files[index]);
                             const remasterUrl = getFileUrl(remasterFile);
+                            const remasterModel = job.ai_remaster_models?.[index];
                             setComparingFiles({
                                 before: toPreviewUrl(origUrl),
                                 after: toPreviewUrl(remasterUrl),
                                 beforeFallback: origUrl,
                                 afterFallback: remasterUrl,
                                 label: `Original vs Remastered`,
+                                modelBadge: remasterModel ? modelShort[remasterModel] || remasterModel : undefined,
                             });
                         }}
                         className={`${btnPad} border border-violet-400 text-violet-400 hover:bg-violet-400 hover:text-background transition-colors`}
@@ -506,8 +513,8 @@ export default function JobDashboard() {
                                         <div className="flex items-center gap-2">
                                             {pricing.models && Object.keys(pricing.models).length > 1 && (
                                                 <select
-                                                    value={aiModel}
-                                                    onChange={e => setAiModel(e.target.value)}
+                                                    value={getAiModel(job.id)}
+                                                    onChange={e => setAiModel(job.id, e.target.value)}
                                                     className="bg-background border border-foreground/40 text-foreground font-mono text-[10px] uppercase tracking-wide px-2 py-2 cursor-pointer focus:outline-none"
                                                     title="Select AI model for Repair & Remaster"
                                                 >
@@ -548,8 +555,8 @@ export default function JobDashboard() {
                                     <div className="flex items-center gap-2">
                                         {pricing.models && Object.keys(pricing.models).length > 1 && (
                                             <select
-                                                value={aiModel}
-                                                onChange={e => setAiModel(e.target.value)}
+                                                value={getAiModel(job.id)}
+                                                onChange={e => setAiModel(job.id, e.target.value)}
                                                 className="bg-background border border-foreground/40 text-foreground font-mono text-[10px] uppercase tracking-wide px-2 py-2 cursor-pointer focus:outline-none"
                                                 title="Select AI model for Repair & Remaster"
                                             >
@@ -773,6 +780,7 @@ export default function JobDashboard() {
                                 beforeFallback={comparingFiles.beforeFallback}
                                 afterFallback={comparingFiles.afterFallback}
                                 maxHeightVh={72}
+                                modelBadge={comparingFiles.modelBadge}
                             />
                         </div>
                         <p className="text-center text-xs font-mono text-white/40 uppercase tracking-widest">Drag slider to compare</p>

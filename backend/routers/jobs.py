@@ -7,6 +7,7 @@ from uuid import uuid4
 from datetime import datetime
 import shutil
 import os
+import re
 from sqlalchemy.orm import Session
 
 import logging
@@ -28,6 +29,8 @@ from ..models.incentive import IncentivePlan
 from ..services.model_tiers import MODEL_TIERS, DEFAULT_TIER
 from .auth import get_current_user
 
+
+MODEL_SHORT = {"pro": "30pp", "flash": "31fp"}
 
 class AiModelRequest(BaseModel):
     model: str = DEFAULT_TIER
@@ -372,7 +375,8 @@ def ai_repair_background(job_id: str, file_index: int, user_id: str, credits_cha
 
         input_path = job.processed_files[file_index]
         stem, ext = os.path.splitext(os.path.basename(input_path))
-        output_path = os.path.join(os.path.dirname(input_path), f"{stem}_ai{ext}")
+        model_tag = MODEL_SHORT.get(tier_id, tier_id)
+        output_path = os.path.join(os.path.dirname(input_path), f"{stem}_ai_{model_tag}{ext}")
 
         result = ai_repair_service.repair_image_sync(input_path, output_path, tier_id=tier_id)
         output_path, thinking_tokens = result.output_path, result.thinking_tokens
@@ -564,10 +568,11 @@ def ai_remaster_background(job_id: str, file_index: int, user_id: str, credits_c
             logger.info(f"AI remaster: using restored image as input for job {job_id} idx {file_index}")
 
         stem, ext = os.path.splitext(os.path.basename(input_path))
-        # Strip any prior _ai suffix so output name stays clean
-        clean_stem = stem.replace("_ai", "")
+        # Strip any prior _ai or _ai_<model> suffix so output name stays clean
+        clean_stem = re.sub(r'_ai(_\w+)?$', '', stem)
+        model_tag = MODEL_SHORT.get(tier_id, tier_id)
         output_dir = os.path.dirname(job.processed_files[file_index])
-        output_path = os.path.join(output_dir, f"{clean_stem}_remaster{ext}")
+        output_path = os.path.join(output_dir, f"{clean_stem}_remaster_{model_tag}{ext}")
 
         result = ai_remaster_service.remaster_image_sync(input_path, output_path, tier_id=tier_id)
         output_path, thinking_tokens = result.output_path, result.thinking_tokens

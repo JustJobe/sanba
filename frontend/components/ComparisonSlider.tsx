@@ -11,6 +11,7 @@ interface ComparisonSliderProps {
     maxHeightVh?: number;
     beforeFallback?: string;
     afterFallback?: string;
+    modelBadge?: string;
 }
 
 export default function ComparisonSlider({
@@ -21,6 +22,7 @@ export default function ComparisonSlider({
     maxHeightVh,
     beforeFallback,
     afterFallback,
+    modelBadge,
 }: ComparisonSliderProps) {
     const [isResizing, setIsResizing] = useState(false);
     const [position, setPosition] = useState(50);
@@ -141,8 +143,15 @@ export default function ComparisonSlider({
                 className="absolute inset-y-0 w-1 bg-white/50 backdrop-blur-sm cursor-ew-resize flex items-center justify-center z-20 group-hover:bg-white transition-colors"
                 style={{ left: `${position}%` }}
             >
-                <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-lg transform -translate-x-0.5">
-                    <ChevronsLeftRight className="w-4 h-4 text-purple-900" />
+                <div className="flex flex-col items-center gap-1 transform -translate-x-0.5">
+                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-lg">
+                        <ChevronsLeftRight className="w-4 h-4 text-purple-900" />
+                    </div>
+                    {modelBadge && (
+                        <span className="px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-sm text-[9px] font-mono font-bold text-white/90 uppercase tracking-wider whitespace-nowrap">
+                            {modelBadge}
+                        </span>
+                    )}
                 </div>
             </div>
         </div>
