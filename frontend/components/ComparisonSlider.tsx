@@ -28,8 +28,8 @@ export default function ComparisonSlider({
 }: ComparisonSliderProps) {
     const [isResizing, setIsResizing] = useState(false);
     const [position, setPosition] = useState(50);
-    const [aspectRatio, setAspectRatio] = useState<string>("4 / 3");
-    const [naturalRatio, setNaturalRatio] = useState<number>(4 / 3);
+    const [aspectRatio, setAspectRatio] = useState<string | undefined>(fitScreen ? undefined : "4 / 3");
+    const [naturalRatio, setNaturalRatio] = useState<number | undefined>(fitScreen ? undefined : 4 / 3);
     const containerRef = useRef<HTMLDivElement>(null);
 
     const stopResizing = useCallback(() => {
@@ -78,8 +78,8 @@ export default function ComparisonSlider({
     }, [handleMouseMove, stopResizing, handleTouchMove]);
 
     const sizeConstraint = fitScreen
-        ? { maxHeight: '80vh', maxWidth: `calc(80vh * ${naturalRatio})`, width: '100%' }
-        : maxHeightVh
+        ? { maxHeight: '80vh', width: naturalRatio && naturalRatio < 1 ? `min(100%, calc(80vh * ${naturalRatio}))` : '100%' }
+        : maxHeightVh && naturalRatio
             ? { maxHeight: `${maxHeightVh}vh`, maxWidth: `calc(${maxHeightVh}vh * ${naturalRatio})` }
             : {};
 

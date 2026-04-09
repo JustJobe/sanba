@@ -26,16 +26,14 @@ export default function ShareClient({ data, label }: { data: ShareData; label: s
             </h1>
 
             {/* Comparison Slider */}
-            <div className="w-full border border-foreground/20 rounded-2xl overflow-hidden shadow-2xl">
-                <ComparisonSlider
-                    before={data.before}
-                    after={data.after}
-                    beforeLabel={data.before_label}
-                    afterLabel={data.after_label}
-                    modelBadge={data.model_badge ?? undefined}
-                    fitScreen
-                />
-            </div>
+            <ComparisonSlider
+                before={data.before}
+                after={data.after}
+                beforeLabel={data.before_label}
+                afterLabel={data.after_label}
+                modelBadge={data.model_badge ?? undefined}
+                fitScreen
+            />
             <p className="text-center text-xs font-mono text-foreground/40 uppercase tracking-widest">
                 Drag slider to compare
             </p>
