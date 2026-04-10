@@ -14,9 +14,10 @@ CLEANUP_INTERVAL_SECS = 86400  # once per day
 
 def _run_cleanup(retention_days: int):
     """Delete files for completed/failed jobs older than retention_days.
-    Keeps the DB record but removes the upload directory."""
+    Skips jobs that have active share links so shared URLs stay alive."""
     from ..database import SessionLocal
     from ..models.sql_job import Job
+    from ..models.share import ShareLink
     from ..models.system_setting import SystemSetting
 
     db = SessionLocal()
@@ -37,9 +38,24 @@ def _run_cleanup(retention_days: int):
             logger.info(f"Storage cleanup: no jobs older than {retention_days} days to clean up")
             return
 
+        # Build set of job IDs that have active share links — skip these
+        old_job_ids = [j.id for j in old_jobs]
+        shared_job_ids = set(
+            row[0] for row in
+            db.query(ShareLink.job_id)
+            .filter(ShareLink.job_id.in_(old_job_ids))
+            .distinct()
+            .all()
+        )
+
         deleted_count = 0
+        skipped_count = 0
         freed_bytes = 0
         for job in old_jobs:
+            if job.id in shared_job_ids:
+                skipped_count += 1
+                continue
+
             job_dir = os.path.join(UPLOAD_DIR, job.id)
             if os.path.isdir(job_dir):
                 for dirpath, _, filenames in os.walk(job_dir):
@@ -55,6 +71,7 @@ def _run_cleanup(retention_days: int):
         db.commit()
         logger.info(
             f"Storage cleanup: deleted {deleted_count} jobs, "
+            f"skipped {skipped_count} (have share links), "
             f"freed {freed_bytes / (1024*1024):.1f} MB "
             f"(older than {retention_days} days)"
         )
