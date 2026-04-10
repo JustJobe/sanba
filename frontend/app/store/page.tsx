@@ -46,18 +46,18 @@ export default function StorePage() {
     const packageEntries = Object.entries(packages);
 
     return (
-        <div className="min-h-screen bg-background text-foreground p-8 pb-32">
+        <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 md:p-8 pb-32">
             <div className="container mx-auto max-w-5xl">
-                <div className="flex items-center justify-between mb-12">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 sm:mb-12 gap-4">
                     <Link href="/" className="text-foreground/60 hover:text-foreground transition-colors">
                         ← Back to Dashboard
                     </Link>
-                    <h1 className="text-3xl font-bold">Store & Services</h1>
+                    <h1 className="text-2xl sm:text-3xl font-bold">Store & Services</h1>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-8">
                     {/* Digital Credits */}
-                    <div className="bg-foreground/5 border border-foreground/10 rounded-2xl p-8 hover:border-primary/30 transition-all">
+                    <div className="bg-foreground/5 border border-foreground/10 rounded-2xl p-5 sm:p-8 hover:border-primary/30 transition-all">
                         <div className="w-16 h-16 rounded-xl bg-primary/20 flex items-center justify-center mb-6">
                             <Layers className="w-8 h-8 text-primary" />
                         </div>
@@ -118,7 +118,7 @@ export default function StorePage() {
                     </div>
 
                     {/* Physical Scanning */}
-                    <div className="bg-foreground/5 border border-foreground/10 rounded-2xl p-8 hover:border-accent/30 transition-all">
+                    <div className="bg-foreground/5 border border-foreground/10 rounded-2xl p-5 sm:p-8 hover:border-accent/30 transition-all">
                         <div className="w-16 h-16 rounded-xl bg-accent/20 flex items-center justify-center mb-6">
                             <Package className="w-8 h-8 text-accent" />
                         </div>

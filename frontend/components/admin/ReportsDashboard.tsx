@@ -135,7 +135,7 @@ export default function ReportsDashboard() {
                         <option value="1y">Last Year</option>
                     </select>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                     <Link href="/admin/jobs" className="flex items-center gap-2 px-3 py-1.5 bg-foreground text-background border border-foreground hover:bg-primary transition-colors text-xs uppercase tracking-widest font-bold">
                         <List className="w-4 h-4" /> Job History
                     </Link>
@@ -149,7 +149,7 @@ export default function ReportsDashboard() {
             </div>
 
             {/* KPI Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <KpiCard title="New Accounts" value={summary?.new_users ?? 0} icon={<Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />} sub={`Total: ${summary?.total_users ?? 0} users`} />
                 <KpiCard title="Photos Restored" value={summary?.photos_restored ?? summary?.photos_processed ?? 0} icon={<Image className="w-5 h-5 text-green-600 dark:text-green-400" />} sub={`${summary?.credits_restore ?? 0} credits · ${summary?.avg_files_per_job ?? 0} avg per job`} />
                 <KpiCard title="AI Repaired" value={summary?.photos_ai_repaired ?? 0} icon={<Sparkles className="w-5 h-5 text-amber-500 dark:text-amber-400" />} sub={`${summary?.credits_ai_repair ?? 0} credits spent`} />

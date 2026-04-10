@@ -215,14 +215,14 @@ export default function AdminPage() {
     return (
         <div className="min-h-screen bg-background text-foreground selection:bg-accent selection:text-accent-foreground font-mono">
             <nav className="border-b border-foreground/10 bg-background/80 backdrop-blur-xl sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <Link href="/" className="p-2 hover:bg-foreground/5 rounded-full transition-colors">
                             <ArrowLeft className="w-5 h-5 text-foreground/60" />
                         </Link>
                         <div className="font-syne font-bold text-xl">SanBa Admin</div>
                         <div className="h-6 w-px bg-foreground/10" />
-                        <span className="font-syne font-bold text-lg flex items-center gap-2">
+                        <span className="font-syne font-bold text-lg items-center gap-2 hidden sm:flex">
                             <Shield className="w-5 h-5 text-primary" />
                             Admin Dashboard
                         </span>
@@ -230,35 +230,35 @@ export default function AdminPage() {
                 </div>
             </nav>
 
-            <main className="container mx-auto px-6 py-8">
-                <div className="flex gap-4 mb-8">
+            <main className="container mx-auto px-4 sm:px-6 py-8">
+                <div className="flex flex-wrap gap-2 sm:gap-4 mb-8">
                     <button
                         onClick={() => setActiveTab('users')}
-                        className={`px-4 py-2 rounded-none border font-medium transition-colors flex items-center gap-2 ${activeTab === 'users' ? 'bg-foreground text-background border-foreground' : 'bg-background text-foreground/60 border-foreground/20 hover:text-foreground hover:border-foreground'}`}
+                        className={`px-2 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-none border font-medium transition-colors flex items-center gap-1.5 sm:gap-2 ${activeTab === 'users' ? 'bg-foreground text-background border-foreground' : 'bg-background text-foreground/60 border-foreground/20 hover:text-foreground hover:border-foreground'}`}
                     >
                         <Users className="w-4 h-4" /> Users
                     </button>
                     <button
                         onClick={() => setActiveTab('plans')}
-                        className={`px-4 py-2 rounded-none border font-medium transition-colors flex items-center gap-2 ${activeTab === 'plans' ? 'bg-foreground text-background border-foreground' : 'bg-background text-foreground/60 border-foreground/20 hover:text-foreground hover:border-foreground'}`}
+                        className={`px-2 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-none border font-medium transition-colors flex items-center gap-1.5 sm:gap-2 ${activeTab === 'plans' ? 'bg-foreground text-background border-foreground' : 'bg-background text-foreground/60 border-foreground/20 hover:text-foreground hover:border-foreground'}`}
                     >
                         <Zap className="w-4 h-4" /> Incentive Plans
                     </button>
                     <button
                         onClick={() => setActiveTab('reports')}
-                        className={`px-4 py-2 rounded-none border font-medium transition-colors flex items-center gap-2 ${activeTab === 'reports' ? 'bg-foreground text-background border-foreground' : 'bg-background text-foreground/60 border-foreground/20 hover:text-foreground hover:border-foreground'}`}
+                        className={`px-2 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-none border font-medium transition-colors flex items-center gap-1.5 sm:gap-2 ${activeTab === 'reports' ? 'bg-foreground text-background border-foreground' : 'bg-background text-foreground/60 border-foreground/20 hover:text-foreground hover:border-foreground'}`}
                     >
                         <BarChart3 className="w-4 h-4" /> Reports
                     </button>
                     <button
                         onClick={() => setActiveTab('payments')}
-                        className={`px-4 py-2 rounded-none border font-medium transition-colors flex items-center gap-2 ${activeTab === 'payments' ? 'bg-foreground text-background border-foreground' : 'bg-background text-foreground/60 border-foreground/20 hover:text-foreground hover:border-foreground'}`}
+                        className={`px-2 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-none border font-medium transition-colors flex items-center gap-1.5 sm:gap-2 ${activeTab === 'payments' ? 'bg-foreground text-background border-foreground' : 'bg-background text-foreground/60 border-foreground/20 hover:text-foreground hover:border-foreground'}`}
                     >
                         <Receipt className="w-4 h-4" /> Payments
                     </button>
                     <button
                         onClick={() => setActiveTab('settings')}
-                        className={`px-4 py-2 rounded-none border font-medium transition-colors flex items-center gap-2 ${activeTab === 'settings' ? 'bg-foreground text-background border-foreground' : 'bg-background text-foreground/60 border-foreground/20 hover:text-foreground hover:border-foreground'}`}
+                        className={`px-2 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-none border font-medium transition-colors flex items-center gap-1.5 sm:gap-2 ${activeTab === 'settings' ? 'bg-foreground text-background border-foreground' : 'bg-background text-foreground/60 border-foreground/20 hover:text-foreground hover:border-foreground'}`}
                     >
                         <Settings className="w-4 h-4" /> Settings
                     </button>
@@ -269,7 +269,7 @@ export default function AdminPage() {
                 ) : (
                     <>
                         {activeTab === 'users' && (
-                            <div className="bg-background border-2 border-foreground brutalist-shadow overflow-hidden">
+                            <div className="bg-background border-2 border-foreground brutalist-shadow overflow-x-auto">
                                 <table className="w-full text-left border-collapse">
                                     <thead>
                                         <tr className="border-b-2 border-foreground text-foreground/60 text-xs uppercase tracking-widest bg-accent/20">
@@ -459,7 +459,7 @@ export default function AdminPage() {
 
                         {activeTab === 'settings' && (
                             <div className="max-w-2xl mx-auto space-y-8">
-                                <div className="bg-background border-2 border-foreground p-8 brutalist-shadow">
+                                <div className="bg-background border-2 border-foreground p-5 sm:p-8 brutalist-shadow">
                                     <h3 className="text-xl font-syne font-bold mb-6 flex items-center gap-2">
                                         <Zap className="w-6 h-6 text-primary" /> Global Defaults
                                     </h3>
@@ -508,7 +508,7 @@ export default function AdminPage() {
                                     </div>
                                 </div>
 
-                                <div className="bg-background border-2 border-foreground p-8 brutalist-shadow">
+                                <div className="bg-background border-2 border-foreground p-5 sm:p-8 brutalist-shadow">
                                     <h3 className="text-xl font-syne font-bold mb-6 flex items-center gap-2">
                                         <Zap className="w-6 h-6 text-amber-400" /> Operation Pricing
                                     </h3>
@@ -610,7 +610,7 @@ export default function AdminPage() {
                         )}
 
                         {activeTab === 'payments' && (
-                            <div className="bg-background border-2 border-foreground brutalist-shadow overflow-hidden">
+                            <div className="bg-background border-2 border-foreground brutalist-shadow overflow-x-auto">
                                 {payments.length === 0 ? (
                                     <div className="p-12 text-center text-foreground/40 font-mono">No payments yet.</div>
                                 ) : (

@@ -54,9 +54,9 @@ export default function Home() {
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden selection:bg-secondary selection:text-primary-foreground">
       {user && <CreditClaimPopup />}
       {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 mix-blend-difference text-white px-6 py-8 flex justify-between items-start pointer-events-none">
+      <nav className="fixed top-0 w-full z-50 mix-blend-difference text-white px-4 sm:px-6 py-6 sm:py-8 flex justify-between items-start pointer-events-none">
         <div className="pointer-events-auto flex items-center gap-6">
-          <Link href="/" className="font-syne font-bold text-4xl tracking-tighter leading-[0.8]">
+          <Link href="/" className="font-syne font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.8]">
             San<br />Ba.
           </Link>
           <div className="mt-1">
@@ -124,7 +124,7 @@ export default function Home() {
           {/* ── LOGGED-IN ONLY: Dashboard heading ── */}
           {user && (
             <div className="flex flex-col md:flex-row items-end justify-between mb-16 gap-6 border-b border-foreground pb-8">
-              <h1 className="font-syne font-bold text-6xl md:text-8xl text-primary leading-[0.9]">
+              <h1 className="font-syne font-bold text-4xl sm:text-6xl md:text-8xl text-primary leading-[0.9]">
                 Dash<br />board
               </h1>
               <p className="font-mono text-sm max-w-xs mb-2">
@@ -136,7 +136,7 @@ export default function Home() {
           {/* ── UNIVERSAL: Feature Explanation Cards ── */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-0 border-2 border-foreground mb-16 brutalist-shadow">
             {/* Restore */}
-            <div className="p-8 border-b sm:border-b-0 sm:border-r border-foreground group hover:bg-foreground/5 transition-colors">
+            <div className="p-5 sm:p-8 border-b sm:border-b-0 sm:border-r border-foreground group hover:bg-foreground/5 transition-colors">
               <div className="flex items-center justify-between mb-4">
                 <Play className="w-8 h-8 text-foreground/60 stroke-1 group-hover:scale-110 transition-transform" />
                 <span className="font-mono text-[10px] font-bold uppercase tracking-widest border border-foreground/30 px-2 py-0.5 text-foreground/50">
@@ -151,7 +151,7 @@ export default function Home() {
             </div>
 
             {/* Repair */}
-            <div className="p-8 border-b sm:border-b-0 sm:border-r border-foreground group hover:bg-amber-400/5 transition-colors">
+            <div className="p-5 sm:p-8 border-b sm:border-b-0 sm:border-r border-foreground group hover:bg-amber-400/5 transition-colors">
               <div className="flex items-center justify-between mb-4">
                 <Sparkles className="w-8 h-8 text-amber-400 stroke-1 group-hover:scale-110 transition-transform" />
                 <span className="font-mono text-[10px] font-bold uppercase tracking-widest border border-amber-400/40 px-2 py-0.5 text-amber-400/70">
@@ -166,7 +166,7 @@ export default function Home() {
             </div>
 
             {/* Remaster */}
-            <div className="p-8 group hover:bg-violet-400/5 transition-colors">
+            <div className="p-5 sm:p-8 group hover:bg-violet-400/5 transition-colors">
               <div className="flex items-center justify-between mb-4">
                 <Wand2 className="w-8 h-8 text-violet-400 stroke-1 group-hover:rotate-12 transition-transform" />
                 <span className="font-mono text-[10px] font-bold uppercase tracking-widest border border-violet-400/40 px-2 py-0.5 text-violet-400/70">

@@ -186,7 +186,7 @@ export default function DashboardPage() {
 
       <main className="container mx-auto px-4 md:px-6 py-8 md:py-12">
         <div className="mb-12 md:mb-20">
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tighter leading-[0.9] mb-4">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tighter leading-[0.9] mb-4">
             Dash<br/>board
           </h1>
           <p className="text-white/60 font-mono text-sm max-w-md ml-1 md:ml-2">

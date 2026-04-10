@@ -91,7 +91,7 @@ export default function UploadZone() {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             key="uploading"
-                            className="flex flex-col items-center py-12"
+                            className="flex flex-col items-center py-8 sm:py-12"
                         >
                             <Loader2 className="w-16 h-16 text-primary animate-spin mb-4" />
                             <p className="font-mono text-sm uppercase tracking-widest">Applying Magic...</p>
@@ -131,18 +131,18 @@ export default function UploadZone() {
                                 onDragOver={handleDrag}
                                 onDrop={handleDrop}
                                 className={`
-                                    border-2 border-dashed p-12 flex flex-col items-center transition-colors
+                                    border-2 border-dashed p-6 sm:p-12 flex flex-col items-center transition-colors
                                     ${isDragging ? 'border-primary bg-primary/10' : 'border-foreground/20 hover:border-foreground'}
                                 `}
                             >
-                                <Upload className="w-12 h-12 text-foreground/40 mb-4" />
+                                <Upload className="w-8 h-8 sm:w-12 sm:h-12 text-foreground/40 mb-4" />
                                 <p className="font-syne font-bold text-lg mb-1">
                                     Drop Files Here
                                 </p>
                                 <p className="font-mono text-xs text-foreground/40 mb-1">or</p>
                                 <p className="font-mono text-[10px] text-foreground/30 mb-5 uppercase tracking-widest">Up to {MAX_FILES} files per batch</p>
 
-                                <label className="relative px-8 py-3 font-mono uppercase text-xs tracking-widest transition-colors bg-foreground text-background hover:bg-primary cursor-pointer">
+                                <label className="relative px-6 py-2.5 sm:px-8 sm:py-3 font-mono uppercase text-xs tracking-widest transition-colors bg-foreground text-background hover:bg-primary cursor-pointer">
                                     <span>Browse Files</span>
                                     <input
                                         type="file"

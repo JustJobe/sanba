@@ -71,7 +71,7 @@ export default function ProfilePage() {
     return (
         <div className="min-h-screen bg-background text-foreground selection:bg-secondary selection:text-white pt-24">
 
-            <nav className="fixed top-0 w-full z-50 mix-blend-difference text-white px-6 py-8 flex justify-between items-center pointer-events-none">
+            <nav className="fixed top-0 w-full z-50 mix-blend-difference text-white px-4 sm:px-6 py-6 sm:py-8 flex justify-between items-center pointer-events-none">
                 <Link href="/" className="pointer-events-auto flex items-center gap-2 hover:underline decoration-1 font-mono text-sm">
                     <ArrowLeft className="w-4 h-4" />
                     <span>Back</span>
@@ -87,7 +87,7 @@ export default function ProfilePage() {
             <main className="relative z-10 container mx-auto px-4 py-12">
                 <div className="max-w-5xl mx-auto space-y-12">
                     <div className="border-b border-foreground pb-8">
-                        <h1 className="font-syne font-bold text-6xl md:text-7xl text-primary leading-[0.9] mb-4">
+                        <h1 className="font-syne font-bold text-4xl sm:text-6xl md:text-7xl text-primary leading-[0.9] mb-4">
                             Your<br />Profile.
                         </h1>
                         <p className="font-mono text-foreground/60 max-w-md">Manage your account settings and preferences.</p>
@@ -96,7 +96,7 @@ export default function ProfilePage() {
                     <div className="grid md:grid-cols-3 gap-6">
                         {/* Profile Form */}
                         <div className="md:col-span-2 space-y-6">
-                            <div className="border border-foreground p-8 bg-background brutalist-shadow">
+                            <div className="border border-foreground p-5 sm:p-8 bg-background brutalist-shadow">
                                 <h2 className="font-syne font-bold text-2xl mb-8 flex items-center gap-3">
                                     <User className="w-6 h-6 text-primary" />
                                     Personal Information
@@ -115,7 +115,7 @@ export default function ProfilePage() {
                                         </div>
                                     </div>
 
-                                    <div className="grid md:grid-cols-2 gap-8">
+                                    <div className="grid md:grid-cols-2 gap-6 sm:gap-8">
                                         <div className="space-y-2">
                                             <label className="font-mono text-xs uppercase tracking-widest text-foreground/60">Full Name</label>
                                             <div className="relative group">
@@ -166,12 +166,12 @@ export default function ProfilePage() {
 
                         {/* Account Status */}
                         <div className="space-y-6">
-                            <div className="bg-primary text-primary-foreground border border-foreground p-8 relative overflow-hidden brutalist-shadow">
+                            <div className="bg-primary text-primary-foreground border border-foreground p-5 sm:p-8 relative overflow-hidden brutalist-shadow">
                                 <div className="absolute top-0 right-0 p-4 opacity-10">
                                     <Sparkles className="w-24 h-24" />
                                 </div>
                                 <h3 className="font-mono text-xs uppercase tracking-widest text-primary-foreground/80 mb-2">Current Balance</h3>
-                                <div className="font-syne font-bold text-5xl mb-1">
+                                <div className="font-syne font-bold text-4xl sm:text-5xl mb-1">
                                     {user.credits} <span className="text-2xl opacity-60">Credits</span>
                                 </div>
                                 <div className="font-mono text-sm text-primary-foreground/80 mb-8 leading-relaxed">

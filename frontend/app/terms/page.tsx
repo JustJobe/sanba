@@ -9,14 +9,14 @@ export const metadata: Metadata = {
 export default function TermsPage() {
     return (
         <div className="min-h-screen bg-background text-foreground">
-            <nav className="border-b border-foreground/10 py-4 px-6">
+            <nav className="border-b border-foreground/10 py-4 px-4 sm:px-6">
                 <Link href="/" className="font-bold text-lg hover:opacity-70 transition-opacity">
                     ← SanBa
                 </Link>
             </nav>
 
-            <main className="max-w-2xl mx-auto px-6 py-16">
-                <h1 className="font-syne font-bold text-5xl mb-4 leading-tight">Terms of Use</h1>
+            <main className="max-w-2xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
+                <h1 className="font-syne font-bold text-3xl sm:text-5xl mb-4 leading-tight">Terms of Use</h1>
                 <p className="text-foreground/50 font-mono text-sm mb-12">Last updated: April 2026</p>
 
                 <div className="space-y-10 text-foreground/70 text-sm leading-relaxed">
