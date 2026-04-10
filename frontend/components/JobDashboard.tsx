@@ -1,8 +1,8 @@
 "use client";
 // AI Repair: button text is "Repair" in both single-file and batch views (v2 — conservative Gemini prompt)
 
-import { useEffect, useState } from 'react';
-import { RefreshCw, Download, Image as ImageIcon, Clock, Play, ChevronDown, ChevronUp, Trash2, Eye, X, Sparkles, Wand2, Copy, Share2 } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { RefreshCw, Download, Image as ImageIcon, Clock, Play, ChevronDown, ChevronUp, Trash2, Eye, X, Sparkles, Wand2, Copy, Share2, ChevronLeft, ChevronRight } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import ComparisonSlider from './ComparisonSlider';
@@ -60,6 +60,11 @@ export default function JobDashboard() {
     } | null>(null);
     const [shareStatus, setShareStatus] = useState<'idle' | 'copying' | 'copied'>('idle');
     const modelShort: Record<string, string> = { pro: '30pp', flash: '31fp' };
+
+    // Slideshow state for batch jobs
+    type ComparisonStep = NonNullable<typeof comparingFiles>;
+    const [slideshowSteps, setSlideshowSteps] = useState<ComparisonStep[] | null>(null);
+    const [slideshowIndex, setSlideshowIndex] = useState(0);
 
     const showFailurePopup = () => {
         if (typeof window !== 'undefined' && localStorage.getItem('hideFailModal') === '1') return;
@@ -224,6 +229,102 @@ export default function JobDashboard() {
         if (lastDot === -1) return fileUrl;
         return fileUrl.substring(0, lastDot) + '_preview' + fileUrl.substring(lastDot);
     };
+
+    // ── Slideshow helpers (batch jobs only) ──
+
+    const buildSlideshowSteps = (job: Job): ComparisonStep[] => {
+        const steps: ComparisonStep[] = [];
+        for (let i = 0; i < job.files.length; i++) {
+            const origUrl = getFileUrl(job.files[i]);
+            const fileName = job.files[i].split(/[/\\]/).pop() ?? `File ${i + 1}`;
+
+            // Restored
+            const processed = job.processed_files?.[i];
+            if (processed) {
+                const afterUrl = getFileUrl(processed);
+                steps.push({
+                    before: toPreviewUrl(origUrl), after: toPreviewUrl(afterUrl),
+                    beforeFallback: origUrl, afterFallback: afterUrl,
+                    label: `${fileName} — Original vs Restored`,
+                    beforeLabel: 'Original', afterLabel: 'Restored (Sanba Restore)',
+                    jobId: job.id, fileIndex: i, comparisonType: 'restored',
+                });
+            }
+
+            // Repaired (skip if not done)
+            const repaired = job.ai_repaired_files?.[i];
+            if (repaired) {
+                const aiUrl = getFileUrl(repaired);
+                const model = job.ai_repair_models?.[i];
+                steps.push({
+                    before: toPreviewUrl(origUrl), after: toPreviewUrl(aiUrl),
+                    beforeFallback: origUrl, afterFallback: aiUrl,
+                    label: `${fileName} — Original vs Repaired`,
+                    modelBadge: model ? modelShort[model] || model : undefined,
+                    beforeLabel: 'Original', afterLabel: `Repaired\n(${getModelDisplay(model)})`,
+                    jobId: job.id, fileIndex: i, comparisonType: 'repaired',
+                });
+            }
+
+            // Remastered (skip if not done)
+            const remastered = job.ai_remastered_files?.[i];
+            if (remastered) {
+                const remUrl = getFileUrl(remastered);
+                const model = job.ai_remaster_models?.[i];
+                steps.push({
+                    before: toPreviewUrl(origUrl), after: toPreviewUrl(remUrl),
+                    beforeFallback: origUrl, afterFallback: remUrl,
+                    label: `${fileName} — Original vs Remastered`,
+                    modelBadge: model ? modelShort[model] || model : undefined,
+                    beforeLabel: 'Original', afterLabel: `Remastered\n(${getModelDisplay(model)})`,
+                    jobId: job.id, fileIndex: i, comparisonType: 'remastered',
+                });
+            }
+        }
+        return steps;
+    };
+
+    const startSlideshow = (job: Job) => {
+        const steps = buildSlideshowSteps(job);
+        if (steps.length === 0) return;
+        setSlideshowSteps(steps);
+        setSlideshowIndex(0);
+        setComparingFiles(steps[0]);
+        setShareStatus('idle');
+    };
+
+    const slideshowGo = useCallback((delta: number) => {
+        setSlideshowSteps(prev => {
+            if (!prev) return prev;
+            setSlideshowIndex(idx => {
+                const next = idx + delta;
+                if (next < 0 || next >= prev.length) return idx;
+                setComparingFiles(prev[next]);
+                setShareStatus('idle');
+                return next;
+            });
+            return prev;
+        });
+    }, []);
+
+    const closeModal = useCallback(() => {
+        setSlideshowSteps(null);
+        setSlideshowIndex(0);
+        setComparingFiles(null);
+        setShareStatus('idle');
+    }, []);
+
+    // Keyboard navigation for slideshow
+    useEffect(() => {
+        if (!slideshowSteps) return;
+        const handler = (e: KeyboardEvent) => {
+            if (e.key === 'ArrowLeft') slideshowGo(-1);
+            else if (e.key === 'ArrowRight') slideshowGo(1);
+            else if (e.key === 'Escape') closeModal();
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, [slideshowSteps, slideshowGo, closeModal]);
 
     // Render the AI Repair control for a single file slot
     const renderAiRepair = (job: Job, index: number, size: 'sm' | 'md' = 'md') => {
@@ -608,6 +709,14 @@ export default function JobDashboard() {
                                                 <img src={getFileUrl(job.processed_files?.[0] ?? job.files[0])} className="w-full h-full object-cover" />
                                             </div>
                                         </div>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); startSlideshow(job); }}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 border border-foreground/30 hover:bg-foreground hover:text-background text-[10px] font-mono uppercase tracking-widest transition-colors"
+                                            title="Slideshow: browse all comparisons"
+                                        >
+                                            <Play className="w-3 h-3" />
+                                            Slideshow
+                                        </button>
                                     </div>
                                 ) : job.status === 'completed' && (
                                     <div className="flex items-center gap-2">
@@ -849,10 +958,10 @@ export default function JobDashboard() {
             {comparingFiles && (
                 <div
                     className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-black/90 backdrop-blur-md p-4"
-                    onClick={() => { setComparingFiles(null); setShareStatus('idle'); }}
+                    onClick={() => { slideshowSteps ? closeModal() : setComparingFiles(null); setShareStatus('idle'); }}
                 >
                     <button
-                        onClick={() => { setComparingFiles(null); setShareStatus('idle'); }}
+                        onClick={() => { slideshowSteps ? closeModal() : setComparingFiles(null); setShareStatus('idle'); }}
                         className="fixed top-4 right-4 z-[110] p-2 bg-black/60 hover:bg-white/20 rounded-full transition-colors"
                     >
                         <X className="w-6 h-6 text-white" />
@@ -863,10 +972,17 @@ export default function JobDashboard() {
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="flex items-center justify-between">
-                            <h3 className="font-syne font-bold text-xl flex items-center gap-2 text-white">
-                                <Eye className="w-5 h-5 text-white/60" />
-                                {comparingFiles.label ?? 'Comparison View'}
-                            </h3>
+                            <div className="flex items-center gap-2 min-w-0">
+                                <h3 className="font-syne font-bold text-xl flex items-center gap-2 text-white truncate">
+                                    <Eye className="w-5 h-5 text-white/60 shrink-0" />
+                                    <span className="truncate">{comparingFiles.label ?? 'Comparison View'}</span>
+                                </h3>
+                                {slideshowSteps && (
+                                    <span className="font-mono text-sm text-white/50 shrink-0">
+                                        {slideshowIndex + 1}/{slideshowSteps.length}
+                                    </span>
+                                )}
+                            </div>
                             {comparingFiles.comparisonType && (
                                 <button
                                     onClick={async () => {
@@ -886,26 +1002,49 @@ export default function JobDashboard() {
                                             setShareStatus('idle');
                                         }
                                     }}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 border border-white/30 text-white hover:bg-white/20 transition-colors text-xs font-mono uppercase tracking-widest rounded"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 border border-white/30 text-white hover:bg-white/20 transition-colors text-xs font-mono uppercase tracking-widest rounded shrink-0 ml-2"
                                 >
                                     <Share2 className="w-3.5 h-3.5" />
                                     {shareStatus === 'copied' ? 'Link Copied!' : shareStatus === 'copying' ? 'Copying...' : 'Share'}
                                 </button>
                             )}
                         </div>
-                        <div className="border border-white/20 rounded-2xl overflow-hidden shadow-2xl">
-                            <ComparisonSlider
-                                before={comparingFiles.before}
-                                after={comparingFiles.after}
-                                beforeFallback={comparingFiles.beforeFallback}
-                                afterFallback={comparingFiles.afterFallback}
-                                beforeLabel={comparingFiles.beforeLabel}
-                                afterLabel={comparingFiles.afterLabel}
-                                maxHeightVh={72}
-                                modelBadge={comparingFiles.modelBadge}
-                            />
+                        <div className="relative group/nav">
+                            {slideshowSteps && slideshowIndex > 0 && (
+                                <button
+                                    onClick={() => slideshowGo(-1)}
+                                    className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/60 hover:bg-white/20 rounded-full transition-colors"
+                                    title="Previous (← arrow key)"
+                                >
+                                    <ChevronLeft className="w-6 h-6 text-white" />
+                                </button>
+                            )}
+                            <div className="border border-white/20 rounded-2xl overflow-hidden shadow-2xl">
+                                <ComparisonSlider
+                                    key={slideshowSteps ? slideshowIndex : 'single'}
+                                    before={comparingFiles.before}
+                                    after={comparingFiles.after}
+                                    beforeFallback={comparingFiles.beforeFallback}
+                                    afterFallback={comparingFiles.afterFallback}
+                                    beforeLabel={comparingFiles.beforeLabel}
+                                    afterLabel={comparingFiles.afterLabel}
+                                    maxHeightVh={72}
+                                    modelBadge={comparingFiles.modelBadge}
+                                />
+                            </div>
+                            {slideshowSteps && slideshowIndex < slideshowSteps.length - 1 && (
+                                <button
+                                    onClick={() => slideshowGo(1)}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/60 hover:bg-white/20 rounded-full transition-colors"
+                                    title="Next (→ arrow key)"
+                                >
+                                    <ChevronRight className="w-6 h-6 text-white" />
+                                </button>
+                            )}
                         </div>
-                        <p className="text-center text-xs font-mono text-white/40 uppercase tracking-widest">Drag slider to compare</p>
+                        <p className="text-center text-xs font-mono text-white/40 uppercase tracking-widest">
+                            {slideshowSteps ? 'Use ← → arrow keys or click arrows to navigate' : 'Drag slider to compare'}
+                        </p>
                     </div>
                 </div>
             )}
