@@ -486,7 +486,7 @@ export default function JobDashboard() {
                         )}
                     <div
                         id={`job-${job.id}`}
-                        className={`relative bg-background border-2 border-foreground p-6 brutalist-shadow group hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all ${highlightJobId === job.id ? 'animate-highlight-flash' : ''}`}
+                        className={`relative bg-background border-2 border-foreground p-4 sm:p-6 brutalist-shadow group hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all ${highlightJobId === job.id ? 'animate-highlight-flash' : ''}`}
                     >
                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                             <div className="flex items-start gap-4">
@@ -635,55 +635,65 @@ export default function JobDashboard() {
 
                                 {/* Single-file completed job — thumbnails + actions (no repeated original, it's on the left) */}
                                 {job.status === 'completed' && job.files.length === 1 && !expandedJobs.has(job.id) && (
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                        {job.processed_files?.[0] && (job.ai_repaired_files?.[0] || job.ai_remastered_files?.[0]) && (
-                                            <button
-                                                onClick={() => duplicateJob(job.id, 0)}
-                                                className="p-2 text-foreground/40 hover:text-foreground transition-colors"
-                                                title="Duplicate restored image to a new job for another Repair/Remaster attempt"
-                                            >
-                                                <Copy className="w-4 h-4" />
-                                            </button>
-                                        )}
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:flex-wrap">
+                                        {/* Restored output group */}
                                         {job.processed_files?.[0] && (
-                                            <a
-                                                href={getFileUrl(job.processed_files[0])}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="group/thumb relative block w-12 h-12 border border-foreground overflow-hidden hover:scale-105 transition-transform"
-                                                title="View Restored"
-                                            >
-                                                <img src={getFileUrl(job.processed_files[0])} alt="Restored" className="w-full h-full object-cover" />
-                                                <div className="absolute inset-0 flex items-center justify-center bg-primary/20 opacity-0 group-hover/thumb:opacity-100 transition-opacity">
-                                                    <Download className="w-4 h-4 text-white drop-shadow-md" />
-                                                </div>
-                                            </a>
+                                            <div className="flex items-center gap-2">
+                                                {(job.ai_repaired_files?.[0] || job.ai_remastered_files?.[0]) && (
+                                                    <button
+                                                        onClick={() => duplicateJob(job.id, 0)}
+                                                        className="p-2 text-foreground/40 hover:text-foreground transition-colors"
+                                                        title="Duplicate restored image to a new job for another Repair/Remaster attempt"
+                                                    >
+                                                        <Copy className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                                <a
+                                                    href={getFileUrl(job.processed_files[0])}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="group/thumb relative block w-12 h-12 border border-foreground overflow-hidden hover:scale-105 transition-transform"
+                                                    title="View Restored"
+                                                >
+                                                    <img src={getFileUrl(job.processed_files[0])} alt="Restored" className="w-full h-full object-cover" />
+                                                    <div className="absolute inset-0 flex items-center justify-center bg-primary/20 opacity-0 group-hover/thumb:opacity-100 transition-opacity">
+                                                        <Download className="w-4 h-4 text-white drop-shadow-md" />
+                                                    </div>
+                                                </a>
+                                                <button
+                                                    onClick={() => {
+                                                        const beforeUrl = getFileUrl(job.files[0]);
+                                                        const afterUrl = getFileUrl(job.processed_files[0]);
+                                                        setComparingFiles({
+                                                            before: toPreviewUrl(beforeUrl),
+                                                            after: toPreviewUrl(afterUrl),
+                                                            beforeFallback: beforeUrl,
+                                                            afterFallback: afterUrl,
+                                                            label: 'Original vs Restored',
+                                                            beforeLabel: 'Original',
+                                                            afterLabel: 'Restored (Sanba Restore)',
+                                                            jobId: job.id, fileIndex: 0, comparisonType: 'restored',
+                                                        });
+                                                    }}
+                                                    className="p-2 bg-background border border-foreground hover:bg-foreground hover:text-background transition-colors"
+                                                    title="Review: Original vs Restored"
+                                                >
+                                                    <Eye className="w-4 h-4" />
+                                                </button>
+                                            </div>
                                         )}
+                                        {/* AI Repair group */}
                                         {job.processed_files?.[0] && (
-                                            <button
-                                                onClick={() => {
-                                                    const beforeUrl = getFileUrl(job.files[0]);
-                                                    const afterUrl = getFileUrl(job.processed_files[0]);
-                                                    setComparingFiles({
-                                                        before: toPreviewUrl(beforeUrl),
-                                                        after: toPreviewUrl(afterUrl),
-                                                        beforeFallback: beforeUrl,
-                                                        afterFallback: afterUrl,
-                                                        label: 'Original vs Restored',
-                                                        beforeLabel: 'Original',
-                                                        afterLabel: 'Restored (Sanba Restore)',
-                                                        jobId: job.id, fileIndex: 0, comparisonType: 'restored',
-                                                    });
-                                                }}
-                                                className="p-2 bg-background border border-foreground hover:bg-foreground hover:text-background transition-colors"
-                                                title="Review: Original vs Restored"
-                                            >
-                                                <Eye className="w-4 h-4" />
-                                            </button>
+                                            <div className="flex items-center gap-2">
+                                                {renderAiRepair(job, 0, 'md')}
+                                            </div>
                                         )}
-                                        {/* AI Repair + Remaster */}
-                                        {job.processed_files?.[0] && renderAiRepair(job, 0, 'md')}
-                                        {job.processed_files?.[0] && renderAiRemaster(job, 0, 'md')}
+                                        {/* AI Remaster group */}
+                                        {job.processed_files?.[0] && (
+                                            <div className="flex items-center gap-2">
+                                                {renderAiRemaster(job, 0, 'md')}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -739,18 +749,18 @@ export default function JobDashboard() {
                                 </button>
 
                                 {expandedJobs.has(job.id) && (
-                                    <div className="mt-4 space-y-3 pl-6 border-l-2 border-dashed border-foreground/20">
+                                    <div className="mt-4 space-y-3 pl-3 sm:pl-6 border-l-2 border-dashed border-foreground/20">
                                         {job.files.map((file: string, index: number) => {
                                             const processed = job.processed_files ? job.processed_files[index] : null;
                                             return (
-                                                <div key={index} className="flex items-center gap-3 bg-foreground/5 p-3 border border-foreground/5">
+                                                <div key={index} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 bg-foreground/5 p-3 border border-foreground/5">
                                                     {/* Filename — left side */}
-                                                    <span className="text-xs font-mono truncate text-foreground/50 flex-1 min-w-0">
+                                                    <span className="text-xs font-mono truncate text-foreground/50 sm:flex-1 min-w-0">
                                                         {file.split(/[/\\]/).pop()}
                                                     </span>
 
                                                     {/* Thumbnails + actions — right side */}
-                                                    <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                                                    <div className="flex items-center gap-2 shrink-0 flex-wrap">
                                                         {/* Original — larger */}
                                                         <a
                                                             href={getFileUrl(file)}
