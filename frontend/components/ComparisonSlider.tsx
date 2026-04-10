@@ -31,6 +31,16 @@ export default function ComparisonSlider({
     const [aspectRatio, setAspectRatio] = useState<string | undefined>(fitScreen ? undefined : "4 / 3");
     const [naturalRatio, setNaturalRatio] = useState<number | undefined>(fitScreen ? undefined : 4 / 3);
     const containerRef = useRef<HTMLDivElement>(null);
+    const afterImgRef = useRef<HTMLImageElement>(null);
+
+    // Guard against missed onLoad during SSR hydration (image cached & loaded before React attaches)
+    useEffect(() => {
+        const img = afterImgRef.current;
+        if (img && img.complete && img.naturalWidth && !aspectRatio) {
+            setAspectRatio(`${img.naturalWidth} / ${img.naturalHeight}`);
+            setNaturalRatio(img.naturalWidth / img.naturalHeight);
+        }
+    }, []);
 
     const stopResizing = useCallback(() => {
         setIsResizing(false);
@@ -93,6 +103,7 @@ export default function ComparisonSlider({
         >
             {/* After Image (Background) */}
             <img
+                ref={afterImgRef}
                 src={after}
                 alt="After restoration"
                 className="absolute inset-0 w-full h-full object-cover"
