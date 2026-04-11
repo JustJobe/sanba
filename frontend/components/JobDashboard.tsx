@@ -690,7 +690,7 @@ export default function JobDashboard() {
                                                 <span className="hidden sm:inline">Download</span> ZIP
                                             </button>
                                         </div>
-                                        <div className="flex items-end gap-2 mt-1">
+                                        <div className="flex items-center gap-2 mt-1">
                                             <div
                                                 className="relative w-16 h-16 cursor-pointer group/stack"
                                                 onClick={() => toggleExpand(job.id)}
