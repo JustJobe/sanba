@@ -690,33 +690,35 @@ export default function JobDashboard() {
                                                 <span className="hidden sm:inline">Download</span> ZIP
                                             </button>
                                         </div>
-                                        <div
-                                            className="relative w-16 h-16 cursor-pointer group/stack mt-1"
-                                            onClick={() => toggleExpand(job.id)}
-                                            title={expandedJobs.has(job.id) ? 'Hide files' : `Show all ${job.files.length} files`}
-                                        >
-                                            {(job.processed_files?.[2] ?? job.files[2]) && (
-                                                <div className="absolute top-[7px] left-[7px] w-12 h-12 border border-foreground bg-foreground/5 overflow-hidden opacity-30">
-                                                    <img src={getFileUrl(job.processed_files?.[2] ?? job.files[2])} className="w-full h-full object-cover" />
+                                        <div className="flex items-end gap-2 mt-1">
+                                            <div
+                                                className="relative w-16 h-16 cursor-pointer group/stack"
+                                                onClick={() => toggleExpand(job.id)}
+                                                title={expandedJobs.has(job.id) ? 'Hide files' : `Show all ${job.files.length} files`}
+                                            >
+                                                {(job.processed_files?.[2] ?? job.files[2]) && (
+                                                    <div className="absolute top-[7px] left-[7px] w-12 h-12 border border-foreground bg-foreground/5 overflow-hidden opacity-30">
+                                                        <img src={getFileUrl(job.processed_files?.[2] ?? job.files[2])} className="w-full h-full object-cover" />
+                                                    </div>
+                                                )}
+                                                {(job.processed_files?.[1] ?? job.files[1]) && (
+                                                    <div className="absolute top-[3px] left-[3px] w-12 h-12 border border-foreground bg-foreground/5 overflow-hidden opacity-60">
+                                                        <img src={getFileUrl(job.processed_files?.[1] ?? job.files[1])} className="w-full h-full object-cover" />
+                                                    </div>
+                                                )}
+                                                <div className="absolute top-0 left-0 w-12 h-12 border border-foreground bg-foreground/5 overflow-hidden group-hover/stack:border-primary transition-colors">
+                                                    <img src={getFileUrl(job.processed_files?.[0] ?? job.files[0])} className="w-full h-full object-cover" />
                                                 </div>
-                                            )}
-                                            {(job.processed_files?.[1] ?? job.files[1]) && (
-                                                <div className="absolute top-[3px] left-[3px] w-12 h-12 border border-foreground bg-foreground/5 overflow-hidden opacity-60">
-                                                    <img src={getFileUrl(job.processed_files?.[1] ?? job.files[1])} className="w-full h-full object-cover" />
-                                                </div>
-                                            )}
-                                            <div className="absolute top-0 left-0 w-12 h-12 border border-foreground bg-foreground/5 overflow-hidden group-hover/stack:border-primary transition-colors">
-                                                <img src={getFileUrl(job.processed_files?.[0] ?? job.files[0])} className="w-full h-full object-cover" />
                                             </div>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); startSlideshow(job); }}
+                                                className="flex items-center gap-1.5 px-3 py-1.5 border border-foreground/30 hover:bg-foreground hover:text-background text-[10px] font-mono uppercase tracking-widest transition-colors"
+                                                title="Slideshow: browse all comparisons"
+                                            >
+                                                <Play className="w-3 h-3" />
+                                                Slideshow
+                                            </button>
                                         </div>
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); startSlideshow(job); }}
-                                            className="flex items-center gap-1.5 px-3 py-1.5 border border-foreground/30 hover:bg-foreground hover:text-background text-[10px] font-mono uppercase tracking-widest transition-colors"
-                                            title="Slideshow: browse all comparisons"
-                                        >
-                                            <Play className="w-3 h-3" />
-                                            Slideshow
-                                        </button>
                                     </div>
                                 ) : job.status === 'completed' && (
                                     <div className="flex items-center gap-2">
