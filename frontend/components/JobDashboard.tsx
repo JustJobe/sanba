@@ -399,7 +399,7 @@ export default function JobDashboard() {
             return (
                 <div className={`flex items-center gap-2 px-2 ${btnPad} border border-blue-400/40 bg-blue-400/10 text-blue-300`}>
                     <span className="font-mono text-[10px] leading-tight">
-                        AI Declined.<br />
+                        AI Declined<br />
                         <a href="/faq#repair-declined" className="underline hover:text-blue-200">Learn more</a>
                                             </span>
                     <button
@@ -506,7 +506,7 @@ export default function JobDashboard() {
             return (
                 <div className={`flex items-center gap-2 px-2 ${btnPad} border border-blue-400/40 bg-blue-400/10 text-blue-300`}>
                     <span className="font-mono text-[10px] leading-tight">
-                        AI Declined.<br />
+                        AI Declined<br />
                         <a href="/faq#repair-declined" className="underline hover:text-blue-200">Learn more</a>
                                             </span>
                     <button

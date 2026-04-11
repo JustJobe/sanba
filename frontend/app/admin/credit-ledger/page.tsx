@@ -1,63 +1,109 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
 import Link from "next/link";
-import { Loader2, ChevronLeft, ChevronRight, CheckCircle, XCircle, Clock, HardDrive, AlertTriangle, Download } from "lucide-react";
 import { format, subDays } from "date-fns";
+import { Loader2, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Download } from "lucide-react";
 
-interface JobRecord {
+const ACTION_LABELS: Record<string, string> = {
+    daily_claim: "Daily Claim",
+    admin_grant: "Admin Grant",
+    admin_deduct: "Admin Deduct",
+    purchase: "Purchase",
+    purchase_credits: "Purchase",
+    refund_repair: "Refund (Repair)",
+    refund_remaster: "Refund (Remaster)",
+    signup_bonus: "Signup Bonus",
+    restore: "Restore",
+    ai_repair: "AI Repair",
+    ai_remaster: "AI Remaster",
+};
+
+interface LedgerEntry {
     id: string;
+    user_id: string;
     user_email: string;
-    status: string;
+    action: string;
+    amount: number;
+    balance_after: number;
+    actor: string;
+    job_id: string | null;
+    payment_id: string | null;
+    note: string | null;
     created_at: string | null;
-    completed_at: string | null;
-    file_count: number;
-    repair_count: number;
-    remaster_count: number;
-    files_on_disk: boolean;
 }
 
 const PAGE_SIZE = 50;
 
-export default function JobHistoryPage() {
+export default function CreditLedgerPage() {
     const { user, loading: authLoading } = useAuth();
-    const [jobs, setJobs] = useState<JobRecord[]>([]);
+    const [entries, setEntries] = useState<LedgerEntry[]>([]);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(0);
     const [loading, setLoading] = useState(true);
-    const [statusFilter, setStatusFilter] = useState("");
+
+    // Filters
+    const [emailFilter, setEmailFilter] = useState("");
+    const [actionFilter, setActionFilter] = useState("");
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
 
-    const fetchJobs = async (p: number, status: string) => {
+    // Sorting
+    const [sortBy, setSortBy] = useState("created_at");
+    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
+    // Debounce email input
+    const [emailInput, setEmailInput] = useState("");
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setEmailFilter(emailInput);
+            setPage(0);
+        }, 400);
+        return () => clearTimeout(timer);
+    }, [emailInput]);
+
+    const fetchEntries = useCallback(async () => {
         setLoading(true);
         try {
             const params = new URLSearchParams({
                 limit: String(PAGE_SIZE),
-                offset: String(p * PAGE_SIZE),
+                offset: String(page * PAGE_SIZE),
+                sort_by: sortBy,
+                sort_order: sortOrder,
             });
-            if (status) params.set("status", status);
+            if (emailFilter) params.set("user_email", emailFilter);
+            if (actionFilter) params.set("action", actionFilter);
             if (startDate) params.set("start_date", new Date(startDate).toISOString());
             if (endDate) {
                 const end = new Date(endDate);
                 end.setHours(23, 59, 59, 999);
                 params.set("end_date", end.toISOString());
             }
-            const { data } = await api.get(`/admin/jobs?${params}`);
-            setJobs(data.jobs);
+            const { data } = await api.get(`/admin/credit-ledger?${params}`);
+            setEntries(data.entries);
             setTotal(data.total);
         } catch {
-            console.error("Failed to fetch job history");
+            console.error("Failed to fetch credit ledger");
         } finally {
             setLoading(false);
         }
-    };
+    }, [page, emailFilter, actionFilter, startDate, endDate, sortBy, sortOrder]);
 
     useEffect(() => {
-        if (user?.is_admin) fetchJobs(page, statusFilter);
-    }, [user, page, statusFilter, startDate, endDate]);
+        if (user?.is_admin) fetchEntries();
+    }, [user, fetchEntries]);
+
+    const handleSort = (col: string) => {
+        if (sortBy === col) {
+            setSortOrder(sortOrder === "desc" ? "asc" : "desc");
+        } else {
+            setSortBy(col);
+            setSortOrder("desc");
+        }
+        setPage(0);
+    };
 
     const downloadCSV = async () => {
         try {
@@ -69,13 +115,13 @@ export default function JobHistoryPage() {
                 : new Date().toISOString();
 
             const response = await api.get(
-                `/admin/reports/export?type=jobs&start_date=${startStr}&end_date=${endStr}`,
+                `/admin/reports/export?type=credit_ledger&start_date=${startStr}&end_date=${endStr}`,
                 { responseType: "blob" }
             );
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement("a");
             link.href = url;
-            link.setAttribute("download", `jobs_${format(new Date(), "yyyy-MM-dd")}.csv`);
+            link.setAttribute("download", `credit_ledger_${format(new Date(), "yyyy-MM-dd")}.csv`);
             document.body.appendChild(link);
             link.click();
             link.remove();
@@ -103,31 +149,29 @@ export default function JobHistoryPage() {
 
     const totalPages = Math.ceil(total / PAGE_SIZE);
 
-    const statusIcon = (s: string) => {
-        switch (s) {
-            case "completed": return <CheckCircle className="w-3.5 h-3.5 text-green-400" />;
-            case "failed": return <XCircle className="w-3.5 h-3.5 text-red-400" />;
-            case "processing":
-            case "pending":
-            case "queued": return <Clock className="w-3.5 h-3.5 text-yellow-400" />;
-            default: return null;
-        }
-    };
-
     const formatDate = (iso: string | null) => {
-        if (!iso) return "—";
+        if (!iso) return "\u2014";
         const d = new Date(iso);
         return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
             + " " + d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
     };
 
+    const SortIcon = ({ col }: { col: string }) => {
+        if (sortBy !== col) return <ChevronDown className="w-3 h-3 opacity-20" />;
+        return sortOrder === "asc"
+            ? <ChevronUp className="w-3 h-3" />
+            : <ChevronDown className="w-3 h-3" />;
+    };
+
+    const thClass = "px-4 py-3 font-mono text-[10px] uppercase tracking-widest text-foreground/60 cursor-pointer select-none hover:text-foreground/80 transition-colors";
+
     return (
         <div className="min-h-screen bg-background text-foreground">
             <nav className="border-b border-foreground/10 py-4 px-6 flex items-center justify-between">
                 <Link href="/admin" className="font-bold text-lg hover:opacity-70 transition-opacity">
-                    ← Admin
+                    &larr; Admin
                 </Link>
-                <span className="font-mono text-xs text-foreground/50 uppercase tracking-widest">Job History Ledger</span>
+                <span className="font-mono text-xs text-foreground/50 uppercase tracking-widest">Credit Ledger</span>
             </nav>
 
             <main className="max-w-7xl mx-auto px-4 py-8">
@@ -135,8 +179,8 @@ export default function JobHistoryPage() {
                 <div className="flex flex-col gap-4 mb-6">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                         <div>
-                            <h1 className="font-syne font-bold text-3xl">Job History</h1>
-                            <p className="font-mono text-xs text-foreground/50 mt-1">{total} total jobs</p>
+                            <h1 className="font-syne font-bold text-3xl">Credit Ledger</h1>
+                            <p className="font-mono text-xs text-foreground/50 mt-1">{total} total transactions</p>
                         </div>
                         <button
                             onClick={downloadCSV}
@@ -145,18 +189,25 @@ export default function JobHistoryPage() {
                             <Download className="w-4 h-4" /> Export CSV
                         </button>
                     </div>
+
+                    {/* Filters */}
                     <div className="flex flex-wrap items-center gap-3">
-                        <label className="font-mono text-xs text-foreground/50 uppercase">Status:</label>
+                        <input
+                            type="text"
+                            placeholder="Filter by email..."
+                            value={emailInput}
+                            onChange={(e) => setEmailInput(e.target.value)}
+                            className="bg-background border border-foreground/30 px-3 py-1.5 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-primary w-48"
+                        />
                         <select
-                            value={statusFilter}
-                            onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
+                            value={actionFilter}
+                            onChange={(e) => { setActionFilter(e.target.value); setPage(0); }}
                             className="bg-background border border-foreground/30 px-3 py-1.5 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-primary"
                         >
-                            <option value="">All</option>
-                            <option value="completed">Completed</option>
-                            <option value="queued">Queued</option>
-                            <option value="processing">Processing</option>
-                            <option value="failed">Failed</option>
+                            <option value="">All Actions</option>
+                            {Object.entries(ACTION_LABELS).map(([key, label]) => (
+                                <option key={key} value={key}>{label}</option>
+                            ))}
                         </select>
                         <label className="font-mono text-xs text-foreground/50">From:</label>
                         <input
@@ -172,12 +223,12 @@ export default function JobHistoryPage() {
                             onChange={(e) => { setEndDate(e.target.value); setPage(0); }}
                             className="bg-background border border-foreground/30 px-3 py-1.5 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-primary"
                         />
-                        {(startDate || endDate) && (
+                        {(emailInput || actionFilter || startDate || endDate) && (
                             <button
-                                onClick={() => { setStartDate(""); setEndDate(""); setPage(0); }}
+                                onClick={() => { setEmailInput(""); setActionFilter(""); setStartDate(""); setEndDate(""); setPage(0); }}
                                 className="font-mono text-xs text-foreground/50 hover:text-foreground underline"
                             >
-                                Clear dates
+                                Clear filters
                             </button>
                         )}
                     </div>
@@ -188,59 +239,58 @@ export default function JobHistoryPage() {
                     <table className="w-full text-left">
                         <thead>
                             <tr className="border-b-2 border-foreground bg-foreground/5">
-                                <th className="px-4 py-3 font-mono text-[10px] uppercase tracking-widest text-foreground/60">Date</th>
+                                <th className={thClass} onClick={() => handleSort("created_at")}>
+                                    <span className="flex items-center gap-1">Date <SortIcon col="created_at" /></span>
+                                </th>
                                 <th className="px-4 py-3 font-mono text-[10px] uppercase tracking-widest text-foreground/60">User</th>
-                                <th className="px-4 py-3 font-mono text-[10px] uppercase tracking-widest text-foreground/60">Status</th>
-                                <th className="px-4 py-3 font-mono text-[10px] uppercase tracking-widest text-foreground/60 text-center">Photos</th>
-                                <th className="px-4 py-3 font-mono text-[10px] uppercase tracking-widest text-foreground/60 text-center">Repairs</th>
-                                <th className="px-4 py-3 font-mono text-[10px] uppercase tracking-widest text-foreground/60 text-center">Remasters</th>
-                                <th className="px-4 py-3 font-mono text-[10px] uppercase tracking-widest text-foreground/60 text-center">On Disk</th>
-                                <th className="px-4 py-3 font-mono text-[10px] uppercase tracking-widest text-foreground/60">Job ID</th>
+                                <th className={thClass} onClick={() => handleSort("action")}>
+                                    <span className="flex items-center gap-1">Action <SortIcon col="action" /></span>
+                                </th>
+                                <th className={`${thClass} text-right`} onClick={() => handleSort("amount")}>
+                                    <span className="flex items-center justify-end gap-1">Amount <SortIcon col="amount" /></span>
+                                </th>
+                                <th className={`${thClass} text-right`} onClick={() => handleSort("balance_after")}>
+                                    <span className="flex items-center justify-end gap-1">Balance <SortIcon col="balance_after" /></span>
+                                </th>
+                                <th className="px-4 py-3 font-mono text-[10px] uppercase tracking-widest text-foreground/60">Actor</th>
+                                <th className="px-4 py-3 font-mono text-[10px] uppercase tracking-widest text-foreground/60">Note</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
                                 <tr>
-                                    <td colSpan={8} className="px-4 py-12 text-center">
+                                    <td colSpan={7} className="px-4 py-12 text-center">
                                         <Loader2 className="w-5 h-5 animate-spin mx-auto text-foreground/30" />
                                     </td>
                                 </tr>
-                            ) : jobs.length === 0 ? (
+                            ) : entries.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="px-4 py-12 text-center font-mono text-xs text-foreground/40">
-                                        No jobs found.
+                                    <td colSpan={7} className="px-4 py-12 text-center font-mono text-xs text-foreground/40">
+                                        No transactions found.
                                     </td>
                                 </tr>
-                            ) : jobs.map((job) => (
-                                <tr key={job.id} className="border-b border-foreground/10 hover:bg-foreground/[0.03] transition-colors">
+                            ) : entries.map((e) => (
+                                <tr key={e.id} className="border-b border-foreground/10 hover:bg-foreground/[0.03] transition-colors">
                                     <td className="px-4 py-2.5 font-mono text-xs text-foreground/70 whitespace-nowrap">
-                                        {formatDate(job.created_at)}
+                                        {formatDate(e.created_at)}
                                     </td>
                                     <td className="px-4 py-2.5 font-mono text-xs text-foreground/70 max-w-[180px] truncate">
-                                        {job.user_email}
+                                        {e.user_email}
                                     </td>
-                                    <td className="px-4 py-2.5">
-                                        <span className="inline-flex items-center gap-1.5 font-mono text-xs">
-                                            {statusIcon(job.status)}
-                                            {job.status}
-                                        </span>
+                                    <td className="px-4 py-2.5 font-mono text-xs">
+                                        {ACTION_LABELS[e.action] || e.action}
                                     </td>
-                                    <td className="px-4 py-2.5 font-mono text-xs text-center">{job.file_count}</td>
-                                    <td className="px-4 py-2.5 font-mono text-xs text-center">
-                                        {job.repair_count > 0 ? <span className="text-amber-400">{job.repair_count}</span> : <span className="text-foreground/20">—</span>}
+                                    <td className={`px-4 py-2.5 font-mono text-xs text-right font-bold ${e.amount >= 0 ? "text-green-500" : "text-red-500"}`}>
+                                        {e.amount >= 0 ? `+${e.amount}` : e.amount}
                                     </td>
-                                    <td className="px-4 py-2.5 font-mono text-xs text-center">
-                                        {job.remaster_count > 0 ? <span className="text-violet-400">{job.remaster_count}</span> : <span className="text-foreground/20">—</span>}
+                                    <td className="px-4 py-2.5 font-mono text-xs text-right text-foreground/70">
+                                        {e.balance_after}
                                     </td>
-                                    <td className="px-4 py-2.5 text-center">
-                                        {job.files_on_disk ? (
-                                            <HardDrive className="w-3.5 h-3.5 text-green-400 mx-auto" />
-                                        ) : (
-                                            <span title="Files pruned"><AlertTriangle className="w-3.5 h-3.5 text-red-400/60 mx-auto" /></span>
-                                        )}
+                                    <td className="px-4 py-2.5 font-mono text-[10px] text-foreground/50">
+                                        {e.actor === "system" ? "system" : e.actor.slice(0, 8)}
                                     </td>
-                                    <td className="px-4 py-2.5 font-mono text-[10px] text-foreground/30 max-w-[120px] truncate">
-                                        {job.id.slice(0, 8)}…
+                                    <td className="px-4 py-2.5 font-mono text-[10px] text-foreground/50 max-w-[200px] truncate">
+                                        {e.note || "\u2014"}
                                     </td>
                                 </tr>
                             ))}

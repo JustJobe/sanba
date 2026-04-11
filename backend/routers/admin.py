@@ -299,11 +299,21 @@ def export_reports(
             writer.writerow([u.id, u.email, u.full_name, u.credits, u.created_at])
     
     elif type == "jobs":
-        writer.writerow(["ID", "Status", "Created At", "Completed At", "Execution Time (s)", "Type"])
-        jobs = db.query(Job).filter(Job.created_at >= start_date, Job.created_at <= end_date).all()
-        for j in jobs:
-            writer.writerow([j.id, j.status, j.created_at, j.completed_at, j.execution_time, j.photo_type])
-    
+        writer.writerow(["ID", "User Email", "Status", "Created At", "Completed At", "Execution Time (s)", "Type"])
+        jobs = db.query(Job, User.email).outerjoin(User, Job.user_id == User.id)\
+            .filter(Job.created_at >= start_date, Job.created_at <= end_date)\
+            .order_by(Job.created_at.desc()).all()
+        for j, email in jobs:
+            writer.writerow([j.id, email or "unknown", j.status, j.created_at, j.completed_at, j.execution_time, j.photo_type])
+
+    elif type == "credit_ledger":
+        writer.writerow(["Date", "User Email", "Action", "Amount", "Balance After", "Actor", "Job ID", "Note"])
+        rows = db.query(CreditLedger, User.email).outerjoin(User, CreditLedger.user_id == User.id)\
+            .filter(CreditLedger.created_at >= start_date, CreditLedger.created_at <= end_date)\
+            .order_by(CreditLedger.created_at.desc()).all()
+        for e, email in rows:
+            writer.writerow([e.created_at, email or "unknown", e.action, e.amount, e.balance_after, e.actor, e.job_id, e.note])
+
     else:
         raise HTTPException(status_code=400, detail="Invalid export type")
 
@@ -406,6 +416,63 @@ def get_user_credit_history(
     ]
 
 
+@router.get("/credit-ledger")
+def list_credit_ledger(
+    limit: int = 50,
+    offset: int = 0,
+    user_id: Optional[str] = None,
+    user_email: Optional[str] = None,
+    action: Optional[str] = None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    sort_by: str = "created_at",
+    sort_order: str = "desc",
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """Global credit ledger — all credit transactions across all users."""
+    query = db.query(CreditLedger, User.email).outerjoin(User, CreditLedger.user_id == User.id)
+
+    if user_id:
+        query = query.filter(CreditLedger.user_id == user_id)
+    if user_email:
+        query = query.filter(User.email.ilike(f"%{user_email}%"))
+    if action:
+        query = query.filter(CreditLedger.action == action)
+    if start_date:
+        query = query.filter(CreditLedger.created_at >= start_date)
+    if end_date:
+        query = query.filter(CreditLedger.created_at <= end_date)
+
+    total = query.count()
+
+    # Sorting — whitelist columns to prevent injection
+    allowed_sort = {"created_at", "amount", "balance_after", "action"}
+    col = getattr(CreditLedger, sort_by if sort_by in allowed_sort else "created_at")
+    order = col.asc() if sort_order == "asc" else col.desc()
+    entries = query.order_by(order).offset(offset).limit(limit).all()
+
+    return {
+        "total": total,
+        "entries": [
+            {
+                "id": e.id,
+                "user_id": e.user_id,
+                "user_email": email or "unknown",
+                "action": e.action,
+                "amount": e.amount,
+                "balance_after": e.balance_after,
+                "actor": e.actor,
+                "job_id": e.job_id,
+                "payment_id": e.payment_id,
+                "note": e.note,
+                "created_at": e.created_at.isoformat() if e.created_at else None,
+            }
+            for e, email in entries
+        ],
+    }
+
+
 # --- STORAGE MANAGEMENT ENDPOINTS ---
 
 UPLOAD_DIR = "uploads"
@@ -505,6 +572,8 @@ def list_all_jobs(
     limit: int = 100,
     offset: int = 0,
     status: Optional[str] = None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
     db: Session = Depends(get_db),
     admin: User = Depends(get_admin_user),
 ):
@@ -512,6 +581,10 @@ def list_all_jobs(
     query = db.query(Job, User.email).outerjoin(User, Job.user_id == User.id)
     if status:
         query = query.filter(Job.status == status)
+    if start_date:
+        query = query.filter(Job.created_at >= start_date)
+    if end_date:
+        query = query.filter(Job.created_at <= end_date)
     total = query.count()
     jobs = query.order_by(Job.created_at.desc()).offset(offset).limit(limit).all()
 
