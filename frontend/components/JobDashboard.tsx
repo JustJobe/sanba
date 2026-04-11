@@ -404,9 +404,10 @@ export default function JobDashboard() {
                                             </span>
                     <button
                         onClick={() => startAiRepair(job.id, index)}
-                        className="ml-auto shrink-0 px-2 py-0.5 border border-blue-400/40 text-blue-300 hover:bg-blue-400 hover:text-background transition-colors font-mono text-[10px] uppercase tracking-wide"
+                        title="Retry"
+                        className="ml-auto shrink-0 p-1 border border-blue-400/40 text-blue-300 hover:bg-blue-400 hover:text-background transition-colors"
                     >
-                        Retry
+                        <RefreshCw className="w-3 h-3" />
                     </button>
                 </div>
             );
@@ -511,9 +512,10 @@ export default function JobDashboard() {
                                             </span>
                     <button
                         onClick={() => startAiRemaster(job.id, index)}
-                        className="ml-auto shrink-0 px-2 py-0.5 border border-blue-400/40 text-blue-300 hover:bg-blue-400 hover:text-background transition-colors font-mono text-[10px] uppercase tracking-wide"
+                        title="Retry"
+                        className="ml-auto shrink-0 p-1 border border-blue-400/40 text-blue-300 hover:bg-blue-400 hover:text-background transition-colors"
                     >
-                        Retry
+                        <RefreshCw className="w-3 h-3" />
                     </button>
                 </div>
             );
