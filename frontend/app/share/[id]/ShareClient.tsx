@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import ComparisonSlider from "@/components/ComparisonSlider";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, X } from "lucide-react";
 
 interface ShareData {
     share_id: string;
@@ -18,6 +19,8 @@ interface ShareData {
 }
 
 export default function ShareClient({ data, label }: { data: ShareData; label: string }) {
+    const [showFullImage, setShowFullImage] = useState(false);
+
     return (
         <main className="flex flex-col items-center px-4 pt-32 pb-16 gap-8 max-w-4xl mx-auto">
             {/* Title */}
@@ -32,8 +35,43 @@ export default function ShareClient({ data, label }: { data: ShareData; label: s
                 beforeLabel={data.before_label}
                 afterLabel={data.after_label}
                 modelBadge={data.model_badge ?? undefined}
+                onExpandAfter={() => setShowFullImage(true)}
                 fitScreen
             />
+
+            {/* Fullscreen image overlay for pinch-zoom */}
+            {showFullImage && (
+                <div
+                    className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col"
+                    onClick={() => setShowFullImage(false)}
+                >
+                    <div className="flex items-center justify-between px-4 py-3 shrink-0">
+                        <span className="font-mono text-xs text-white/60 uppercase tracking-widest">
+                            {data.after_label}
+                        </span>
+                        <button
+                            onClick={() => setShowFullImage(false)}
+                            className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+                    <div
+                        className="flex-1 overflow-auto flex items-center justify-center"
+                        style={{ touchAction: "pinch-zoom" }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                            src={data.after}
+                            alt={data.after_label}
+                            className="max-w-full h-auto"
+                            style={{ touchAction: "pinch-zoom" }}
+                            draggable={false}
+                        />
+                    </div>
+                </div>
+            )}
             <p className="text-center text-xs font-mono text-foreground/40 uppercase tracking-widest">
                 Drag slider to compare
             </p>

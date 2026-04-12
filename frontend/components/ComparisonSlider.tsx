@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { ChevronsLeftRight } from "lucide-react";
+import { ChevronsLeftRight, Expand } from "lucide-react";
 
 interface ComparisonSliderProps {
     before: string;
@@ -13,6 +13,7 @@ interface ComparisonSliderProps {
     afterFallback?: string;
     modelBadge?: string;
     fitScreen?: boolean;
+    onExpandAfter?: () => void;
 }
 
 export default function ComparisonSlider({
@@ -25,6 +26,7 @@ export default function ComparisonSlider({
     afterFallback,
     modelBadge,
     fitScreen,
+    onExpandAfter,
 }: ComparisonSliderProps) {
     const [isResizing, setIsResizing] = useState(false);
     const [position, setPosition] = useState(50);
@@ -123,9 +125,22 @@ export default function ComparisonSlider({
                 }}
             />
 
-            {/* Label After */}
-            <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-xs font-bold text-white text-center leading-snug whitespace-pre-line z-10">
-                {afterLabel}
+            {/* Label After + Expand */}
+            <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+                <div className="bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-xs font-bold text-white text-center leading-snug whitespace-pre-line">
+                    {afterLabel}
+                </div>
+                {onExpandAfter && (
+                    <button
+                        onClick={onExpandAfter}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onTouchStart={(e) => e.stopPropagation()}
+                        title="View full image"
+                        className="w-7 h-7 flex items-center justify-center bg-black/50 backdrop-blur-md rounded-xl border border-white/10 text-white hover:bg-white/20 transition-colors"
+                    >
+                        <Expand className="w-3.5 h-3.5" />
+                    </button>
+                )}
             </div>
 
             {/* Before Image (Foreground with Clip) */}
