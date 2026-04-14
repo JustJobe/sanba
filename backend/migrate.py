@@ -49,6 +49,26 @@ def migrate():
         # But to be safe, let's just let sqlalchemy handle the new table creation.
         print("New table 'activity_logs' will be created by SQLAlchemy on app startup.")
 
+    # Get existing columns for payments
+    cursor.execute("PRAGMA table_info(payments)")
+    payment_columns = [row[1] for row in cursor.fetchall()]
+
+    if payment_columns:  # table exists
+        if "currency" not in payment_columns:
+            print("Adding currency to payments...")
+            try:
+                cursor.execute("ALTER TABLE payments ADD COLUMN currency TEXT DEFAULT 'myr'")
+            except Exception as e:
+                print(f"Error adding currency to payments: {e}")
+
+        if "price_cents" not in payment_columns:
+            print("Adding price_cents to payments...")
+            try:
+                cursor.execute("ALTER TABLE payments ADD COLUMN price_cents INTEGER")
+                cursor.execute("UPDATE payments SET price_cents = price_myr_cents WHERE price_cents IS NULL")
+            except Exception as e:
+                print(f"Error adding price_cents to payments: {e}")
+
     conn.commit()
     conn.close()
     print("Migration check complete.")

@@ -8,11 +8,24 @@ import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import api from "@/lib/api";
 
+const CURRENCY_SYMBOLS: Record<string, string> = {
+    myr: "RM", usd: "$", sgd: "S$", eur: "\u20ac", gbp: "\u00a3",
+    aud: "A$", jpy: "\u00a5", idr: "Rp", thb: "\u0e3f", php: "\u20b1",
+};
+
+function formatPaymentAmount(cents: number, currency: string): string {
+    const sym = CURRENCY_SYMBOLS[currency] || "$";
+    if (currency === "jpy") return `${sym} ${cents}`;
+    return `${sym} ${(cents / 100).toFixed(2)}`;
+}
+
 interface PaymentRecord {
     id: string;
     package_key: string;
     credits_amount: number;
     price_myr_cents: number;
+    currency: string;
+    price_cents: number;
     status: string;
     created_at: string | null;
     completed_at: string | null;
@@ -226,7 +239,7 @@ export default function ProfilePage() {
                                                     </p>
                                                 </div>
                                                 <div className="text-right">
-                                                    <span className="font-mono">RM {(p.price_myr_cents / 100).toFixed(2)}</span>
+                                                    <span className="font-mono">{formatPaymentAmount(p.price_cents ?? p.price_myr_cents, p.currency ?? "myr")}</span>
                                                     <p className={`font-mono text-xs uppercase ${
                                                         p.status === "completed" ? "text-green-500" :
                                                         p.status === "pending" ? "text-yellow-500" : "text-foreground/30"

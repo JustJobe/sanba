@@ -10,6 +10,9 @@ import { useAuth } from "../../context/AuthContext";
 interface CreditPackage {
     credits: number;
     price_myr_cents: number;
+    price_cents: number;
+    currency: string;
+    currency_symbol: string;
     label: string;
     per_credit_label: string;
     badge?: string;
@@ -20,9 +23,30 @@ export default function StorePage() {
     const router = useRouter();
     const [packages, setPackages] = useState<Record<string, CreditPackage>>({});
     const [loadingKey, setLoadingKey] = useState<string | null>(null);
+    const [currency, setCurrency] = useState<string>("myr");
 
     useEffect(() => {
-        api.get("/payments/packages").then((res) => setPackages(res.data)).catch(console.error);
+        const detectCurrency = async () => {
+            const cached = localStorage.getItem("detected_currency");
+            if (cached) return cached;
+            try {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 2000);
+                const res = await fetch("https://ipapi.co/currency/", { signal: controller.signal });
+                clearTimeout(timeout);
+                const code = (await res.text()).trim().toLowerCase();
+                const supported = ["myr", "usd", "sgd", "eur", "gbp", "aud", "jpy", "idr", "thb", "php"];
+                const detected = supported.includes(code) ? code : "usd";
+                localStorage.setItem("detected_currency", detected);
+                return detected;
+            } catch {
+                return "usd";
+            }
+        };
+        detectCurrency().then((cur) => {
+            setCurrency(cur);
+            api.get(`/payments/packages?currency=${cur}`).then((res) => setPackages(res.data)).catch(console.error);
+        });
     }, []);
 
     const handleBuy = async (packageKey: string) => {
@@ -32,7 +56,7 @@ export default function StorePage() {
         }
         setLoadingKey(packageKey);
         try {
-            const res = await api.post("/payments/checkout", { package_key: packageKey });
+            const res = await api.post("/payments/checkout", { package_key: packageKey, currency });
             window.location.href = res.data.checkout_url;
         } catch (error) {
             console.error(error);
@@ -41,7 +65,12 @@ export default function StorePage() {
         }
     };
 
-    const formatPrice = (cents: number) => `RM ${(cents / 100).toFixed(2)}`;
+    const formatPrice = (pkg: CreditPackage) => {
+        const sym = pkg.currency_symbol || "RM";
+        const cents = pkg.price_cents ?? pkg.price_myr_cents;
+        if (pkg.currency === "jpy") return `${sym} ${cents}`;
+        return `${sym} ${(cents / 100).toFixed(2)}`;
+    };
 
     const packageEntries = Object.entries(packages);
 
@@ -103,7 +132,7 @@ export default function StorePage() {
                                                 <Loader2 className="w-4 h-4 animate-spin text-foreground/40" />
                                             ) : (
                                                 <span className={`font-bold ${isBestValue ? "text-violet-300" : "text-primary"}`}>
-                                                    {formatPrice(pkg.price_myr_cents)}
+                                                    {formatPrice(pkg)}
                                                 </span>
                                             )}
                                         </div>
@@ -113,7 +142,9 @@ export default function StorePage() {
                         </div>
 
                         <p className="text-xs text-foreground/30 text-center">
-                            Accepts cards, FPX, Touch &apos;n Go, and GrabPay
+                            {currency === "myr"
+                                ? "Accepts cards, FPX, Touch \u2019n Go, and GrabPay"
+                                : "Accepts all major cards"}
                         </p>
                     </div>
 

@@ -376,6 +376,8 @@ def list_payments(db: Session = Depends(get_db), admin: User = Depends(get_admin
             "package_key": p.package_key,
             "credits_amount": p.credits_amount,
             "price_myr_cents": p.price_myr_cents,
+            "currency": getattr(p, "currency", "myr") or "myr",
+            "price_cents": getattr(p, "price_cents", None) or p.price_myr_cents,
             "status": p.status,
             "credits_delivered": p.credits_delivered,
             "created_at": p.created_at.isoformat() if p.created_at else None,

@@ -65,10 +65,23 @@ interface AdminPayment {
     package_key: string;
     credits_amount: number;
     price_myr_cents: number;
+    currency: string;
+    price_cents: number;
     status: string;
     credits_delivered: number;
     created_at: string | null;
     completed_at: string | null;
+}
+
+const CURRENCY_SYMBOLS: Record<string, string> = {
+    myr: "RM", usd: "$", sgd: "S$", eur: "\u20ac", gbp: "\u00a3",
+    aud: "A$", jpy: "\u00a5", idr: "Rp", thb: "\u0e3f", php: "\u20b1",
+};
+
+function formatPaymentAmount(cents: number, currency: string): string {
+    const sym = CURRENCY_SYMBOLS[currency] || "$";
+    if (currency === "jpy") return `${sym} ${cents}`;
+    return `${sym} ${(cents / 100).toFixed(2)}`;
 }
 
 export default function AdminPage() {
@@ -634,7 +647,7 @@ export default function AdminPage() {
                                                     <td className="p-4 text-sm">{p.user_email}</td>
                                                     <td className="p-4 font-mono text-sm">{p.package_key}</td>
                                                     <td className="p-4 font-mono text-sm font-bold text-primary">{p.credits_amount}</td>
-                                                    <td className="p-4 font-mono text-sm">RM {(p.price_myr_cents / 100).toFixed(2)}</td>
+                                                    <td className="p-4 font-mono text-sm">{formatPaymentAmount(p.price_cents ?? p.price_myr_cents, p.currency ?? "myr")}</td>
                                                     <td className="p-4">
                                                         <span className={`inline-block px-2 py-1 text-xs font-bold uppercase tracking-wider border ${
                                                             p.status === "completed" ? "bg-green-100 text-green-800 border-green-800 dark:bg-green-900/30 dark:text-green-300 dark:border-green-500" :

@@ -12,6 +12,10 @@ from ..models.user import User
 from ..models.activity_log import ActivityLog
 from .auth import get_current_user
 from ..services.credit_ledger import record_credit_change
+from ..services.currency import (
+    SUPPORTED_CURRENCIES, ZERO_DECIMAL_CURRENCIES, CURRENCY_SYMBOLS,
+    convert_myr_cents_to_currency,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -39,11 +43,35 @@ CREDIT_PACKAGES = {
 
 class CheckoutRequest(BaseModel):
     package_key: str
+    currency: str = "myr"
 
 
 @router.get("/packages")
-def get_packages():
-    return CREDIT_PACKAGES
+def get_packages(currency: str = "myr"):
+    currency = currency.lower()
+    if currency not in SUPPORTED_CURRENCIES:
+        currency = "usd"
+
+    result = {}
+    for key, pkg in CREDIT_PACKAGES.items():
+        converted = convert_myr_cents_to_currency(pkg["price_myr_cents"], currency)
+        symbol = CURRENCY_SYMBOLS.get(currency, "$")
+
+        if currency in ZERO_DECIMAL_CURRENCIES:
+            per_credit = converted / pkg["credits"]
+            per_credit_label = f"{symbol} {per_credit:.0f} / credit"
+        else:
+            per_credit = converted / pkg["credits"] / 100
+            per_credit_label = f"{symbol} {per_credit:.2f} / credit"
+
+        result[key] = {
+            **pkg,
+            "currency": currency,
+            "price_cents": converted,
+            "currency_symbol": symbol,
+            "per_credit_label": per_credit_label,
+        }
+    return result
 
 
 @router.post("/checkout")
@@ -56,15 +84,21 @@ def create_checkout_session(
     if not package:
         raise HTTPException(status_code=400, detail="Invalid package")
 
+    currency = body.currency.lower()
+    if currency not in SUPPORTED_CURRENCIES:
+        currency = "usd"
+
+    price_cents = convert_myr_cents_to_currency(package["price_myr_cents"], currency)
+
     frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
     session = stripe.checkout.Session.create(
         mode="payment",
-        currency="myr",
+        currency=currency,
         line_items=[{
             "price_data": {
-                "currency": "myr",
-                "unit_amount": package["price_myr_cents"],
+                "currency": currency,
+                "unit_amount": price_cents,
                 "product_data": {
                     "name": package["label"],
                     "description": f'{package["credits"]} restoration credits for SanBa',
@@ -72,7 +106,6 @@ def create_checkout_session(
             },
             "quantity": 1,
         }],
-        payment_method_types=["card", "fpx", "grabpay"],
         client_reference_id=current_user.id,
         metadata={
             "package_key": body.package_key,
@@ -89,6 +122,8 @@ def create_checkout_session(
         package_key=body.package_key,
         credits_amount=package["credits"],
         price_myr_cents=package["price_myr_cents"],
+        currency=currency,
+        price_cents=price_cents,
         status="pending",
     )
     db.add(payment)
@@ -196,6 +231,8 @@ def get_payment_history(
             "package_key": p.package_key,
             "credits_amount": p.credits_amount,
             "price_myr_cents": p.price_myr_cents,
+            "currency": getattr(p, "currency", "myr") or "myr",
+            "price_cents": getattr(p, "price_cents", None) or p.price_myr_cents,
             "status": p.status,
             "created_at": p.created_at.isoformat() if p.created_at else None,
             "completed_at": p.completed_at.isoformat() if p.completed_at else None,

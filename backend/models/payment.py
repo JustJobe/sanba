@@ -18,6 +18,8 @@ class Payment(Base):
     package_key = Column(String, nullable=False)
     credits_amount = Column(Integer, nullable=False)
     price_myr_cents = Column(Integer, nullable=False)  # RM 9.90 = 990
+    currency = Column(String, default="myr", nullable=False)
+    price_cents = Column(Integer, nullable=True)  # amount in charged currency's smallest unit
 
     # Status tracking
     status = Column(String, default="pending", index=True)  # pending | completed | expired | failed
