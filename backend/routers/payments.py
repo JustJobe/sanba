@@ -92,6 +92,12 @@ def create_checkout_session(
 
     frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
+    # MYR supports local Malaysian payment methods; other currencies get card only
+    if currency == "myr":
+        payment_method_types = ["card", "fpx", "grabpay"]
+    else:
+        payment_method_types = ["card"]
+
     session = stripe.checkout.Session.create(
         mode="payment",
         currency=currency,
@@ -106,6 +112,7 @@ def create_checkout_session(
             },
             "quantity": 1,
         }],
+        payment_method_types=payment_method_types,
         client_reference_id=current_user.id,
         metadata={
             "package_key": body.package_key,
