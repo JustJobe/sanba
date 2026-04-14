@@ -98,43 +98,51 @@ def create_checkout_session(
     else:
         payment_method_types = ["card"]
 
-    session = stripe.checkout.Session.create(
-        mode="payment",
-        currency=currency,
-        line_items=[{
-            "price_data": {
-                "currency": currency,
-                "unit_amount": price_cents,
-                "product_data": {
-                    "name": package["label"],
-                    "description": f'{package["credits"]} restoration credits for SanBa',
+    try:
+        session = stripe.checkout.Session.create(
+            mode="payment",
+            currency=currency,
+            line_items=[{
+                "price_data": {
+                    "currency": currency,
+                    "unit_amount": price_cents,
+                    "product_data": {
+                        "name": package["label"],
+                        "description": f'{package["credits"]} restoration credits for SanBa',
+                    },
                 },
+                "quantity": 1,
+            }],
+            payment_method_types=payment_method_types,
+            client_reference_id=current_user.id,
+            metadata={
+                "package_key": body.package_key,
+                "credits_amount": str(package["credits"]),
+                "user_id": current_user.id,
             },
-            "quantity": 1,
-        }],
-        payment_method_types=payment_method_types,
-        client_reference_id=current_user.id,
-        metadata={
-            "package_key": body.package_key,
-            "credits_amount": str(package["credits"]),
-            "user_id": current_user.id,
-        },
-        success_url=f"{frontend_url}/store/success?session_id={{CHECKOUT_SESSION_ID}}",
-        cancel_url=f"{frontend_url}/store",
-    )
+            success_url=f"{frontend_url}/store/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{frontend_url}/store",
+        )
+    except Exception as e:
+        logger.error(f"Stripe checkout session creation failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Payment provider error: {str(e)}")
 
-    payment = Payment(
-        user_id=current_user.id,
-        stripe_checkout_session_id=session.id,
-        package_key=body.package_key,
-        credits_amount=package["credits"],
-        price_myr_cents=package["price_myr_cents"],
-        currency=currency,
-        price_cents=price_cents,
-        status="pending",
-    )
-    db.add(payment)
-    db.commit()
+    try:
+        payment = Payment(
+            user_id=current_user.id,
+            stripe_checkout_session_id=session.id,
+            package_key=body.package_key,
+            credits_amount=package["credits"],
+            price_myr_cents=package["price_myr_cents"],
+            currency=currency,
+            price_cents=price_cents,
+            status="pending",
+        )
+        db.add(payment)
+        db.commit()
+    except Exception as e:
+        logger.error(f"Failed to save payment record: {e}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
     return {"checkout_url": session.url}
 
