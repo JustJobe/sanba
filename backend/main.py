@@ -80,6 +80,21 @@ async def migrate_db():
             conn.commit()
             logger.info("DB migration: added jobs.is_sample")
 
+        # Migrate payments table
+        try:
+            existing_pay = [row[1] for row in conn.execute(sa.text("PRAGMA table_info(payments)"))]
+            if existing_pay:  # table exists
+                if "currency" not in existing_pay:
+                    conn.execute(sa.text("ALTER TABLE payments ADD COLUMN currency TEXT DEFAULT 'myr'"))
+                    conn.commit()
+                    logger.info("DB migration: added payments.currency")
+                if "price_cents" not in existing_pay:
+                    conn.execute(sa.text("ALTER TABLE payments ADD COLUMN price_cents INTEGER"))
+                    conn.commit()
+                    logger.info("DB migration: added payments.price_cents")
+        except Exception as e:
+            logger.error(f"payments migration failed: {e}")
+
 
 @app.on_event("startup")
 async def start_cleanup():

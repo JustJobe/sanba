@@ -120,21 +120,23 @@ export default function AdminPage() {
     const fetchData = async () => {
         setIsLoadingData(true);
         try {
-            const [usersRes, plansRes, settingsRes, paymentsRes] = await Promise.all([
+            const [usersRes, plansRes, settingsRes, paymentsRes] = await Promise.allSettled([
                 api.get("/admin/users"),
                 api.get("/admin/incentives"),
                 api.get("/admin/settings"),
                 api.get("/admin/payments"),
             ]);
-            setUsers(usersRes.data);
-            setPlans(plansRes.data);
-            setPayments(paymentsRes.data);
+            if (usersRes.status === "fulfilled") setUsers(usersRes.value.data);
+            if (plansRes.status === "fulfilled") setPlans(plansRes.value.data);
+            if (paymentsRes.status === "fulfilled") setPayments(paymentsRes.value.data);
 
-            const settingsMap: Record<string, string> = {};
-            settingsRes.data.forEach((s: SystemSetting) => {
-                settingsMap[s.key] = s.value;
-            });
-            setSettings(settingsMap);
+            if (settingsRes.status === "fulfilled") {
+                const settingsMap: Record<string, string> = {};
+                settingsRes.value.data.forEach((s: SystemSetting) => {
+                    settingsMap[s.key] = s.value;
+                });
+                setSettings(settingsMap);
+            }
         } catch (e) {
             console.error("Failed to fetch admin data", e);
         } finally {
