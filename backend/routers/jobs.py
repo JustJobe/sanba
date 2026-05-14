@@ -475,7 +475,7 @@ def download_job_zip(job_id: str, db: Session = Depends(get_db), current_user: u
                 original_stem = os.path.splitext(os.path.basename(job.files[i]))[0] \
                     if job.files and i < len(job.files) \
                     else os.path.splitext(os.path.basename(file_path))[0]
-                zip_file.write(file_path, f"{original_stem}_restored.jpg")
+                zip_file.write(file_path, f"{original_stem}_a_restored.jpg")
             else:
                 logger.warning(f"File not found for zip: {file_path}")
         # AI-repaired files (if any)
@@ -484,14 +484,14 @@ def download_job_zip(job_id: str, db: Session = Depends(get_db), current_user: u
                 original_stem = os.path.splitext(os.path.basename(job.files[i]))[0] \
                     if job.files and i < len(job.files) \
                     else os.path.splitext(os.path.basename(ai_path))[0]
-                zip_file.write(ai_path, f"{original_stem}_ai_repaired.jpg")
+                zip_file.write(ai_path, f"{original_stem}_b_repaired.jpg")
         # AI-remastered files (if any)
         for i, remaster_path in enumerate(job.ai_remastered_files or []):
             if remaster_path and os.path.exists(remaster_path):
                 original_stem = os.path.splitext(os.path.basename(job.files[i]))[0] \
                     if job.files and i < len(job.files) \
                     else os.path.splitext(os.path.basename(remaster_path))[0]
-                zip_file.write(remaster_path, f"{original_stem}_remastered.jpg")
+                zip_file.write(remaster_path, f"{original_stem}_c_remastered.jpg")
 
     zip_buffer.seek(0)
 
