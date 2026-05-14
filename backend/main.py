@@ -97,6 +97,90 @@ async def migrate_db():
 
 
 @app.on_event("startup")
+async def recover_stuck_jobs():
+    """Reset jobs left in 'pending' by a crashed/restarted worker, and refund.
+
+    Background AI repair/remaster runs in an in-memory ThreadPoolExecutor.
+    If the process exits mid-job (deploy, OOM, crash), the per-image status
+    stays 'pending' forever and the UI shows an endless spinner.
+
+    On startup we treat any 'pending' as a failed run: mark it 'failed' so the
+    Retry button reappears, and refund the matching charge from the credit
+    ledger (skipping any that already have a refund recorded).
+    """
+    from .database import SessionLocal
+    from .models.sql_job import Job
+    from .models.user import User
+    from .models.credit_ledger import CreditLedger
+    from .services.credit_ledger import record_credit_change
+
+    db = SessionLocal()
+    try:
+        recovered = 0
+        reset_count = 0
+        for j in db.query(Job).all():
+            for attr, action_charge, action_refund in [
+                ("ai_repair_status", "ai_repair", "refund_repair"),
+                ("ai_remaster_status", "ai_remaster", "refund_remaster"),
+            ]:
+                statuses = list(getattr(j, attr) or [])
+                changed = False
+                for idx, s in enumerate(statuses):
+                    if s != "pending":
+                        continue
+                    statuses[idx] = "failed"
+                    changed = True
+                    note_substr = f"file_index={idx},"
+                    charges = [
+                        c for c in db.query(CreditLedger).filter(
+                            CreditLedger.job_id == j.id,
+                            CreditLedger.action == action_charge,
+                        ).all()
+                        if c.note and note_substr in c.note
+                    ]
+                    refunds = [
+                        r for r in db.query(CreditLedger).filter(
+                            CreditLedger.job_id == j.id,
+                            CreditLedger.action == action_refund,
+                        ).all()
+                        if r.note and note_substr in r.note
+                    ]
+                    if charges and len(refunds) < len(charges):
+                        charge = sorted(charges, key=lambda c: c.created_at)[-1]
+                        amount = abs(charge.amount)
+                        u = db.query(User).filter(User.id == j.user_id).first()
+                        if u:
+                            u.credits += amount
+                            record_credit_change(
+                                db=db, user_id=u.id, action=action_refund,
+                                amount=+amount, balance_after=u.credits,
+                                actor="system", job_id=j.id,
+                                note=f"stuck_job_recovery, file_index={idx},",
+                            )
+                            logger.info(
+                                f"Stuck-job recovery: job={j.id} idx={idx} "
+                                f"action={action_charge} refunded={amount} user={u.id}"
+                            )
+                            recovered += 1
+                if changed:
+                    setattr(j, attr, statuses)
+                    reset_count += 1
+        if reset_count or recovered:
+            db.commit()
+            logger.info(
+                f"Stuck-job recovery: reset {reset_count} job statuses, "
+                f"refunded {recovered} pending entries"
+            )
+        else:
+            db.rollback()  # no changes, release transaction
+    except Exception as e:
+        logger.error(f"Stuck-job recovery failed: {e}", exc_info=True)
+        db.rollback()
+    finally:
+        db.close()
+
+
+@app.on_event("startup")
 async def start_cleanup():
     """Launch the daily storage cleanup background thread."""
     from .services.cleanup import start_cleanup_scheduler
