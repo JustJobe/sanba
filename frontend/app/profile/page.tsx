@@ -13,6 +13,12 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
     aud: "A$", jpy: "\u00a5", idr: "Rp", thb: "\u0e3f", php: "\u20b1",
 };
 
+function formatPaymentDate(iso: string): string {
+    // Backend timestamps are UTC but carry no timezone marker
+    const d = new Date(/Z|[+-]\d{2}:?\d{2}$/.test(iso) ? iso : iso + "Z");
+    return d.toLocaleDateString("en-MY", { day: "numeric", month: "short", year: "numeric" });
+}
+
 function formatPaymentAmount(cents: number, currency: string): string {
     const sym = CURRENCY_SYMBOLS[currency] || "$";
     if (currency === "jpy") return `${sym} ${cents}`;
@@ -150,7 +156,7 @@ export default function ProfilePage() {
                                                     type="tel"
                                                     value={phone}
                                                     onChange={(e) => setPhone(e.target.value)}
-                                                    placeholder="+1 (555) 000-0000"
+                                                    placeholder="+60 12-345 6789"
                                                     className="w-full bg-transparent border-b border-foreground py-3 pl-12 pr-4 text-foreground placeholder:text-foreground/30 focus:border-primary focus:outline-none transition-all font-mono text-sm"
                                                 />
                                             </div>
@@ -226,16 +232,16 @@ export default function ProfilePage() {
                                     <Receipt className="w-4 h-4" />
                                     Purchase History
                                 </h3>
-                                {payments.length === 0 ? (
+                                {payments.filter((p) => p.status !== "expired").length === 0 ? (
                                     <p className="font-mono text-sm text-foreground/40">No purchases yet. <Link href="/store" className="text-primary hover:underline">Visit the store</Link> to buy credits.</p>
                                 ) : (
                                     <div className="space-y-2">
-                                        {payments.map((p) => (
+                                        {payments.filter((p) => p.status !== "expired").map((p) => (
                                             <div key={p.id} className="flex items-center justify-between p-3 bg-accent/10 border border-foreground/10 text-sm">
                                                 <div>
                                                     <span className="font-mono font-bold">{p.credits_amount} credits</span>
                                                     <p className="font-mono text-xs text-foreground/40">
-                                                        {p.created_at ? new Date(p.created_at).toLocaleDateString() : "—"}
+                                                        {p.created_at ? formatPaymentDate(p.created_at) : "—"}
                                                     </p>
                                                 </div>
                                                 <div className="text-right">

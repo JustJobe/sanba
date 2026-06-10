@@ -126,6 +126,9 @@ export default function StorePage() {
                                             <span className={`font-medium ${isBestValue ? "text-violet-300" : ""}`}>
                                                 {pkg.label}
                                             </span>
+                                            {pkg.per_credit_label && (
+                                                <p className="text-xs text-foreground/40 mt-0.5">{pkg.per_credit_label}</p>
+                                            )}
                                         </div>
                                         <div className="flex items-center gap-2">
                                             {loadingKey === key ? (
@@ -170,9 +173,14 @@ export default function StorePage() {
                                 Return Shipping Included
                             </li>
                         </ul>
-                        <button className="w-full bg-accent hover:bg-accent/80 text-background font-bold py-3 rounded-lg transition-colors">
-                            Get a Quote
-                        </button>
+                        <a
+                            href={`https://wa.me/60166016074?text=${encodeURIComponent("Hi SanBa, I'd like a quote for the Concierge Scanning service.")}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block w-full text-center border border-accent text-accent hover:bg-accent hover:text-background font-bold py-3 rounded-lg transition-colors"
+                        >
+                            Get a Quote on WhatsApp
+                        </a>
                     </div>
                 </div>
             </div>

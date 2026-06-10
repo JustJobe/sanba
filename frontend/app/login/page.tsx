@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { ArrowRight, Mail, KeyRound, Loader2, ArrowLeft } from "lucide-react";
@@ -27,6 +27,13 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [termsAccepted, setTermsAccepted] = useState(false);
+    const [resendIn, setResendIn] = useState(0);
+
+    useEffect(() => {
+        if (resendIn <= 0) return;
+        const t = setTimeout(() => setResendIn(s => s - 1), 1000);
+        return () => clearTimeout(t);
+    }, [resendIn]);
 
     const handleEmailSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -35,10 +42,24 @@ export default function LoginPage() {
         try {
             await requestOtp(email);
             setStep("otp");
+            setOtp("");
+            setResendIn(30);
         } catch (err) {
             setError("Failed to send OTP. Please try again.");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleResend = async () => {
+        if (resendIn > 0 || loading) return;
+        setError("");
+        try {
+            await requestOtp(email);
+            setOtp("");
+            setResendIn(30);
+        } catch (err) {
+            setError("Failed to resend the code. Please try again.");
         }
     };
 
@@ -48,8 +69,8 @@ export default function LoginPage() {
         setError("");
         try {
             await login(email, otp);
-        } catch (err) {
-            setError("Invalid OTP. Please try again.");
+        } catch (err: any) {
+            setError(err?.response?.data?.detail || "Invalid OTP. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -159,7 +180,12 @@ export default function LoginPage() {
                                     <input
                                         type="text"
                                         value={otp}
-                                        onChange={(e) => setOtp(e.target.value)}
+                                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                                        maxLength={6}
+                                        inputMode="numeric"
+                                        pattern="[0-9]{6}"
+                                        autoComplete="one-time-code"
+                                        autoFocus
                                         className="w-full bg-transparent border-b-2 border-foreground/20 px-0 py-3 focus:outline-none focus:border-foreground transition-colors font-mono text-center text-2xl tracking-[1em]"
                                         placeholder="••••••"
                                         required
@@ -168,6 +194,14 @@ export default function LoginPage() {
                                 <p className="text-xs font-mono text-foreground/40 mt-4 text-center">
                                     Code sent to {email}
                                 </p>
+                                <button
+                                    type="button"
+                                    onClick={handleResend}
+                                    disabled={resendIn > 0}
+                                    className="block mx-auto mt-2 text-xs font-mono uppercase tracking-widest disabled:text-foreground/30 disabled:cursor-not-allowed hover:underline"
+                                >
+                                    {resendIn > 0 ? `Resend code in ${resendIn}s` : "Resend code"}
+                                </button>
                             </div>
                             <button
                                 type="submit"

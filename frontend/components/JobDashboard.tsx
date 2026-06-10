@@ -33,6 +33,43 @@ interface Job {
     is_sample?: boolean;
 }
 
+const getFileUrl = (path: string) => {
+    if (!path) return '';
+    const relativePath = path.replace(/\\/g, '/').replace(/^uploads\//, '');
+    return `/files/${relativePath}`;
+};
+
+const toPreviewUrl = (fileUrl: string): string => {
+    const lastDot = fileUrl.lastIndexOf('.');
+    if (lastDot === -1) return fileUrl;
+    return fileUrl.substring(0, lastDot) + '_preview' + fileUrl.substring(lastDot);
+};
+
+const formatJobDate = (iso: string) => {
+    // Backend timestamps are UTC but carry no timezone marker
+    const d = new Date(/Z|[+-]\d{2}:?\d{2}$/.test(iso) ? iso : iso + 'Z');
+    return d.toLocaleString('en-MY', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+};
+
+// Thumbnail that loads the lightweight _preview variant, falling back to the full-size file
+function PreviewImg({ src, alt = '', className = 'w-full h-full object-cover' }: { src: string; alt?: string; className?: string }) {
+    return (
+        <img
+            src={toPreviewUrl(src)}
+            alt={alt}
+            loading="lazy"
+            className={className}
+            onError={(e) => {
+                const img = e.currentTarget;
+                if (img.dataset.fallback !== '1') {
+                    img.dataset.fallback = '1';
+                    img.src = src;
+                }
+            }}
+        />
+    );
+}
+
 export default function JobDashboard() {
     const [jobs, setJobs] = useState<Job[]>([]);
     const [loading, setLoading] = useState(true);
@@ -59,7 +96,7 @@ export default function JobDashboard() {
         comparisonType?: "restored" | "repaired" | "remastered";
     } | null>(null);
     const [shareStatus, setShareStatus] = useState<'idle' | 'copying' | 'copied'>('idle');
-    const modelShort: Record<string, string> = { pro: '30pp', flash: '31fp' };
+    const modelShort: Record<string, string> = { pro: 'PRM', flash: 'STD' };
 
     // Slideshow state for batch jobs
     type ComparisonStep = NonNullable<typeof comparingFiles>;
@@ -94,7 +131,7 @@ export default function JobDashboard() {
     };
 
     const deleteJob = async (jobId: string) => {
-        if (!confirm("Are you sure? This action is permanent.")) return;
+        if (!confirm("Delete this job and all its photos? This cannot be undone.")) return;
         try {
             await api.delete(`/jobs/${jobId}`);
             fetchJobs();
@@ -124,7 +161,7 @@ export default function JobDashboard() {
 
     const getModelDisplay = (tierOrNull: string | null | undefined) => {
         const tier = tierOrNull || pricing.default_model || 'pro';
-        return pricing.models?.[tier]?.display_name || 'Gemini 3 Pro';
+        return pricing.models?.[tier]?.display_name || 'Premium';
     };
 
     const startAiRepair = async (jobId: string, fileIndex: number) => {
@@ -216,18 +253,6 @@ export default function JobDashboard() {
             case 'failed': return 'bg-destructive/10 text-destructive border-destructive';
             default: return 'bg-foreground/5 text-foreground/60 border-foreground/20';
         }
-    };
-
-    const getFileUrl = (path: string) => {
-        if (!path) return '';
-        const relativePath = path.replace(/\\/g, '/').replace(/^uploads\//, '');
-        return `/files/${relativePath}`;
-    };
-
-    const toPreviewUrl = (fileUrl: string): string => {
-        const lastDot = fileUrl.lastIndexOf('.');
-        if (lastDot === -1) return fileUrl;
-        return fileUrl.substring(0, lastDot) + '_preview' + fileUrl.substring(lastDot);
     };
 
     // ── Slideshow helpers (batch jobs only) ──
@@ -345,7 +370,7 @@ export default function JobDashboard() {
                         className={`group/thumb relative block ${thumbSize} border-2 border-amber-400 overflow-hidden hover:scale-105 transition-transform`}
                         title={`View AI-Repaired (${getModelDisplay(job.ai_repair_models?.[index])})`}
                     >
-                        <img src={getFileUrl(aiFile)} alt="AI Repaired" className="w-full h-full object-cover" />
+                        <PreviewImg src={getFileUrl(aiFile)} alt="AI Repaired" />
                         <div className="absolute inset-0 flex items-center justify-center bg-amber-400/20 opacity-0 group-hover/thumb:opacity-100 transition-opacity">
                             <Sparkles className={`${iconSize} text-amber-300 drop-shadow-md`} />
                         </div>
@@ -453,7 +478,7 @@ export default function JobDashboard() {
                         className={`group/thumb relative block ${thumbSize} border-2 border-violet-400 overflow-hidden hover:scale-105 transition-transform`}
                         title={`View Remastered (${getModelDisplay(job.ai_remaster_models?.[index])})`}
                     >
-                        <img src={getFileUrl(remasterFile)} alt="Remastered" className="w-full h-full object-cover" />
+                        <PreviewImg src={getFileUrl(remasterFile)} alt="Remastered" />
                         <div className="absolute inset-0 flex items-center justify-center bg-violet-400/20 opacity-0 group-hover/thumb:opacity-100 transition-opacity">
                             <Wand2 className={`${iconSize} text-violet-300 drop-shadow-md`} />
                         </div>
@@ -597,22 +622,22 @@ export default function JobDashboard() {
                                     <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0">
                                         {job.files[2] && (
                                             <div className="absolute top-[8px] left-[8px] w-16 h-16 sm:w-20 sm:h-20 border border-foreground bg-foreground/5 overflow-hidden opacity-30">
-                                                <img src={getFileUrl(job.files[2])} className="w-full h-full object-cover" />
+                                                <PreviewImg src={getFileUrl(job.files[2])} alt="" />
                                             </div>
                                         )}
                                         {job.files[1] && (
                                             <div className="absolute top-[4px] left-[4px] w-16 h-16 sm:w-20 sm:h-20 border border-foreground bg-foreground/5 overflow-hidden opacity-60">
-                                                <img src={getFileUrl(job.files[1])} className="w-full h-full object-cover" />
+                                                <PreviewImg src={getFileUrl(job.files[1])} alt="" />
                                             </div>
                                         )}
                                         <div className="absolute top-0 left-0 w-16 h-16 sm:w-20 sm:h-20 border border-foreground bg-foreground/5 overflow-hidden">
-                                            <img src={getFileUrl(job.files[0])} className="w-full h-full object-cover opacity-80" />
+                                            <PreviewImg src={getFileUrl(job.files[0])} alt="" className="w-full h-full object-cover opacity-80" />
                                         </div>
                                     </div>
                                 ) : (
                                     <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 border border-foreground bg-foreground/5 flex items-center justify-center overflow-hidden">
                                         {job.files.length > 0 ? (
-                                            <img src={getFileUrl(job.files[0])} alt="Thumbnail" className="w-full h-full object-cover opacity-80" />
+                                            <PreviewImg src={getFileUrl(job.files[0])} alt="Thumbnail" className="w-full h-full object-cover opacity-80" />
                                         ) : (
                                             <ImageIcon className="w-8 h-8 text-foreground/20" />
                                         )}
@@ -626,7 +651,7 @@ export default function JobDashboard() {
                                         </span>
                                     </div>
                                     <p className="font-mono text-xs text-foreground/40 uppercase tracking-widest">
-                                        {new Date(job.created_at).toLocaleString()}
+                                        {formatJobDate(job.created_at)}
                                     </p>
                                     <p className="font-mono text-xs text-foreground/60 mt-1">
                                         {job.files.length} FILE(S) • {job.source}
@@ -658,12 +683,13 @@ export default function JobDashboard() {
                                     </div>
                                 )}
 
-                                {job.status === 'queued' && (
+                                {job.status !== 'processing' && (
                                     <button
                                         onClick={() => deleteJob(job.id)}
                                         disabled={processingId === job.id}
                                         className="p-2 text-foreground/40 hover:text-destructive transition-colors"
                                         title="Delete Job"
+                                        aria-label="Delete job"
                                     >
                                         <Trash2 className="w-5 h-5" />
                                     </button>
@@ -700,16 +726,16 @@ export default function JobDashboard() {
                                             >
                                                 {(job.processed_files?.[2] ?? job.files[2]) && (
                                                     <div className="absolute top-[7px] left-[7px] w-12 h-12 border border-foreground bg-foreground/5 overflow-hidden opacity-30">
-                                                        <img src={getFileUrl(job.processed_files?.[2] ?? job.files[2])} className="w-full h-full object-cover" />
+                                                        <PreviewImg src={getFileUrl(job.processed_files?.[2] ?? job.files[2])} alt="" />
                                                     </div>
                                                 )}
                                                 {(job.processed_files?.[1] ?? job.files[1]) && (
                                                     <div className="absolute top-[3px] left-[3px] w-12 h-12 border border-foreground bg-foreground/5 overflow-hidden opacity-60">
-                                                        <img src={getFileUrl(job.processed_files?.[1] ?? job.files[1])} className="w-full h-full object-cover" />
+                                                        <PreviewImg src={getFileUrl(job.processed_files?.[1] ?? job.files[1])} alt="" />
                                                     </div>
                                                 )}
                                                 <div className="absolute top-0 left-0 w-12 h-12 border border-foreground bg-foreground/5 overflow-hidden group-hover/stack:border-primary transition-colors">
-                                                    <img src={getFileUrl(job.processed_files?.[0] ?? job.files[0])} className="w-full h-full object-cover" />
+                                                    <PreviewImg src={getFileUrl(job.processed_files?.[0] ?? job.files[0])} alt="" />
                                                 </div>
                                             </div>
                                             <button
@@ -768,7 +794,7 @@ export default function JobDashboard() {
                                                     className="group/thumb relative block w-12 h-12 border border-foreground overflow-hidden hover:scale-105 transition-transform"
                                                     title="View Restored"
                                                 >
-                                                    <img src={getFileUrl(job.processed_files[0])} alt="Restored" className="w-full h-full object-cover" />
+                                                    <PreviewImg src={getFileUrl(job.processed_files[0])} alt="Restored" />
                                                     <div className="absolute inset-0 flex items-center justify-center bg-primary/20 opacity-0 group-hover/thumb:opacity-100 transition-opacity">
                                                         <Download className="w-4 h-4 text-white drop-shadow-md" />
                                                     </div>
@@ -882,7 +908,7 @@ export default function JobDashboard() {
                                                             className="group/thumb relative block w-14 h-14 shrink-0 border border-foreground/30 overflow-hidden hover:scale-105 transition-transform"
                                                             title="View Original"
                                                         >
-                                                            <img src={getFileUrl(file)} className="w-full h-full object-cover" />
+                                                            <PreviewImg src={getFileUrl(file)} alt="Original" />
                                                             <div className="absolute bottom-0 left-0 right-0 bg-black/60 py-0.5 text-center">
                                                                 <span className="text-[7px] text-white/70 font-mono uppercase tracking-widest">Orig</span>
                                                             </div>
@@ -912,7 +938,7 @@ export default function JobDashboard() {
                                                                     className="relative block w-10 h-10 border border-green-500/50 hover:border-green-600 transition-colors overflow-hidden shrink-0"
                                                                     title="View Restored"
                                                                 >
-                                                                    <img src={getFileUrl(processed)} className="w-full h-full object-cover" />
+                                                                    <PreviewImg src={getFileUrl(processed)} alt="Restored" />
                                                                 </a>
                                                                 <button
                                                                     onClick={() => {

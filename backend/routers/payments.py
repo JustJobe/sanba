@@ -125,7 +125,7 @@ def create_checkout_session(
         )
     except Exception as e:
         logger.error(f"Stripe checkout session creation failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Payment provider error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Payment provider error. Please try again.")
 
     try:
         payment = Payment(
@@ -142,7 +142,7 @@ def create_checkout_session(
         db.commit()
     except Exception as e:
         logger.error(f"Failed to save payment record: {e}")
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Could not record the payment. Please try again.")
 
     return {"checkout_url": session.url}
 

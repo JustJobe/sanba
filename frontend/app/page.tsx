@@ -54,7 +54,7 @@ export default function Home() {
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden selection:bg-secondary selection:text-primary-foreground">
       {user && <CreditClaimPopup />}
       {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 mix-blend-difference text-white px-4 sm:px-6 py-6 sm:py-8 flex justify-between items-start pointer-events-none">
+      <nav className="fixed top-0 w-full z-50 bg-background/90 backdrop-blur border-b border-foreground/10 text-foreground sm:bg-transparent sm:backdrop-blur-none sm:border-b-0 sm:mix-blend-difference sm:text-white px-4 sm:px-6 py-3 sm:py-8 flex justify-between items-center sm:items-start pointer-events-none">
         <div className="pointer-events-auto flex items-center gap-6">
           <Link href="/" className="font-syne font-bold text-3xl sm:text-4xl tracking-tighter leading-[0.8]">
             San<br />Ba.
@@ -67,6 +67,7 @@ export default function Home() {
         <div className="pointer-events-auto flex flex-wrap justify-end items-center gap-3 sm:gap-6 font-mono text-xs sm:text-sm underline-offset-4">
           {!user ? (
             <>
+              <Link href="/gallery" className="hover:underline decoration-1">Gallery</Link>
               <Link href="/faq" className="hover:underline decoration-1">FAQ</Link>
               <Link href="/login" className="hover:underline decoration-1">Login</Link>
             </>
@@ -76,7 +77,7 @@ export default function Home() {
                 Credits: {user.credits}
               </Link>
               {user.credits < pricing.daily_credit_threshold && <CreditCountdown />}
-              <Link href="/store" className="hover:underline decoration-1 opacity-60 hidden sm:inline">
+              <Link href="/store" className="hover:underline decoration-1 opacity-60">
                 Buy More
               </Link>
               <Link href="/profile" className="hover:underline decoration-1">

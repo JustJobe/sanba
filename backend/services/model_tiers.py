@@ -10,14 +10,14 @@ ai_remaster_cost_discounted_{tier}).
 MODEL_TIERS = {
     "pro": {
         "id": "pro",
-        "display_name": "Gemini 3 Pro",
+        "display_name": "Premium",
         "thinking_model": "gemini-3-flash-preview",
         "image_model": "gemini-3-pro-image-preview",
         "description": "Highest quality \u2014 best for important photos",
     },
     "flash": {
         "id": "flash",
-        "display_name": "Gemini 3.1 Flash",
+        "display_name": "Standard",
         "thinking_model": "gemini-3-flash-preview",
         "image_model": "gemini-3.1-flash-image-preview",
         "description": "Fast and affordable \u2014 good for most photos",

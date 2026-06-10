@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from starlette.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from ..database import get_db
@@ -16,11 +18,15 @@ import random
 from ..services.credit_ledger import record_credit_change
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 # --- CONFIG ---
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
-OTP_STORE = {} # Simple in-memory storage for demo: {email: otp}
+# In-memory OTP store: {email: {"otp": str, "expires_at": datetime, "attempts": int}}
+OTP_STORE = {}
+OTP_TTL_MINUTES = 5
+OTP_MAX_ATTEMPTS = 5
 
 # Mailjet Config
 MAILJET_API_KEY = os.getenv("MAILJET_API_KEY")
@@ -150,10 +156,15 @@ def replenish_credits(user: User, db: Session) -> bool:
     return False  # No plan qualified
 
 @router.post("/request-otp")
-def request_otp(request: EmailRequest):
+@limiter.limit("5/minute")
+def request_otp(request: Request, body: EmailRequest):
     # Generate random 6-digit OTP
     otp = str(random.randint(100000, 999999))
-    OTP_STORE[request.email] = otp
+    OTP_STORE[body.email] = {
+        "otp": otp,
+        "expires_at": datetime.datetime.utcnow() + datetime.timedelta(minutes=OTP_TTL_MINUTES),
+        "attempts": 0,
+    }
     
     # Send Email via Mailjet
     data = {
@@ -165,7 +176,7 @@ def request_otp(request: EmailRequest):
           },
           "To": [
             {
-              "Email": request.email,
+              "Email": body.email,
               "Name": "User"
             }
           ],
@@ -181,7 +192,7 @@ def request_otp(request: EmailRequest):
         if result.status_code != 200:
             print(f"Mailjet Error: {result.json()}")
             raise HTTPException(status_code=500, detail="Failed to send email")
-        print(f"--- OTP SENT TO {request.email} (Check Inbox) ---")
+        print(f"--- OTP SENT TO {body.email} (Check Inbox) ---")
     except Exception as e:
         print(f"Mailjet Exception: {e}")
         raise HTTPException(status_code=500, detail="Failed to send email")
@@ -190,10 +201,19 @@ def request_otp(request: EmailRequest):
 
 @router.post("/verify-otp", response_model=Token)
 def verify_otp(request: VerifyOTPRequest, db: Session = Depends(get_db)):
-    stored_otp = OTP_STORE.get(request.email)
-    if not stored_otp or stored_otp != request.otp:
+    entry = OTP_STORE.get(request.email)
+    if not entry or datetime.datetime.utcnow() > entry["expires_at"]:
+        OTP_STORE.pop(request.email, None)
+        raise HTTPException(status_code=400, detail="Code expired or not found. Please request a new one.")
+
+    entry["attempts"] += 1
+    if entry["attempts"] > OTP_MAX_ATTEMPTS:
+        OTP_STORE.pop(request.email, None)
+        raise HTTPException(status_code=429, detail="Too many attempts. Please request a new code.")
+
+    if entry["otp"] != request.otp:
         raise HTTPException(status_code=400, detail="Invalid OTP")
-    
+
     # Clear OTP
     OTP_STORE.pop(request.email, None)
     
