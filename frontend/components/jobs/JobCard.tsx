@@ -5,7 +5,7 @@ import { StatusBadge } from '../ui/StatusBadge';
 import {
     Job, Pricing, ComparisonStep,
     getFileUrl, toPreviewUrl, formatJobDate, jobTitle, getModelDisplay,
-    modelShort, repairEligibleIndexes, PreviewImg,
+    modelShort, repairEligibleIndexes, countComparisons, PreviewImg,
 } from './helpers';
 
 interface JobCardProps {
@@ -448,6 +448,16 @@ export function JobCard({
             {job.status === 'completed' && job.files.length === 1 && !expanded && job.processed_files?.[0] && (
                 <div className="mt-4 flex flex-wrap items-center justify-start sm:justify-end gap-2">
                     <div className="flex items-center gap-2">
+                        {countComparisons(job) > 1 && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onSlideshow(); }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 border border-foreground/30 hover:bg-foreground hover:text-background text-[10px] font-mono uppercase tracking-widest transition-colors"
+                                title="Slideshow: browse all comparisons"
+                            >
+                                <Play className="w-3 h-3" />
+                                Slideshow
+                            </button>
+                        )}
                         {(job.ai_repaired_files?.[0] || job.ai_remastered_files?.[0]) && (
                             <button
                                 onClick={() => onDuplicate(0)}

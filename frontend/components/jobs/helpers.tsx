@@ -130,6 +130,17 @@ export const buildSlideshowSteps = (job: Job, pricing: Pricing): ComparisonStep[
     return steps;
 };
 
+/** Total comparisons the slideshow would show (restored/repaired/remastered per file). */
+export const countComparisons = (job: Job): number => {
+    let n = 0;
+    for (let i = 0; i < job.files.length; i++) {
+        if (job.processed_files?.[i]) n++;
+        if (job.ai_repaired_files?.[i]) n++;
+        if (job.ai_remastered_files?.[i]) n++;
+    }
+    return n;
+};
+
 /** File indexes still eligible for AI repair (restored, not repaired, not pending). */
 export const repairEligibleIndexes = (job: Job): number[] => {
     const indexes: number[] = [];
