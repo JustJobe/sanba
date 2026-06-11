@@ -440,57 +440,53 @@ export function JobCard({
                         </div>
                     )}
 
-                    {/* Single-file completed job — thumbnails + actions */}
-                    {job.status === 'completed' && job.files.length === 1 && !expanded && (
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:flex-wrap">
-                            {job.processed_files?.[0] && (
-                                <div className="flex items-center gap-2">
-                                    {(job.ai_repaired_files?.[0] || job.ai_remastered_files?.[0]) && (
-                                        <button
-                                            onClick={() => onDuplicate(0)}
-                                            className="p-2 text-foreground/40 hover:text-foreground transition-colors"
-                                            title="Duplicate restored image to a new job for another Repair/Remaster attempt"
-                                            aria-label="Duplicate restored image to a new job"
-                                        >
-                                            <Copy className="w-4 h-4" />
-                                        </button>
-                                    )}
-                                    <a
-                                        href={getFileUrl(job.processed_files[0])}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="group/thumb relative block w-12 h-12 border border-foreground overflow-hidden hover:scale-105 transition-transform"
-                                        title="View Restored"
-                                    >
-                                        <PreviewImg src={getFileUrl(job.processed_files[0])} alt="Restored" />
-                                        <div className="absolute inset-0 flex items-center justify-center bg-primary/20 opacity-0 group-hover/thumb:opacity-100 transition-opacity">
-                                            <Download className="w-4 h-4 text-white drop-shadow-md" />
-                                        </div>
-                                    </a>
-                                    <button
-                                        onClick={() => compareRestored(0)}
-                                        className="p-2 bg-background border border-foreground hover:bg-foreground hover:text-background transition-colors"
-                                        title="Review: Original vs Restored"
-                                        aria-label="Compare original with restored"
-                                    >
-                                        <Eye className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            )}
-                            {job.processed_files?.[0] && (
-                                <div className="flex items-center gap-2">
-                                    {renderAiRepair(0, 'md')}
-                                </div>
-                            )}
-                            {job.processed_files?.[0] && (
-                                <div className="flex items-center gap-2">
-                                    {renderAiRemaster(0, 'md')}
-                                </div>
-                            )}
-                        </div>
-                    )}
                 </div>
             </div>
+
+            {/* Single-file completed job — thumbnails + actions on a full-width row so they never get
+                squeezed into the narrow header column and wrap */}
+            {job.status === 'completed' && job.files.length === 1 && !expanded && job.processed_files?.[0] && (
+                <div className="mt-4 flex flex-wrap items-center justify-start sm:justify-end gap-2">
+                    <div className="flex items-center gap-2">
+                        {(job.ai_repaired_files?.[0] || job.ai_remastered_files?.[0]) && (
+                            <button
+                                onClick={() => onDuplicate(0)}
+                                className="p-2 text-foreground/40 hover:text-foreground transition-colors"
+                                title="Duplicate restored image to a new job for another Repair/Remaster attempt"
+                                aria-label="Duplicate restored image to a new job"
+                            >
+                                <Copy className="w-4 h-4" />
+                            </button>
+                        )}
+                        <a
+                            href={getFileUrl(job.processed_files[0])}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group/thumb relative block w-12 h-12 border border-foreground overflow-hidden hover:scale-105 transition-transform"
+                            title="View Restored"
+                        >
+                            <PreviewImg src={getFileUrl(job.processed_files[0])} alt="Restored" />
+                            <div className="absolute inset-0 flex items-center justify-center bg-primary/20 opacity-0 group-hover/thumb:opacity-100 transition-opacity">
+                                <Download className="w-4 h-4 text-white drop-shadow-md" />
+                            </div>
+                        </a>
+                        <button
+                            onClick={() => compareRestored(0)}
+                            className="p-2 bg-background border border-foreground hover:bg-foreground hover:text-background transition-colors"
+                            title="Review: Original vs Restored"
+                            aria-label="Compare original with restored"
+                        >
+                            <Eye className="w-4 h-4" />
+                        </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {renderAiRepair(0, 'md')}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {renderAiRemaster(0, 'md')}
+                    </div>
+                </div>
+            )}
 
             {job.status === 'processing' && (
                 <div className="mt-4 flex items-center gap-3 px-4 py-3 border border-yellow-500/40 bg-yellow-500/10 text-yellow-400" aria-live="polite">
