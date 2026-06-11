@@ -627,6 +627,22 @@ async def ai_repair_all(
     return job
 
 
+def _maybe_notify_photos_ready(db: Session, job, user_id: str, kind: str):
+    """Email the user once every AI operation on a job has finished."""
+    try:
+        statuses = list(job.ai_repair_status or []) + list(job.ai_remaster_status or [])
+        if any(s == "pending" for s in statuses):
+            return  # more operations still running — the last one will notify
+        u = db.query(user.User).filter(user.User.id == user_id).first()
+        if not u or not u.email:
+            return
+        first_file = os.path.basename(job.files[0]) if job.files else "your photo"
+        from ..services import notifications
+        notifications.send_photos_ready(u.email, first_file, kind)
+    except Exception as e:
+        logger.warning(f"photos-ready notification failed for job {job.id}: {e}")
+
+
 def ai_repair_background(job_id: str, file_index: int, user_id: str, credits_charged: int = 4, tier_id: str = DEFAULT_TIER):
     db: Session = SessionLocal()
     try:
@@ -690,6 +706,7 @@ def ai_repair_background(job_id: str, file_index: int, user_id: str, credits_cha
 
         db.commit()
         logger.info(f"AI repair complete: job {job_id} idx {file_index} tier={tier_id} → {output_path} ({result.duration_secs}s, {result.input_width}×{result.input_height}px)")
+        _maybe_notify_photos_ready(db, job, user_id, kind="repair")
 
     except RepairContentPolicyError as e:
         logger.warning(f"AI repair content policy block job {job_id} idx {file_index}: {e}")
@@ -886,6 +903,7 @@ def ai_remaster_background(job_id: str, file_index: int, user_id: str, credits_c
 
         db.commit()
         logger.info(f"AI remaster complete: job {job_id} idx {file_index} tier={tier_id} → {output_path} ({result.duration_secs}s, {result.input_width}×{result.input_height}px)")
+        _maybe_notify_photos_ready(db, job, user_id, kind="remaster")
 
     except RemasterContentPolicyError as e:
         logger.warning(f"AI remaster content policy block job {job_id} idx {file_index}: {e}")

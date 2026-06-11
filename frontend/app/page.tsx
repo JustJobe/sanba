@@ -9,6 +9,7 @@ import api from "@/lib/api";
 import Link from "next/link";
 import CreditClaimPopup from "@/components/CreditClaimPopup";
 import { SiteNav } from "@/components/SiteNav";
+import { ReferralCard } from "@/components/ReferralCard";
 import { Loader2, Wand2, ArrowRight, Play, Sparkles } from "lucide-react";
 
 interface ModelPricing {
@@ -204,8 +205,9 @@ export default function Home() {
             <div className="grid lg:grid-cols-12 gap-12">
               {/* UploadZone: first in DOM for mobile, visually right on lg+ */}
               <div className="lg:col-span-4 order-first lg:order-last">
-                <div className="sticky top-32">
+                <div className="sticky top-32 space-y-6">
                   <UploadZone />
+                  <ReferralCard compact />
                 </div>
               </div>
               {/* JobDashboard: second in DOM for mobile, visually left on lg+ */}
@@ -271,9 +273,16 @@ export default function Home() {
                     <p>+60 16 601 6074</p>
                   </div>
                 </div>
-                <p className="font-mono text-xs text-foreground/30">
-                  &copy; {new Date().getFullYear()}
-                </p>
+                <div className="text-right">
+                  <div className="font-mono text-xs text-foreground/50 space-x-4">
+                    <Link href="/privacy" className="hover:underline">Privacy</Link>
+                    <Link href="/terms" className="hover:underline">Terms</Link>
+                    <Link href="/faq" className="hover:underline">FAQ</Link>
+                  </div>
+                  <p className="font-mono text-xs text-foreground/30 mt-4">
+                    &copy; {new Date().getFullYear()}
+                  </p>
+                </div>
               </footer>
             </>
           )}

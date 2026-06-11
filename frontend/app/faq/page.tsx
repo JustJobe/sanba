@@ -89,6 +89,18 @@ const faqs = [
         ),
     },
     {
+        id: "retention",
+        q: "How long do you keep my photos?",
+        a: (
+            <p>
+                Photos are automatically and permanently deleted <strong className="text-foreground">90 days after upload</strong> —
+                we email you a reminder about a week before. You can also delete any job (and all its
+                photos) instantly from your dashboard. Full details on the{" "}
+                <Link href="/privacy" className="underline hover:text-primary">privacy page</Link>.
+            </p>
+        ),
+    },
+    {
         id: "concierge",
         q: "What is the Concierge Service?",
         a: (

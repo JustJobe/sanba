@@ -8,24 +8,94 @@ from datetime import datetime, timedelta
 logger = logging.getLogger(__name__)
 
 UPLOAD_DIR = "uploads"
-DEFAULT_RETENTION_DAYS = 30
+DEFAULT_RETENTION_DAYS = 90
+REMINDER_DAYS_BEFORE = 7
 CLEANUP_INTERVAL_SECS = 86400  # once per day
+
+
+def _get_retention_days(db) -> int:
+    from ..models.system_setting import SystemSetting
+    setting = db.query(SystemSetting).filter_by(key="job_retention_days").first()
+    if setting and setting.value.isdigit():
+        return int(setting.value)
+    return DEFAULT_RETENTION_DAYS
+
+
+def _shared_job_ids(db, job_ids):
+    """Jobs with active share links are exempt from purge (shared URLs stay alive)."""
+    from ..models.share import ShareLink
+    if not job_ids:
+        return set()
+    return set(
+        row[0] for row in
+        db.query(ShareLink.job_id)
+        .filter(ShareLink.job_id.in_(job_ids))
+        .distinct()
+        .all()
+    )
+
+
+def _send_purge_reminders(db, retention_days: int):
+    """Email users whose jobs will be purged in REMINDER_DAYS_BEFORE days."""
+    from ..models.sql_job import Job
+    from ..models.user import User
+    from . import notifications
+
+    cutoff = datetime.utcnow() - timedelta(days=retention_days - REMINDER_DAYS_BEFORE)
+    candidates = (
+        db.query(Job)
+        .filter(
+            Job.created_at < cutoff,
+            Job.status.in_(["completed", "failed"]),
+            Job.purge_reminder_at.is_(None),
+        )
+        .all()
+    )
+    candidates = [j for j in candidates if not j.is_sample and j.user_id]
+    if not candidates:
+        return
+
+    exempt = _shared_job_ids(db, [j.id for j in candidates])
+    by_user = {}
+    for j in candidates:
+        if j.id in exempt:
+            continue
+        by_user.setdefault(j.user_id, []).append(j)
+
+    now = datetime.utcnow()
+    for user_id, jobs in by_user.items():
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user or not user.email:
+            continue
+        titles = [
+            os.path.basename(j.files[0]) if j.files else f"Job #{j.id[:8]}"
+            for j in jobs
+        ]
+        notifications.send_purge_reminder(
+            user.email, titles, days_left=REMINDER_DAYS_BEFORE, retention_days=retention_days,
+        )
+        for j in jobs:
+            j.purge_reminder_at = now
+    db.commit()
+    logger.info(f"Purge reminders sent for {sum(len(v) for v in by_user.values())} jobs across {len(by_user)} users")
 
 
 def _run_cleanup(retention_days: int):
     """Delete files for completed/failed jobs older than retention_days.
-    Skips jobs that have active share links so shared URLs stay alive."""
+    Skips jobs that have active share links so shared URLs stay alive,
+    and seeded sample jobs."""
     from ..database import SessionLocal
     from ..models.sql_job import Job
-    from ..models.share import ShareLink
-    from ..models.system_setting import SystemSetting
 
     db = SessionLocal()
     try:
-        # Check system_settings for a configured retention period
-        setting = db.query(SystemSetting).filter_by(key="job_retention_days").first()
-        if setting and setting.value.isdigit():
-            retention_days = int(setting.value)
+        retention_days = _get_retention_days(db)
+
+        try:
+            _send_purge_reminders(db, retention_days)
+        except Exception as e:
+            logger.error(f"Purge reminder pass failed: {e}")
+            db.rollback()
 
         cutoff = datetime.utcnow() - timedelta(days=retention_days)
         old_jobs = (
@@ -33,20 +103,13 @@ def _run_cleanup(retention_days: int):
             .filter(Job.created_at < cutoff, Job.status.in_(["completed", "failed"]))
             .all()
         )
+        old_jobs = [j for j in old_jobs if not j.is_sample]
 
         if not old_jobs:
             logger.info(f"Storage cleanup: no jobs older than {retention_days} days to clean up")
             return
 
-        # Build set of job IDs that have active share links — skip these
-        old_job_ids = [j.id for j in old_jobs]
-        shared_job_ids = set(
-            row[0] for row in
-            db.query(ShareLink.job_id)
-            .filter(ShareLink.job_id.in_(old_job_ids))
-            .distinct()
-            .all()
-        )
+        shared_job_ids = _shared_job_ids(db, [j.id for j in old_jobs])
 
         deleted_count = 0
         skipped_count = 0

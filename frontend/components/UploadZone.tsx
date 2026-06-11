@@ -1,17 +1,30 @@
 "use client";
 
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Upload, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../lib/api';
 
 const MAX_FILES = 50;
 
+/** Tells the job list (useJobs) to refetch immediately instead of waiting for the next poll. */
+const notifyJobsChanged = () => window.dispatchEvent(new Event('sanba:jobs-changed'));
+
 export default function UploadZone() {
     const [isDragging, setIsDragging] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const [message, setMessage] = useState('');
+    const [autoRestore, setAutoRestore] = useState(true);
+
+    useEffect(() => {
+        setAutoRestore(localStorage.getItem('auto_restore') !== '0');
+    }, []);
+
+    const toggleAutoRestore = (on: boolean) => {
+        setAutoRestore(on);
+        localStorage.setItem('auto_restore', on ? '1' : '0');
+    };
 
     const handleDrag = useCallback((e: React.DragEvent) => {
         e.preventDefault();
@@ -64,8 +77,21 @@ export default function UploadZone() {
 
         try {
             const response = await api.post('/jobs/upload', formData);
+            if (autoRestore) {
+                try {
+                    await api.post(`/jobs/${response.data.id}/process?operation=restoration_full`);
+                    setMessage('Restoring your photos now…');
+                } catch (err: any) {
+                    // Not enough credits (or any failure) — job stays queued with a Restore button
+                    setMessage(err?.response?.status === 402
+                        ? 'Uploaded! Not enough credits to auto-restore — job is queued.'
+                        : 'Uploaded! Job is queued — hit Restore when ready.');
+                }
+            } else {
+                setMessage('Uploaded! Job is queued — hit Restore when ready.');
+            }
             setStatus('success');
-            setMessage(`Job created! ID: ${response.data.id}`);
+            notifyJobsChanged();
         } catch (error) {
             setStatus('error');
             setMessage('Upload failed. Please try again.');
@@ -152,6 +178,17 @@ export default function UploadZone() {
                                     />
                                 </label>
                             </div>
+                            <label className="mt-4 flex items-center gap-2 cursor-pointer select-none">
+                                <input
+                                    type="checkbox"
+                                    checked={autoRestore}
+                                    onChange={(e) => toggleAutoRestore(e.target.checked)}
+                                    className="w-3.5 h-3.5 accent-primary cursor-pointer"
+                                />
+                                <span className="font-mono text-[10px] uppercase tracking-widest text-foreground/50">
+                                    Start restoring right after upload (1cr / photo)
+                                </span>
+                            </label>
                         </motion.div>
                     )}
                 </AnimatePresence>

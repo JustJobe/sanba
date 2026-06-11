@@ -33,3 +33,4 @@ class Job(Base):
     ai_repair_models       = Column(JSON, default=[])  # Per-index: "pro" | "flash" | null
     ai_remaster_models     = Column(JSON, default=[])  # Per-index: "pro" | "flash" | null
     is_sample              = Column(Boolean, default=False)  # Seeded sample job for new users
+    purge_reminder_at      = Column(DateTime, nullable=True)  # When the pre-purge reminder email was sent

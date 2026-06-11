@@ -28,12 +28,24 @@ export default function LoginPage() {
     const [error, setError] = useState("");
     const [termsAccepted, setTermsAccepted] = useState(false);
     const [resendIn, setResendIn] = useState(0);
+    const [signupRef, setSignupRef] = useState<string | null>(null);
 
     useEffect(() => {
         if (resendIn <= 0) return;
         const t = setTimeout(() => setResendIn(s => s - 1), 1000);
         return () => clearTimeout(t);
     }, [resendIn]);
+
+    // Capture referral / acquisition tag from ?ref= and keep it across the OTP round-trip
+    useEffect(() => {
+        const ref = new URLSearchParams(window.location.search).get("ref");
+        if (ref) {
+            localStorage.setItem("signup_ref", ref);
+            setSignupRef(ref);
+        } else {
+            setSignupRef(localStorage.getItem("signup_ref"));
+        }
+    }, []);
 
     const handleEmailSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -68,7 +80,8 @@ export default function LoginPage() {
         setLoading(true);
         setError("");
         try {
-            await login(email, otp);
+            await login(email, otp, signupRef);
+            localStorage.removeItem("signup_ref");
         } catch (err: any) {
             setError(err?.response?.data?.detail || "Invalid OTP. Please try again.");
         } finally {
@@ -118,7 +131,7 @@ export default function LoginPage() {
                     <div className="space-y-4 mb-12">
                         {termsAccepted ? (
                             <a
-                                href={`${process.env.NEXT_PUBLIC_API_URL}/auth/login/google`}
+                                href={`${process.env.NEXT_PUBLIC_API_URL}/auth/login/google${signupRef ? `?ref=${encodeURIComponent(signupRef)}` : ""}`}
                                 className="w-full bg-background border border-foreground text-foreground font-mono text-sm font-bold py-4 flex items-center justify-center gap-3 hover:bg-foreground hover:text-background transition-colors brutalist-shadow"
                             >
                                 <GoogleIcon className="w-5 h-5" />

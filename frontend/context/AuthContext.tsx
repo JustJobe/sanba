@@ -12,6 +12,7 @@ interface User {
     phone?: string;
     is_admin?: number;
     credit_replenished?: boolean;
+    referral_code?: string;
 }
 
 interface AuthContextType {
@@ -19,7 +20,7 @@ interface AuthContextType {
     loading: boolean;
     creditReplenished: boolean;
     clearCreditReplenished: () => void;
-    login: (email: string, otp: string) => Promise<void>;
+    login: (email: string, otp: string, ref?: string | null) => Promise<void>;
     loginWithToken: (token: string) => Promise<void>;
     requestOtp: (email: string) => Promise<void>;
     logout: () => void;
@@ -65,8 +66,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await api.post("/auth/request-otp", { email });
     };
 
-    const login = async (email: string, otp: string) => {
-        const { data } = await api.post("/auth/verify-otp", { email, otp });
+    const login = async (email: string, otp: string, ref?: string | null) => {
+        const { data } = await api.post("/auth/verify-otp", { email, otp, ref: ref || undefined });
         localStorage.setItem("token", data.access_token);
         api.defaults.headers.common["Authorization"] = `Bearer ${data.access_token}`;
         await refreshUser();

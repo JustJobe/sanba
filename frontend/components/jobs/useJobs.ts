@@ -59,6 +59,13 @@ export function useJobs({ onInsufficientCredits, onAiFailure }: UseJobsOptions) 
         api.get('/jobs/pricing').then(res => setPricing(res.data)).catch(() => {});
     }, [fetchJobs]);
 
+    // Immediate refresh when another component (e.g. UploadZone) changes the job list
+    useEffect(() => {
+        const handler = () => fetchJobs();
+        window.addEventListener('sanba:jobs-changed', handler);
+        return () => window.removeEventListener('sanba:jobs-changed', handler);
+    }, [fetchJobs]);
+
     // Adaptive polling: fast while anything is in flight, slow when idle
     const hasActiveWork = jobs.some(j =>
         j.status === 'processing' ||

@@ -25,6 +25,12 @@ stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 
 CREDIT_PACKAGES = {
+    "10_credits": {
+        "credits": 10,
+        "price_myr_cents": 290,
+        "label": "10 Credits",
+        "per_credit_label": "RM 0.29 / credit",
+    },
     "50_credits": {
         "credits": 50,
         "price_myr_cents": 990,
@@ -37,6 +43,13 @@ CREDIT_PACKAGES = {
         "label": "200 Credits",
         "per_credit_label": "RM 0.15 / credit",
         "badge": "POPULAR",
+    },
+    "500_credits": {
+        "credits": 500,
+        "price_myr_cents": 5990,
+        "label": "500 Credits",
+        "per_credit_label": "RM 0.12 / credit",
+        "badge": "BEST VALUE",
     },
 }
 

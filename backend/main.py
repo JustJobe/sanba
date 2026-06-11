@@ -80,6 +80,22 @@ async def migrate_db():
             conn.commit()
             logger.info("DB migration: added jobs.is_sample")
 
+        if "purge_reminder_at" not in existing:
+            conn.execute(sa.text("ALTER TABLE jobs ADD COLUMN purge_reminder_at DATETIME"))
+            conn.commit()
+            logger.info("DB migration: added jobs.purge_reminder_at")
+
+        # Migrate users table (referral program)
+        existing_users = [row[1] for row in conn.execute(sa.text("PRAGMA table_info(users)"))]
+        if "referral_code" not in existing_users:
+            conn.execute(sa.text("ALTER TABLE users ADD COLUMN referral_code TEXT"))
+            conn.commit()
+            logger.info("DB migration: added users.referral_code")
+        if "referred_by" not in existing_users:
+            conn.execute(sa.text("ALTER TABLE users ADD COLUMN referred_by TEXT"))
+            conn.commit()
+            logger.info("DB migration: added users.referred_by")
+
         # Migrate payments table
         try:
             existing_pay = [row[1] for row in conn.execute(sa.text("PRAGMA table_info(payments)"))]
@@ -218,6 +234,9 @@ async def seed_defaults():
             ("ai_remaster_cost_full_flash", "2", "Credits for AI remaster (full) — Flash tier"),
             ("ai_remaster_cost_discounted_pro", "3", "Credits for AI remaster (discounted) — Pro tier"),
             ("ai_remaster_cost_discounted_flash", "1", "Credits for AI remaster (discounted) — Flash tier"),
+            ("referral_reward_referrer", "5", "Credits granted to the referrer when an invited user signs up"),
+            ("referral_reward_referee", "5", "Bonus credits granted to a new user who signs up with a referral code"),
+            ("job_retention_days", "90", "Days after upload before photos are auto-deleted (reminder emailed 7 days before)"),
         ]:
             if not db.query(SystemSettingModel).filter_by(key=key).first():
                 db.add(SystemSettingModel(key=key, value=default, description=desc))

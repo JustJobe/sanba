@@ -15,3 +15,5 @@ class User(Base):
     full_name = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     is_admin = Column(Integer, default=0) # SQLite boolean 0/1
+    referral_code = Column(String, nullable=True, index=True)  # uniqueness enforced in code
+    referred_by = Column(String, nullable=True)  # user id of the referrer

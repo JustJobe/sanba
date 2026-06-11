@@ -15,6 +15,8 @@ from mailjet_rest import Client
 from authlib.integrations.starlette_client import OAuth
 import os
 import random
+import secrets
+from ..models.activity_log import ActivityLog
 from ..services.credit_ledger import record_credit_change
 
 router = APIRouter()
@@ -69,6 +71,7 @@ class EmailRequest(BaseModel):
 class VerifyOTPRequest(BaseModel):
     email: EmailStr
     otp: str
+    ref: Optional[str] = None  # referral code or acquisition tag (e.g. "share")
 
 class Token(BaseModel):
     access_token: str
@@ -82,6 +85,7 @@ class UserResponse(BaseModel):
     credits: int
     is_admin: int
     credit_replenished: bool = False
+    referral_code: Optional[str] = None
 
 class UserUpdate(BaseModel):
     full_name: Optional[str]
@@ -104,6 +108,55 @@ def get_new_user_credits(db: Session) -> int:
     if setting and setting.value and setting.value.isdigit():
         return int(setting.value)
     return 10 # Default fallback
+
+def _get_int_setting(db: Session, key: str, default: int) -> int:
+    setting = db.query(SystemSetting).filter(SystemSetting.key == key).first()
+    if setting and setting.value and setting.value.isdigit():
+        return int(setting.value)
+    return default
+
+def ensure_referral_code(user: User, db: Session) -> str:
+    """Lazily assign a short shareable referral code."""
+    if user.referral_code:
+        return user.referral_code
+    for _ in range(10):
+        code = secrets.token_hex(4)  # 8 hex chars
+        if not db.query(User).filter(User.referral_code == code).first():
+            user.referral_code = code
+            db.commit()
+            db.refresh(user)
+            return code
+    return user.referral_code or ""
+
+def apply_signup_ref(db: Session, new_user: User, ref: Optional[str]):
+    """Record acquisition source and pay out referral rewards when the
+    ref matches another user's referral code."""
+    if not ref:
+        return
+    ref = ref.strip()[:64]
+    try:
+        db.add(ActivityLog(user_id=new_user.id, action="signup_ref", details={"ref": ref}))
+        referrer = db.query(User).filter(User.referral_code == ref).first()
+        if referrer and referrer.id != new_user.id:
+            referee_amt = _get_int_setting(db, "referral_reward_referee", 5)
+            referrer_amt = _get_int_setting(db, "referral_reward_referrer", 5)
+            new_user.referred_by = referrer.id
+            new_user.credits += referee_amt
+            record_credit_change(
+                db=db, user_id=new_user.id, action="referral_bonus",
+                amount=+referee_amt, balance_after=new_user.credits,
+                actor="system", note=f"referred_by={referrer.id}",
+            )
+            referrer.credits += referrer_amt
+            record_credit_change(
+                db=db, user_id=referrer.id, action="referral_reward",
+                amount=+referrer_amt, balance_after=referrer.credits,
+                actor="system", note=f"referred_user={new_user.id}",
+            )
+        db.commit()
+    except Exception as e:
+        print(f"signup ref handling failed: {e}")
+        db.rollback()
 
 def replenish_credits(user: User, db: Session) -> bool:
     """Try to grant daily free credit. Returns True if credit was awarded."""
@@ -231,6 +284,7 @@ def verify_otp(request: VerifyOTPRequest, db: Session = Depends(get_db)):
         )
         db.commit()
         db.refresh(user)
+        apply_signup_ref(db, user, request.ref)
         # Seed a sample job so the dashboard isn't empty on first visit
         from .jobs import seed_sample_job
         seed_sample_job(db, user.id)
@@ -266,6 +320,7 @@ def get_current_user(authorization: Optional[str] = Header(None), db: Session = 
 @router.get("/me", response_model=UserResponse)
 def read_users_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     replenished = replenish_credits(current_user, db)
+    referral_code = ensure_referral_code(current_user, db)
     return UserResponse(
         id=current_user.id,
         email=current_user.email,
@@ -274,6 +329,7 @@ def read_users_me(current_user: User = Depends(get_current_user), db: Session = 
         credits=current_user.credits,
         is_admin=current_user.is_admin,
         credit_replenished=replenished,
+        referral_code=referral_code,
     )
 
 @router.put("/me", response_model=UserResponse)
@@ -296,8 +352,11 @@ def update_user_me(user_update: UserUpdate, current_user: User = Depends(get_cur
 
 @router.get('/login/{provider}')
 async def login_via_provider(provider: str, request: Request):
-    # Construct redirect URI
-    # Use API_BASE_URL from env or fallback to localhost for dev
+    # Stash an optional referral/acquisition tag in the OAuth session so the
+    # callback can attribute the signup
+    ref = request.query_params.get('ref')
+    if ref:
+        request.session['signup_ref'] = ref[:64]
     # Use API_BASE_URL from env or fallback to localhost for dev
     api_base = os.getenv('API_BASE_URL', 'http://localhost:8002/api/v1')
     redirect_uri = f"{api_base}/auth/callback/{provider}"
@@ -352,6 +411,7 @@ async def auth_callback(provider: str, request: Request, db: Session = Depends(g
         )
         db.commit()
         db.refresh(user)
+        apply_signup_ref(db, user, request.session.pop('signup_ref', None))
         from .jobs import seed_sample_job
         seed_sample_job(db, user.id)
     else:

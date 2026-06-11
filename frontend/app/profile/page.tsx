@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, ArrowLeft, Save, User, Phone, Mail, Shield, CreditCard, Sparkles, Receipt } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { ReferralCard } from "@/components/ReferralCard";
 import api from "@/lib/api";
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -215,6 +216,8 @@ export default function ProfilePage() {
                                     </Link>
                                 </div>
                             )}
+
+                            <ReferralCard />
 
                             <div className="border border-foreground p-6 bg-background">
                                 <h3 className="font-mono text-xs uppercase tracking-widest text-foreground/60 mb-4 flex items-center gap-2">

@@ -94,11 +94,33 @@ export default async function SharePage({ params }: { params: Promise<{ id: stri
                 <div className="pointer-events-auto flex flex-wrap justify-end items-center gap-3 sm:gap-6 font-mono text-xs sm:text-sm underline-offset-4">
                     <Link href="/gallery" className="hover:underline decoration-1">Gallery</Link>
                     <Link href="/login" className="hover:underline decoration-1">Login</Link>
-                    <Link href="/login" className="hover:underline decoration-1">Join</Link>
+                    <Link href="/login?ref=share" className="hover:underline decoration-1">Join</Link>
                 </div>
             </nav>
 
             <ShareClient data={data} label={label} />
+
+            {/* Acquisition CTA — every shared photo is a landing page */}
+            <section className="container mx-auto px-4 pb-24 max-w-3xl text-center">
+                <div className="border-2 border-foreground bg-background p-8 sm:p-12 brutalist-shadow">
+                    <h2 className="font-syne font-bold text-2xl sm:text-3xl mb-3">
+                        Got old photos of your own?
+                    </h2>
+                    <p className="font-mono text-xs text-foreground/60 mb-8 leading-relaxed max-w-md mx-auto">
+                        Restore faded colours, repair damage, and bring black-and-white memories
+                        to life — like this one — in seconds.
+                    </p>
+                    <Link
+                        href="/login?ref=share"
+                        className="inline-flex items-center gap-3 px-8 py-4 bg-foreground text-background font-syne font-bold text-lg hover:bg-primary transition-colors brutalist-shadow border border-foreground"
+                    >
+                        Restore yours free — 10 credits
+                    </Link>
+                    <p className="font-mono text-[10px] uppercase tracking-widest text-foreground/40 mt-4">
+                        No card required
+                    </p>
+                </div>
+            </section>
         </div>
     );
 }
