@@ -15,7 +15,10 @@ logger = logging.getLogger(__name__)
 _MAX_RETRIES = 3
 _RETRY_BASE_DELAY = 2  # seconds — exponential: 2s, 4s, 8s
 
-_RETRYABLE_KEYWORDS = ("429", "503", "500", "overloaded", "timeout", "deadline", "unavailable", "resource_exhausted")
+# "permission_denied"/403: Google's gateway intermittently returns
+# "Your project has been denied access" under burst load and recovers
+# within seconds — observed 2026-06-11, confirmed transient by replay.
+_RETRYABLE_KEYWORDS = ("429", "503", "500", "overloaded", "timeout", "deadline", "unavailable", "resource_exhausted", "permission_denied", "403")
 
 
 def _call_with_retry(fn, *args, **kwargs):
