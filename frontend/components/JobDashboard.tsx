@@ -154,6 +154,9 @@ export default function JobDashboard() {
                     <div className="text-center py-24 border-2 border-dashed border-foreground/20">
                         <p className="font-syne text-xl text-foreground/40">Nothing in the archives yet.</p>
                         <p className="font-mono text-xs text-foreground/40 uppercase mt-2">Upload a photo to begin.</p>
+                        <a href="/guide" className="inline-block font-mono text-xs text-primary hover:underline mt-4">
+                            New here? Read the 2-minute guide →
+                        </a>
                     </div>
                 )}
             </div>

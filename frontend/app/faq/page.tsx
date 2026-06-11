@@ -124,6 +124,11 @@ export default function FaqPage() {
                     subtitle="Frequently asked questions about credits, AI repair, and the concierge service."
                 />
 
+                <p className="font-mono text-xs text-foreground/50 -mt-8 mb-10">
+                    New to SanBa? Start with the{" "}
+                    <Link href="/guide" className="underline text-primary hover:text-foreground">visual guide</Link>.
+                </p>
+
                 <div className="space-y-6">
                     {faqs.map(({ id, q, a }) => (
                         <div key={id} id={id} className="scroll-mt-28 border-2 border-foreground bg-background p-5 sm:p-8 brutalist-shadow">

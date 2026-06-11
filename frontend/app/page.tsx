@@ -148,7 +148,7 @@ export default function Home() {
                   <Wand2 className="w-3.5 h-3.5" />
                   Remaster · {remasterMin === remasterMax ? remasterMin : `${remasterMin}–${remasterMax}`}cr
                 </span>
-                <Link href="/faq" className="text-foreground/40 hover:text-foreground hover:underline px-2 py-1.5">
+                <Link href="/guide" className="text-foreground/40 hover:text-foreground hover:underline px-2 py-1.5">
                   Prices per photo — how it works →
                 </Link>
               </div>

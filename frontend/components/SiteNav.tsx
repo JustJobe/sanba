@@ -27,12 +27,16 @@ export function SiteNav({ creditThreshold = 3 }: SiteNavProps) {
             <div className="pointer-events-auto flex flex-wrap justify-end items-center gap-3 sm:gap-6 font-mono text-xs sm:text-sm underline-offset-4">
                 {!user ? (
                     <>
+                        <Link href="/guide" className="hover:underline decoration-1">How It Works</Link>
                         <Link href="/gallery" className="hover:underline decoration-1">Gallery</Link>
                         <Link href="/faq" className="hover:underline decoration-1">FAQ</Link>
                         <Link href="/login" className="hover:underline decoration-1">Login</Link>
                     </>
                 ) : (
                     <>
+                        <Link href="/guide" className="hover:underline decoration-1 opacity-60">
+                            Guide
+                        </Link>
                         <Link href="/store" className="hover:underline decoration-1 text-primary font-bold">
                             Credits: {user.credits}
                         </Link>
