@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Upload, Play, Sparkles, Wand2, Download, Pencil, Share2, Copy, Zap, Gift, ArrowRight, Layers } from "lucide-react";
+import { Upload, Play, Sparkles, Wand2, Download, Pencil, Share2, Copy, Zap, Gift, Layers } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { GuideCta } from "@/components/GuideCta";
 import ComparisonSlider from "@/components/ComparisonSlider";
 
 export const metadata: Metadata = {
@@ -78,16 +79,16 @@ export default async function GuidePage() {
             cost: `${pricing.repairRange} credits / photo`,
             chipClass: "border-amber-400/60 text-amber-400",
             body: "AI reconstructs torn corners, fills gaps, and removes heavy scratches — anchored to your original so faces stay true.",
-            before: "/examples/gathering-before.jpg",
-            after: "/examples/gathering-after.jpg",
+            before: "/examples/repair-before.jpg",
+            after: "/examples/repair-after.jpg",
             afterLabel: "Repaired",
         },
         {
-            question: "Black & white photo you wish was colour?",
+            question: "Want colour — or more of it?",
             tool: "Remaster",
             cost: `${pricing.remasterRange} credits / photo`,
             chipClass: "border-violet-400/60 text-violet-400",
-            body: "Brings B&W shots to life with natural colour and modern depth. Discounted when you've already repaired the photo.",
+            body: "Brings black & white shots to life with natural colour — and gives colour photos modern vibrance, depth, and better lighting. Discounted when you've already repaired the photo.",
             before: "/examples/bw-before.jpg",
             after: "/examples/bw-after.jpg",
             afterLabel: "Remastered",
@@ -214,23 +215,7 @@ export default async function GuidePage() {
                 </div>
 
                 {/* ── CTA ── */}
-                <div className="text-center border-2 border-foreground bg-background p-8 sm:p-12 brutalist-shadow">
-                    <h2 className="font-syne font-bold text-2xl sm:text-3xl mb-3">Ready to try it?</h2>
-                    <p className="font-mono text-xs text-foreground/60 mb-8">
-                        Your first photos are on us — no card required.
-                    </p>
-                    <Link
-                        href="/login"
-                        className="inline-flex items-center gap-3 px-8 py-4 bg-foreground text-background font-syne font-bold text-lg hover:bg-primary transition-colors brutalist-shadow border border-foreground"
-                    >
-                        Start free — 10 credits
-                        <ArrowRight className="w-5 h-5" />
-                    </Link>
-                    <p className="font-mono text-[10px] uppercase tracking-widest text-foreground/40 mt-6">
-                        Questions? See the <Link href="/faq" className="underline hover:text-primary">FAQ</Link> or message us on{" "}
-                        <a href="https://wa.me/60166016074" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">WhatsApp</a>
-                    </p>
-                </div>
+                <GuideCta />
             </main>
         </div>
     );
