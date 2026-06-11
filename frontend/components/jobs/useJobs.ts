@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
-import { Job, Pricing, repairEligibleIndexes } from './helpers';
+import { Job, Pricing, repairEligibleIndexes, sanitizeFilename } from './helpers';
 
 const PAGE_SIZE = 20;
 const POLL_ACTIVE_MS = 5000;
@@ -158,13 +158,24 @@ export function useJobs({ onInsufficientCredits, onAiFailure }: UseJobsOptions) 
         }
     };
 
-    const downloadZip = async (jobId: string) => {
+    const renameJob = async (jobId: string, displayName: string) => {
+        try {
+            await api.patch(`/jobs/${jobId}`, { display_name: displayName });
+            fetchJobs();
+        } catch (error: any) {
+            console.error('Failed to rename job', error);
+            alert(error?.response?.data?.detail || 'Failed to rename job');
+        }
+    };
+
+    const downloadZip = async (jobId: string, title?: string) => {
         try {
             const response = await api.get(`/jobs/${jobId}/download`, { responseType: 'blob' });
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `job_${jobId}_restored.zip`);
+            const stem = (title && sanitizeFilename(title)) || `job_${jobId}`;
+            link.setAttribute('download', `${stem}_restored.zip`);
             document.body.appendChild(link);
             link.click();
             link.remove();
@@ -179,6 +190,6 @@ export function useJobs({ onInsufficientCredits, onAiFailure }: UseJobsOptions) 
         jobs, loading, hasMore, loadMore, fetchJobs, pricing, processingId,
         getAiModel, setAiModel,
         startProcessing, startAiRepair, startAiRepairAll, startAiRemaster,
-        deleteJob, duplicateJob, downloadZip,
+        deleteJob, duplicateJob, downloadZip, renameJob,
     };
 }

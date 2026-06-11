@@ -34,3 +34,4 @@ class Job(Base):
     ai_remaster_models     = Column(JSON, default=[])  # Per-index: "pro" | "flash" | null
     is_sample              = Column(Boolean, default=False)  # Seeded sample job for new users
     purge_reminder_at      = Column(DateTime, nullable=True)  # When the pre-purge reminder email was sent
+    display_name           = Column(String, nullable=True)  # User-chosen job name; files on disk keep their original names

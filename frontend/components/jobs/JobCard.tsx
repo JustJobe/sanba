@@ -1,6 +1,7 @@
 "use client";
 
-import { RefreshCw, Download, Image as ImageIcon, Play, ChevronDown, ChevronUp, Trash2, Eye, Sparkles, Wand2, Copy } from 'lucide-react';
+import { useState } from 'react';
+import { RefreshCw, Download, Image as ImageIcon, Play, ChevronDown, ChevronUp, Trash2, Eye, Sparkles, Wand2, Copy, Pencil } from 'lucide-react';
 import { StatusBadge } from '../ui/StatusBadge';
 import {
     Job, Pricing, ComparisonStep,
@@ -19,6 +20,7 @@ interface JobCardProps {
     processing: boolean;
     onRestore: () => void;
     onDelete: () => void;
+    onRename: (name: string) => void;
     onRepair: (fileIndex: number) => void;
     onRepairAll: () => void;
     onRemaster: (fileIndex: number) => void;
@@ -30,8 +32,16 @@ interface JobCardProps {
 
 export function JobCard({
     job, pricing, aiModel, onSetModel, expanded, onToggleExpand, highlighted, processing,
-    onRestore, onDelete, onRepair, onRepairAll, onRemaster, onDuplicate, onDownloadZip, onCompare, onSlideshow,
+    onRestore, onDelete, onRename, onRepair, onRepairAll, onRemaster, onDuplicate, onDownloadZip, onCompare, onSlideshow,
 }: JobCardProps) {
+    const [editingName, setEditingName] = useState<string | null>(null);
+
+    const commitRename = () => {
+        if (editingName === null) return;
+        const next = editingName.trim();
+        setEditingName(null);
+        if (next && next !== jobTitle(job)) onRename(next);
+    };
 
     const compareRestored = (index: number) => {
         const beforeUrl = getFileUrl(job.files[index]);
@@ -338,13 +348,39 @@ export function JobCard({
                         </div>
                     )}
                     <div className="min-w-0">
-                        <div className="flex items-center gap-3 mb-2 min-w-0">
-                            <span className="font-mono font-bold text-lg truncate max-w-[180px] sm:max-w-[300px]" title={jobTitle(job)}>
-                                {jobTitle(job)}
-                                {job.files.length > 1 && (
-                                    <span className="text-foreground/40 font-normal"> +{job.files.length - 1}</span>
-                                )}
-                            </span>
+                        <div className="flex items-center gap-2 mb-2 min-w-0">
+                            {editingName !== null ? (
+                                <input
+                                    autoFocus
+                                    value={editingName}
+                                    onChange={(e) => setEditingName(e.target.value)}
+                                    onBlur={commitRename}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') commitRename();
+                                        else if (e.key === 'Escape') setEditingName(null);
+                                    }}
+                                    maxLength={80}
+                                    aria-label="Job name"
+                                    className="font-mono font-bold text-lg bg-transparent border-b-2 border-primary focus:outline-none min-w-0 max-w-[180px] sm:max-w-[300px]"
+                                />
+                            ) : (
+                                <>
+                                    <span className="font-mono font-bold text-lg truncate max-w-[180px] sm:max-w-[300px]" title={jobTitle(job)}>
+                                        {jobTitle(job)}
+                                        {job.files.length > 1 && (
+                                            <span className="text-foreground/40 font-normal"> +{job.files.length - 1}</span>
+                                        )}
+                                    </span>
+                                    <button
+                                        onClick={() => setEditingName(jobTitle(job))}
+                                        className="shrink-0 p-1 text-foreground/30 hover:text-foreground transition-colors"
+                                        title="Rename job (also used for downloaded filenames)"
+                                        aria-label="Rename job"
+                                    >
+                                        <Pencil className="w-3.5 h-3.5" />
+                                    </button>
+                                </>
+                            )}
                             <StatusBadge status={job.status} className="shrink-0" />
                         </div>
                         <p className="font-mono text-xs text-foreground/40 uppercase tracking-widest">

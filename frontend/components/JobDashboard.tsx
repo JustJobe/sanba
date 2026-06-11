@@ -5,7 +5,7 @@ import { RefreshCw, Clock, ChevronDown } from 'lucide-react';
 import { useJobs } from './jobs/useJobs';
 import { JobCard } from './jobs/JobCard';
 import { CompareModal } from './jobs/CompareModal';
-import { Job, ComparisonStep, buildSlideshowSteps } from './jobs/helpers';
+import { Job, ComparisonStep, buildSlideshowSteps, jobTitle } from './jobs/helpers';
 import { Modal } from './ui/Modal';
 
 export default function JobDashboard() {
@@ -29,7 +29,7 @@ export default function JobDashboard() {
         jobs, loading, hasMore, loadMore, fetchJobs, pricing, processingId,
         getAiModel, setAiModel,
         startProcessing, startAiRepair, startAiRepairAll, startAiRemaster,
-        deleteJob, duplicateJob, downloadZip,
+        deleteJob, duplicateJob, downloadZip, renameJob,
     } = useJobs({
         onInsufficientCredits: () => setShowCreditModal(true),
         onAiFailure: showFailurePopup,
@@ -128,11 +128,12 @@ export default function JobDashboard() {
                             processing={processingId === job.id}
                             onRestore={() => startProcessing(job.id)}
                             onDelete={() => deleteJob(job.id)}
+                            onRename={(name) => renameJob(job.id, name)}
                             onRepair={(i) => startAiRepair(job.id, i)}
                             onRepairAll={() => startAiRepairAll(job)}
                             onRemaster={(i) => startAiRemaster(job.id, i)}
                             onDuplicate={(i) => handleDuplicate(job.id, i)}
-                            onDownloadZip={() => downloadZip(job.id)}
+                            onDownloadZip={() => downloadZip(job.id, jobTitle(job))}
                             onCompare={setComparingFiles}
                             onSlideshow={() => startSlideshow(job)}
                         />

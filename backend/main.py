@@ -85,6 +85,11 @@ async def migrate_db():
             conn.commit()
             logger.info("DB migration: added jobs.purge_reminder_at")
 
+        if "display_name" not in existing:
+            conn.execute(sa.text("ALTER TABLE jobs ADD COLUMN display_name TEXT"))
+            conn.commit()
+            logger.info("DB migration: added jobs.display_name")
+
         # Migrate users table (referral program)
         existing_users = [row[1] for row in conn.execute(sa.text("PRAGMA table_info(users)"))]
         if "referral_code" not in existing_users:

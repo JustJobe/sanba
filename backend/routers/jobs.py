@@ -36,6 +36,16 @@ class AiModelRequest(BaseModel):
     model: str = DEFAULT_TIER
 
 
+class RenameRequest(BaseModel):
+    display_name: str
+
+
+def sanitize_filename(name: str) -> str:
+    """Make a user-chosen name safe to use as a filename component."""
+    cleaned = re.sub(r'[\\/:*?"<>|\x00-\x1f]', "", name).strip().strip(".")
+    return cleaned[:80].strip()
+
+
 # ---------------------------------------------------------------------------
 # Dynamic pricing helpers — read from system_settings, fall back to defaults
 # ---------------------------------------------------------------------------
@@ -288,6 +298,27 @@ def get_job(job_id: str, db: Session = Depends(get_db), current_user: user.User 
     return job
 
 
+@router.patch("/{job_id}", response_model=JobSchema)
+def rename_job(
+    job_id: str,
+    body: RenameRequest,
+    db: Session = Depends(get_db),
+    current_user: user.User = Depends(get_current_user),
+):
+    """Set a user-chosen display name. Files on disk are never renamed —
+    the name is applied to zip entries at download time."""
+    job = db.query(sql_job.Job).filter(sql_job.Job.id == job_id, sql_job.Job.user_id == current_user.id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    name = sanitize_filename(body.display_name)
+    if not name:
+        raise HTTPException(status_code=400, detail="Name cannot be empty")
+    job.display_name = name
+    db.commit()
+    db.refresh(job)
+    return job
+
+
 @router.post("/{job_id}/duplicate/{file_index}", response_model=JobSchema)
 @limiter.limit("10/minute")
 async def duplicate_job(
@@ -480,38 +511,43 @@ def download_job_zip(job_id: str, db: Session = Depends(get_db), current_user: u
     if not job.processed_files:
         raise HTTPException(status_code=400, detail="No processed files to download")
 
+    def entry_stem(i: int, fallback_path: str) -> str:
+        """Stem for zip entries: the user-chosen job name when set (numbered for
+        batches), otherwise the original upload filename."""
+        if job.display_name:
+            return job.display_name if len(job.files or []) <= 1 else f"{job.display_name}_{i + 1:02d}"
+        if job.files and i < len(job.files):
+            return os.path.splitext(os.path.basename(job.files[i]))[0]
+        return os.path.splitext(os.path.basename(fallback_path))[0]
+
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
         # OpenCV-restored files (renamed clearly in the zip)
         for i, file_path in enumerate(job.processed_files):
             if os.path.exists(file_path):
-                original_stem = os.path.splitext(os.path.basename(job.files[i]))[0] \
-                    if job.files and i < len(job.files) \
-                    else os.path.splitext(os.path.basename(file_path))[0]
-                zip_file.write(file_path, f"{original_stem}_a_restored.jpg")
+                zip_file.write(file_path, f"{entry_stem(i, file_path)}_a_restored.jpg")
             else:
                 logger.warning(f"File not found for zip: {file_path}")
         # AI-repaired files (if any)
         for i, ai_path in enumerate(job.ai_repaired_files or []):
             if ai_path and os.path.exists(ai_path):
-                original_stem = os.path.splitext(os.path.basename(job.files[i]))[0] \
-                    if job.files and i < len(job.files) \
-                    else os.path.splitext(os.path.basename(ai_path))[0]
-                zip_file.write(ai_path, f"{original_stem}_b_repaired.jpg")
+                zip_file.write(ai_path, f"{entry_stem(i, ai_path)}_b_repaired.jpg")
         # AI-remastered files (if any)
         for i, remaster_path in enumerate(job.ai_remastered_files or []):
             if remaster_path and os.path.exists(remaster_path):
-                original_stem = os.path.splitext(os.path.basename(job.files[i]))[0] \
-                    if job.files and i < len(job.files) \
-                    else os.path.splitext(os.path.basename(remaster_path))[0]
-                zip_file.write(remaster_path, f"{original_stem}_c_remastered.jpg")
+                zip_file.write(remaster_path, f"{entry_stem(i, remaster_path)}_c_remastered.jpg")
 
     zip_buffer.seek(0)
+
+    # Header filename must be latin-1 safe; the frontend's download attribute
+    # usually overrides this anyway
+    zip_name = sanitize_filename(job.display_name or "") or f"job_{job_id}"
+    ascii_zip_name = zip_name.encode("ascii", "ignore").decode() or f"job_{job_id}"
 
     return StreamingResponse(
         zip_buffer,
         media_type="application/zip",
-        headers={"Content-Disposition": f"attachment; filename=job_{job_id}_restored.zip"}
+        headers={"Content-Disposition": f"attachment; filename={ascii_zip_name}_restored.zip"}
     )
 
 

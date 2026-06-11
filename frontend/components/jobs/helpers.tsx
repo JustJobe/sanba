@@ -32,6 +32,7 @@ export interface Job {
     ai_repair_models?: (string | null)[];
     ai_remaster_models?: (string | null)[];
     is_sample?: boolean;
+    display_name?: string | null;
 }
 
 export interface ComparisonStep {
@@ -68,12 +69,17 @@ export const formatJobDate = (iso: string) => {
     return d.toLocaleString('en-MY', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 };
 
-/** Human-friendly job title from the first filename; falls back to the short id. */
+/** Human-friendly job title: user-chosen name, else the first filename, else the short id. */
 export const jobTitle = (job: Job): string => {
+    if (job.display_name) return job.display_name;
     const name = (job.files[0] || '').split(/[/\\]/).pop() || '';
     const base = name.replace(/\.[^.]+$/, '');
     return base || `Job #${job.id.slice(0, 8)}`;
 };
+
+/** Strip characters that are unsafe in filenames. */
+export const sanitizeFilename = (name: string): string =>
+    name.replace(/[\\/:*?"<>|\x00-\x1f]/g, '').trim().replace(/\.+$/, '').slice(0, 80).trim();
 
 export const getModelDisplay = (pricing: Pricing, tierOrNull: string | null | undefined) => {
     const tier = tierOrNull || pricing.default_model || 'pro';

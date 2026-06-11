@@ -37,6 +37,7 @@ class Job(JobBase):
     ai_repair_models: List[Optional[str]] = []
     ai_remaster_models: List[Optional[str]] = []
     is_sample: bool = False
+    display_name: Optional[str] = None
 
     class Config:
         from_attributes = True
