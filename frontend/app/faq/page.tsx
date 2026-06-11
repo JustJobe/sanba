@@ -1,5 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { SiteNav } from "@/components/SiteNav";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export const metadata: Metadata = {
     title: "FAQ — SanBa Photo Restoration",
@@ -101,25 +103,36 @@ const faqs = [
 
 export default function FaqPage() {
     return (
-        <div className="min-h-screen bg-background text-foreground">
-            <nav className="border-b border-foreground/10 py-4 px-4 sm:px-6">
-                <Link href="/" className="font-bold text-lg hover:opacity-70 transition-opacity">
-                    ← SanBa
-                </Link>
-            </nav>
+        <div className="min-h-screen bg-background text-foreground selection:bg-secondary selection:text-primary-foreground">
+            <SiteNav />
 
-            <main className="max-w-2xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
-                <h1 className="font-syne font-bold text-3xl sm:text-5xl mb-4 leading-tight">FAQ</h1>
-                <p className="text-foreground/50 font-mono text-sm mb-12">Frequently asked questions.</p>
+            <main className="relative z-10 container mx-auto px-4 pt-28 sm:pt-32 pb-32 max-w-3xl">
+                <PageHeader
+                    title={<>FAQ.</>}
+                    subtitle="Frequently asked questions about credits, AI repair, and the concierge service."
+                />
 
-                <div className="space-y-10">
+                <div className="space-y-6">
                     {faqs.map(({ id, q, a }) => (
-                        <div key={id} id={id} className="scroll-mt-8">
+                        <div key={id} id={id} className="scroll-mt-28 border-2 border-foreground bg-background p-5 sm:p-8 brutalist-shadow">
                             <h2 className="font-syne font-bold text-xl mb-3 text-foreground">{q}</h2>
                             <div className="text-foreground/70 text-sm leading-relaxed">{a}</div>
                         </div>
                     ))}
                 </div>
+
+                <p className="font-mono text-xs text-foreground/40 mt-12 text-center">
+                    Still stuck?{" "}
+                    <a
+                        href="https://wa.me/60166016074"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline hover:text-primary"
+                    >
+                        Message us on WhatsApp
+                    </a>
+                    .
+                </p>
             </main>
         </div>
     );

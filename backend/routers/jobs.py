@@ -263,9 +263,22 @@ async def upload_files(
     return new_job
 
 @router.get("/", response_model=List[JobSchema])
-def list_jobs(db: Session = Depends(get_db), current_user: user.User = Depends(get_current_user)):
-    jobs = db.query(sql_job.Job).filter(sql_job.Job.user_id == current_user.id).all()
-    return jobs
+def list_jobs(
+    limit: Optional[int] = None,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    current_user: user.User = Depends(get_current_user),
+):
+    query = (
+        db.query(sql_job.Job)
+        .filter(sql_job.Job.user_id == current_user.id)
+        .order_by(sql_job.Job.created_at.desc())
+    )
+    if offset > 0:
+        query = query.offset(offset)
+    if limit is not None:
+        query = query.limit(max(1, min(limit, 200)))
+    return query.all()
 
 @router.get("/{job_id}", response_model=JobSchema)
 def get_job(job_id: str, db: Session = Depends(get_db), current_user: user.User = Depends(get_current_user)):
@@ -551,6 +564,66 @@ async def ai_repair_image(
     db.refresh(job)
 
     submit_gemini(ai_repair_background, job_id, file_index, current_user.id, repair_cost, tier_id)
+    return job
+
+
+@router.post("/{job_id}/ai_repair_all", response_model=JobSchema)
+@limiter.limit("3/minute")
+async def ai_repair_all(
+    request: Request,
+    job_id: str,
+    body: AiModelRequest = Body(default=AiModelRequest()),
+    db: Session = Depends(get_db),
+    current_user: user.User = Depends(get_current_user),
+):
+    """Queue AI repair for every eligible file in a batch job with a single credit charge."""
+    tier_id = body.model
+    if tier_id not in MODEL_TIERS:
+        raise HTTPException(status_code=400, detail=f"Invalid model tier: {tier_id}")
+
+    job = db.query(sql_job.Job).filter(sql_job.Job.id == job_id, sql_job.Job.user_id == current_user.id).first()
+    if not job or job.status != "completed":
+        raise HTTPException(status_code=400, detail="Job not found or not completed")
+
+    repaired = job.ai_repaired_files or []
+    statuses = job.ai_repair_status or []
+    eligible = []
+    for i in range(len(job.processed_files or [])):
+        if not job.processed_files[i]:
+            continue
+        if i < len(repaired) and repaired[i]:
+            continue
+        if i < len(statuses) and statuses[i] == "pending":
+            continue
+        eligible.append(i)
+    if not eligible:
+        raise HTTPException(status_code=400, detail="No files eligible for repair")
+
+    repair_cost = get_ai_repair_cost(db, tier_id)
+    total_cost = repair_cost * len(eligible)
+    if current_user.credits < total_cost:
+        raise HTTPException(status_code=402, detail="Insufficient credits")
+
+    current_user.credits -= total_cost
+    record_credit_change(
+        db=db, user_id=current_user.id, action="ai_repair",
+        amount=-total_cost, balance_after=current_user.credits,
+        actor=current_user.id, job_id=job.id,
+        note=f"batch x{len(eligible)}, tier={tier_id}",
+    )
+
+    status_list = list(job.ai_repair_status or [])
+    for i in eligible:
+        while len(status_list) <= i:
+            status_list.append(None)
+        status_list[i] = "pending"
+    job.ai_repair_status = status_list
+    db.commit()
+    db.refresh(job)
+
+    # Per-file refunds on failure use the per-file cost, matching the batch charge
+    for i in eligible:
+        submit_gemini(ai_repair_background, job_id, i, current_user.id, repair_cost, tier_id)
     return job
 
 

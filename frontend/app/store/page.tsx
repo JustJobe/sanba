@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Check, Layers, Package, Zap, Loader2 } from "lucide-react";
-import Link from "next/link";
+import { Check, Layers, Package, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import api from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
+import { SiteNav } from "@/components/SiteNav";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Card } from "@/components/ui/Card";
+import { ButtonLink } from "@/components/ui/Button";
 
 interface CreditPackage {
     credits: number;
@@ -17,6 +20,8 @@ interface CreditPackage {
     per_credit_label: string;
     badge?: string;
 }
+
+const WHATSAPP_QUOTE_URL = `https://wa.me/60166016074?text=${encodeURIComponent("Hi SanBa, I'd like a quote for the Concierge Scanning service.")}`;
 
 export default function StorePage() {
     const { user } = useAuth();
@@ -75,115 +80,97 @@ export default function StorePage() {
     const packageEntries = Object.entries(packages);
 
     return (
-        <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 md:p-8 pb-32">
-            <div className="container mx-auto max-w-5xl">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 sm:mb-12 gap-4">
-                    <Link href="/" className="text-foreground/60 hover:text-foreground transition-colors">
-                        ← Back to Dashboard
-                    </Link>
-                    <h1 className="text-2xl sm:text-3xl font-bold">Store & Services</h1>
-                </div>
+        <div className="min-h-screen bg-background text-foreground selection:bg-secondary selection:text-primary-foreground">
+            <SiteNav />
 
-                <div className="grid md:grid-cols-2 gap-8">
+            <main className="relative z-10 container mx-auto px-4 pt-28 sm:pt-32 pb-32 max-w-5xl">
+                <PageHeader
+                    title={<>Store &<br />Services.</>}
+                    subtitle="Credits for digital restoration, or hands-on help with the physical shoebox."
+                />
+
+                <div className="grid md:grid-cols-2 gap-8 md:gap-10">
                     {/* Digital Credits */}
-                    <div className="bg-foreground/5 border border-foreground/10 rounded-2xl p-5 sm:p-8 hover:border-primary/30 transition-all">
-                        <div className="w-16 h-16 rounded-xl bg-primary/20 flex items-center justify-center mb-6">
-                            <Layers className="w-8 h-8 text-primary" />
+                    <Card>
+                        <div className="flex items-center justify-between mb-6">
+                            <Layers className="w-8 h-8 text-primary stroke-1" />
+                            <span className="font-mono text-[10px] font-bold uppercase tracking-widest border border-foreground/30 px-2 py-0.5 text-foreground/50">
+                                Instant
+                            </span>
                         </div>
-                        <h2 className="text-2xl font-bold mb-2">Digital Credits</h2>
-                        <p className="text-foreground/40 mb-6">Purchase bulk credits for high-volume batch processing.</p>
+                        <h2 className="font-syne font-bold text-2xl mb-2">Digital Credits</h2>
+                        <p className="font-mono text-xs text-foreground/60 leading-relaxed mb-8">
+                            Buy credits in bulk for restoration, AI repair, and remastering.
+                        </p>
 
                         <div className="space-y-4 mb-8">
-                            {packageEntries.map(([key, pkg]) => {
-                                const isPopular = pkg.badge === "POPULAR";
-                                const isBestValue = pkg.badge === "BEST VALUE";
-                                return (
-                                    <button
-                                        key={key}
-                                        onClick={() => handleBuy(key)}
-                                        disabled={loadingKey !== null}
-                                        className={`w-full flex items-center justify-between p-4 bg-background/40 rounded-lg border transition-all text-left ${
-                                            isBestValue
-                                                ? "border-violet-400/40 hover:border-violet-400/70"
-                                                : isPopular
-                                                ? "border-primary/30 hover:border-primary/60"
-                                                : "border-foreground/5 hover:border-foreground/20"
-                                        } relative overflow-hidden disabled:opacity-50 disabled:cursor-wait`}
-                                    >
-                                        {pkg.badge && (
-                                            <div
-                                                className={`absolute top-0 right-0 text-[10px] px-2 py-0.5 rounded-bl-lg font-bold flex items-center gap-1 ${
-                                                    isBestValue
-                                                        ? "bg-violet-500 text-white"
-                                                        : "bg-primary text-background"
-                                                }`}
-                                            >
-                                                {isBestValue && <Zap className="w-2.5 h-2.5" />}
-                                                {pkg.badge}
-                                            </div>
-                                        )}
-                                        <div>
-                                            <span className={`font-medium ${isBestValue ? "text-violet-300" : ""}`}>
-                                                {pkg.label}
+                            {packageEntries.length === 0 && (
+                                <div className="flex items-center justify-center py-8 text-foreground/40">
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                </div>
+                            )}
+                            {packageEntries.map(([key, pkg]) => (
+                                <button
+                                    key={key}
+                                    onClick={() => handleBuy(key)}
+                                    disabled={loadingKey !== null}
+                                    className="relative w-full flex items-center justify-between p-4 bg-background border-2 border-foreground hover:bg-foreground hover:text-background transition-colors text-left disabled:opacity-50 disabled:cursor-wait group"
+                                >
+                                    {pkg.badge && (
+                                        <span className="absolute -top-3 right-3 font-mono text-[9px] font-bold uppercase tracking-widest bg-accent text-background px-2 py-0.5 border border-foreground">
+                                            {pkg.badge}
+                                        </span>
+                                    )}
+                                    <span>
+                                        <span className="font-syne font-bold text-lg block">{pkg.label}</span>
+                                        {pkg.per_credit_label && (
+                                            <span className="font-mono text-[10px] uppercase tracking-widest opacity-50">
+                                                {pkg.per_credit_label}
                                             </span>
-                                            {pkg.per_credit_label && (
-                                                <p className="text-xs text-foreground/40 mt-0.5">{pkg.per_credit_label}</p>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            {loadingKey === key ? (
-                                                <Loader2 className="w-4 h-4 animate-spin text-foreground/40" />
-                                            ) : (
-                                                <span className={`font-bold ${isBestValue ? "text-violet-300" : "text-primary"}`}>
-                                                    {formatPrice(pkg)}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </button>
-                                );
-                            })}
+                                        )}
+                                    </span>
+                                    <span className="font-mono font-bold text-base shrink-0">
+                                        {loadingKey === key ? <Loader2 className="w-4 h-4 animate-spin" /> : formatPrice(pkg)}
+                                    </span>
+                                </button>
+                            ))}
                         </div>
 
-                        <p className="text-xs text-foreground/30 text-center">
+                        <p className="font-mono text-[10px] uppercase tracking-widest text-foreground/40 text-center">
                             {currency === "myr"
-                                ? "Accepts cards, FPX, Touch \u2019n Go, and GrabPay"
+                                ? "Accepts cards, FPX, Touch ’n Go, and GrabPay"
                                 : "Accepts all major cards"}
                         </p>
-                    </div>
+                    </Card>
 
                     {/* Physical Scanning */}
-                    <div className="bg-foreground/5 border border-foreground/10 rounded-2xl p-5 sm:p-8 hover:border-accent/30 transition-all">
-                        <div className="w-16 h-16 rounded-xl bg-accent/20 flex items-center justify-center mb-6">
-                            <Package className="w-8 h-8 text-accent" />
+                    <Card>
+                        <div className="flex items-center justify-between mb-6">
+                            <Package className="w-8 h-8 text-accent stroke-1" />
+                            <span className="font-mono text-[10px] font-bold uppercase tracking-widest border border-accent/40 px-2 py-0.5 text-accent/70">
+                                By hand
+                            </span>
                         </div>
-                        <h2 className="text-2xl font-bold mb-2">Concierge Scanning</h2>
-                        <p className="text-foreground/40 mb-6">Send us your physical shoeboxes. We scan, restore, and upload them for you.</p>
+                        <h2 className="font-syne font-bold text-2xl mb-2">Concierge Scanning</h2>
+                        <p className="font-mono text-xs text-foreground/60 leading-relaxed mb-8">
+                            Send us your physical shoeboxes. We scan, restore, and upload them for you.
+                        </p>
 
                         <ul className="space-y-3 mb-8">
-                            <li className="flex items-center gap-3 text-sm text-foreground/80">
-                                <Check className="w-4 h-4 text-green-400" />
-                                Professional 600 DPI Scanning
-                            </li>
-                            <li className="flex items-center gap-3 text-sm text-foreground/80">
-                                <Check className="w-4 h-4 text-green-400" />
-                                Hardware Scratch Removal
-                            </li>
-                            <li className="flex items-center gap-3 text-sm text-foreground/80">
-                                <Check className="w-4 h-4 text-green-400" />
-                                Return Shipping Included
-                            </li>
+                            {["Professional 600 DPI Scanning", "Hardware Scratch Removal", "Return Shipping Included"].map((item) => (
+                                <li key={item} className="flex items-center gap-3 font-mono text-xs text-foreground/80">
+                                    <Check className="w-4 h-4 text-accent shrink-0" />
+                                    {item}
+                                </li>
+                            ))}
                         </ul>
-                        <a
-                            href={`https://wa.me/60166016074?text=${encodeURIComponent("Hi SanBa, I'd like a quote for the Concierge Scanning service.")}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block w-full text-center border border-accent text-accent hover:bg-accent hover:text-background font-bold py-3 rounded-lg transition-colors"
-                        >
+
+                        <ButtonLink href={WHATSAPP_QUOTE_URL} external variant="accent" size="md" className="w-full">
                             Get a Quote on WhatsApp
-                        </a>
-                    </div>
+                        </ButtonLink>
+                    </Card>
                 </div>
-            </div>
+            </main>
         </div>
     );
 }
