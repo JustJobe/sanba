@@ -404,6 +404,14 @@ export function JobCard({
                                 </button>
                             )}
                             <div className="flex items-center gap-2 mt-1">
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onSlideshow(); }}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 border border-foreground/30 hover:bg-foreground hover:text-background text-[10px] font-mono uppercase tracking-widest transition-colors"
+                                    title="Slideshow: browse all comparisons"
+                                >
+                                    <Play className="w-3 h-3" />
+                                    Slideshow
+                                </button>
                                 <div
                                     className="relative w-16 h-16 cursor-pointer group/stack"
                                     onClick={onToggleExpand}
@@ -423,14 +431,6 @@ export function JobCard({
                                         <PreviewImg src={getFileUrl(job.processed_files?.[0] ?? job.files[0])} alt="" />
                                     </div>
                                 </div>
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); onSlideshow(); }}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 border border-foreground/30 hover:bg-foreground hover:text-background text-[10px] font-mono uppercase tracking-widest transition-colors"
-                                    title="Slideshow: browse all comparisons"
-                                >
-                                    <Play className="w-3 h-3" />
-                                    Slideshow
-                                </button>
                             </div>
                         </div>
                     ) : job.status === 'completed' && (
