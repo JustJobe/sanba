@@ -89,8 +89,8 @@ export default async function GuidePage() {
             cost: `${pricing.remasterRange} credits / photo`,
             chipClass: "border-violet-400/60 text-violet-400",
             body: "Brings black & white shots to life with natural colour — and gives colour photos modern vibrance, depth, and better lighting. Discounted when you've already repaired the photo.",
-            before: "/examples/bw-before.jpg",
-            after: "/examples/bw-after.jpg",
+            before: "/examples/remaster-before.jpg",
+            after: "/examples/remaster-after.jpg",
             afterLabel: "Remastered",
         },
     ];
