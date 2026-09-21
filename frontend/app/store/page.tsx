@@ -41,11 +41,11 @@ export default function StorePage() {
                 clearTimeout(timeout);
                 const code = (await res.text()).trim().toLowerCase();
                 const supported = ["myr", "usd", "sgd", "eur", "gbp", "aud", "jpy", "idr", "thb", "php"];
-                const detected = supported.includes(code) ? code : "usd";
+                const detected = supported.includes(code) ? code : "myr";
                 localStorage.setItem("detected_currency", detected);
                 return detected;
             } catch {
-                return "usd";
+                return "myr";
             }
         };
         detectCurrency().then((cur) => {
@@ -86,7 +86,7 @@ export default function StorePage() {
             <main className="relative z-10 container mx-auto px-4 pt-28 sm:pt-32 pb-32 max-w-5xl">
                 <PageHeader
                     title={<>Store &<br />Services.</>}
-                    subtitle="Credits for digital restoration, or hands-on help with the physical shoebox."
+                    subtitle="Album packs — finish the box, not one photo at a time."
                 />
 
                 <div className="grid md:grid-cols-2 gap-8 md:gap-10">
@@ -98,9 +98,9 @@ export default function StorePage() {
                                 Instant
                             </span>
                         </div>
-                        <h2 className="font-syne font-bold text-2xl mb-2">Digital Credits</h2>
+                        <h2 className="font-syne font-bold text-2xl mb-2">Album packs</h2>
                         <p className="font-mono text-xs text-foreground/60 leading-relaxed mb-8">
-                            Buy credits in bulk for restoration, AI repair, and remastering.
+                            Credits for Restore, Repair, and Remaster — sized for a handful, an album, or the full shoebox.
                         </p>
 
                         <div className="space-y-4 mb-8">
@@ -140,6 +140,11 @@ export default function StorePage() {
                             {currency === "myr"
                                 ? "Accepts cards, FPX, Touch ’n Go, and GrabPay"
                                 : "Accepts all major cards"}
+                        </p>
+                        <p className="font-mono text-[10px] text-foreground/40 text-center mt-3 leading-relaxed normal-case tracking-normal">
+                            {currency === "myr"
+                                ? "Prices in RM. Credits work for Restore, Repair, and Remaster. Unused credits stay on your account. Need a custom batch or physical prints? Ask about Concierge."
+                                : "Credits work for Restore, Repair, and Remaster. Unused credits stay on your account. Need a custom batch or physical prints? Ask about Concierge."}
                         </p>
                     </Card>
 

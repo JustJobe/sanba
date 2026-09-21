@@ -41,12 +41,23 @@ const faqs = [
         q: "How do credits work?",
         a: (
             <>
-                <p className="mb-2">Credits are consumed when you process a photo:</p>
+                <p className="mb-2">Credits are consumed when you process a photo. Exact costs depend on the model tier:</p>
                 <ul className="list-disc list-inside space-y-1 text-foreground/70">
                     <li><strong className="text-foreground">Restore</strong> — 1 credit per photo (colour enhancement or B&amp;W clean-up)</li>
-                    <li><strong className="text-foreground">AI Repair</strong> — 4 credits per photo (damage repair via Gemini)</li>
-                    <li><strong className="text-foreground">AI Remaster</strong> — 4 credits per photo (3 credits if Repair was already done)</li>
+                    <li><strong className="text-foreground">AI Repair</strong> — typically 2–4 credits per photo, depending on the model</li>
+                    <li><strong className="text-foreground">AI Remaster</strong> — typically 2–4 credits per photo; often discounted after a Repair on the same photo</li>
                 </ul>
+                <p className="mt-3 text-foreground/70 text-sm leading-relaxed">
+                    See live per-photo ranges on the{" "}
+                    <Link href="/guide" className="underline hover:text-primary">
+                        visual guide
+                    </Link>
+                    . Pack sizes and MYR pricing are on the{" "}
+                    <Link href="/store" className="underline hover:text-primary">
+                        Store
+                    </Link>
+                    .
+                </p>
                 <p className="mt-3 text-foreground/70 text-sm leading-relaxed">
                     <strong className="text-foreground">Running low?</strong> If your balance falls below the free-credit
                     threshold, simply log in once per day to claim a bonus credit — up to the threshold. No purchase required.
@@ -55,6 +66,15 @@ const faqs = [
                     Credits are refunded automatically if processing fails for any reason.
                 </p>
             </>
+        ),
+    },
+    {
+        id: "diy-vs-batch",
+        q: "Can't I just restore photos in ChatGPT or Gemini?",
+        a: (
+            <p>
+                Yes — for one or two photos, that&apos;s fine. SanBa is for when you have a set: a whole album, a scanned envelope, or a box of prints. Upload in batch, run Restore / Repair / Remaster where each photo needs it, compare side by side, and download everything as a ZIP. Same look across the set, MYR packs, and a concierge path if the originals are still on paper.
+            </p>
         ),
     },
     {
@@ -105,9 +125,13 @@ const faqs = [
         q: "What is the Concierge Service?",
         a: (
             <p>
-                The Concierge Service lets you mail in physical photos for professional restoration by a real person.
-                It is a great option for precious family photos, batch orders, or photos that cannot be processed
-                digitally. Contact us to arrange a concierge order.
+                Concierge is the mail-physical-prints path: send us the prints, we scan and restore the set.
+                Ideal for precious family albums still on paper, batch orders, or photos that cannot be
+                processed digitally. Details and WhatsApp contact on the{" "}
+                <Link href="/concierge" className="underline hover:text-primary">
+                    Concierge page
+                </Link>
+                .
             </p>
         ),
     },

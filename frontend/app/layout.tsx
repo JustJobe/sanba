@@ -27,15 +27,18 @@ export const metadata: Metadata = {
     template: "%s | SanBa",
   },
   description:
-    "Restore and colorise your old, damaged, or black-and-white photographs with AI. SanBa is Malaysia's photo restoration service. Upload a photo and get results in minutes.",
+    "Restore whole family albums with SanBa — Penang's batch photo restoration service. Upload scans, get a ZIP. MYR pricing. Concierge for physical prints.",
   keywords: [
     "photo restoration malaysia",
+    "batch photo restoration",
+    "family album restoration",
     "photo colorization service",
     "restore old photos",
     "black and white photo colorization",
     "AI photo restoration",
     "damaged photo repair",
     "foto lama restore malaysia",
+    "shoebox photo scanning penang",
     "photo enhancement service",
   ],
   authors: [{ name: "SanBa", url: "https://sanba.my" }],
@@ -59,7 +62,7 @@ export const metadata: Metadata = {
     siteName: "SanBa",
     title: "SanBa — Photo Restoration, Repair & Remastering Services",
     description:
-      "Restore and colorise your old, damaged, or black-and-white photographs with AI. Malaysia's photo restoration service.",
+      "Restore whole family albums with SanBa — Penang's batch photo restoration service. Upload scans, get a ZIP. MYR pricing. Concierge for physical prints.",
     images: [
       {
         url: "/og-image.jpg",
@@ -73,7 +76,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "SanBa — Photo Restoration, Repair & Remastering Services",
     description:
-      "Restore and colorise old photos with AI. Malaysia-based photo restoration service.",
+      "Restore whole family albums with SanBa — Penang's batch photo restoration service. Upload scans, get a ZIP. MYR pricing. Concierge for physical prints.",
     images: ["/og-image.jpg"],
   },
 };
@@ -85,7 +88,7 @@ const jsonLd = {
   "@type": "LocalBusiness",
   name: "SanBa",
   description:
-    "AI-powered photo restoration and colourisation service based in Penang, Malaysia.",
+    "Restore whole family albums with SanBa — Penang's batch photo restoration service. Upload scans, get a ZIP. MYR pricing. Concierge for physical prints.",
   url: "https://sanba.my",
   telephone: "+60166016074",
   address: {
@@ -98,7 +101,7 @@ const jsonLd = {
   offers: {
     "@type": "Offer",
     description: "Photo restoration starting from 1 credit per photo",
-    priceCurrency: "USD",
+    priceCurrency: "MYR",
   },
 };
 

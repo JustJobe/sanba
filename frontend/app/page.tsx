@@ -87,25 +87,31 @@ export default function Home() {
             <section className="grid md:grid-cols-2 gap-10 lg:gap-16 items-center mb-20 sm:mb-28 md:min-h-[60vh]">
               <div>
                 <p className="font-mono text-xs uppercase tracking-widest text-foreground/50 mb-6">
-                  — Photo restoration, Malaysia
+                  — Whole-album restoration, Penang
                 </p>
                 <h1 className="font-syne font-bold text-5xl sm:text-6xl lg:text-7xl leading-[0.95] mb-6">
-                  Old photos,<br />made <span className="text-accent">new</span>.
+                  Whole albums.<br /><span className="text-accent">Restored.</span>
                 </h1>
                 <p className="font-mono text-sm text-foreground/60 max-w-md leading-relaxed mb-10">
-                  Restore faded colours, repair tears and scratches, and bring black-and-white
-                  memories to life — in seconds, not weeks.
+                  Upload the shoebox — faded prints, torn corners, black-and-white. Get a ZIP back.
+                  Built in Penang for Malaysian family archives.
                 </p>
                 <Link
                   href="/login"
                   className="group inline-flex items-center gap-4 px-8 py-4 bg-foreground text-background font-syne font-bold text-xl hover:bg-primary transition-colors brutalist-shadow border border-foreground"
                 >
-                  Restore your first photo
+                  Start an album
                   <ArrowRight className="group-hover:translate-x-1 transition-transform" />
                 </Link>
                 <p className="font-mono text-xs text-foreground/50 mt-4">
-                  Sign up free — 10 credits included, plus a free credit daily. No card required.
+                  10 free credits on signup · no card required
                 </p>
+                <Link
+                  href="/guide"
+                  className="inline-block font-mono text-xs text-foreground/50 hover:text-foreground hover:underline mt-3"
+                >
+                  See how it works →
+                </Link>
               </div>
               <div>
                 <div className="border-2 border-foreground p-3 bg-background brutalist-shadow">
@@ -256,11 +262,11 @@ export default function Home() {
                     href="/login"
                     className="group inline-flex items-center gap-4 px-8 py-4 bg-foreground text-background font-syne font-bold text-xl hover:bg-primary transition-colors brutalist-shadow border border-foreground w-full md:w-auto justify-center md:justify-start"
                   >
-                    Reclaim your moments
+                    Start an album
                     <ArrowRight className="group-hover:translate-x-1 transition-transform" />
                   </Link>
                   <p className="font-mono text-xs text-foreground/50 mt-4 text-center md:text-left">
-                    Sign up free — 10 credits included, no card required.
+                    10 free credits on signup · no card required
                   </p>
                 </div>
               </section>
