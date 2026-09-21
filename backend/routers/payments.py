@@ -28,26 +28,26 @@ CREDIT_PACKAGES = {
     "10_credits": {
         "credits": 10,
         "price_myr_cents": 290,
-        "label": "10 Credits",
+        "label": "Starter · 10",
         "per_credit_label": "RM 0.29 / credit",
     },
     "50_credits": {
         "credits": 50,
         "price_myr_cents": 990,
-        "label": "50 Credits",
+        "label": "Album · 50",
         "per_credit_label": "RM 0.20 / credit",
     },
     "200_credits": {
         "credits": 200,
         "price_myr_cents": 2990,
-        "label": "200 Credits",
+        "label": "Family · 200",
         "per_credit_label": "RM 0.15 / credit",
         "badge": "POPULAR",
     },
     "500_credits": {
         "credits": 500,
         "price_myr_cents": 5990,
-        "label": "500 Credits",
+        "label": "Archive · 500",
         "per_credit_label": "RM 0.12 / credit",
         "badge": "BEST VALUE",
     },
@@ -63,7 +63,7 @@ class CheckoutRequest(BaseModel):
 def get_packages(currency: str = "myr"):
     currency = currency.lower()
     if currency not in SUPPORTED_CURRENCIES:
-        currency = "usd"
+        currency = "myr"
 
     result = {}
     for key, pkg in CREDIT_PACKAGES.items():
@@ -99,7 +99,7 @@ def create_checkout_session(
 
     currency = body.currency.lower()
     if currency not in SUPPORTED_CURRENCIES:
-        currency = "usd"
+        currency = "myr"
 
     price_cents = convert_myr_cents_to_currency(package["price_myr_cents"], currency)
 
